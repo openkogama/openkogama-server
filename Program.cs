@@ -1,4 +1,5 @@
 ﻿WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+builder.Services.AddHostedService<PhotonListener>();
 WebApplication app = builder.Build();
 
 app.MapGet("/session", () => new SessionData("127.0.0.1:5055", 0, 0, GameMode.Play, "en_US", false, "0"));

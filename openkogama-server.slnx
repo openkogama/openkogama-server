@@ -1,3 +1,4 @@
 <Solution>
+  <Project Path="../openkogama-photon/openkogama-photon.csproj" />
   <Project Path="openkogama-server.csproj" />
 </Solution>
