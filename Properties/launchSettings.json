@@ -1,12 +1,7 @@
 {
   "profiles": {
     "openkogama-server": {
-      "commandName": "Project",
-      "launchBrowser": true,
-      "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
-      },
-      "applicationUrl": "https://localhost:51464;http://localhost:51465"
+      "commandName": "Project"
     }
   }
 }

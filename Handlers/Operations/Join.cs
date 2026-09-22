@@ -1,20 +1,23 @@
+using OpenKogama.Game;
 using OpenKogama.Kogama;
 using OpenKogama.Photon;
 
 namespace OpenKogama.Handlers.Operations;
 
-public sealed class Join : IOperationHandler
+public sealed class Join(Session session) : IOperationHandler
 {
     public byte Code => (byte)OperationCode.Join;
 
     public void Handle(PhotonPeer peer, OperationRequest request)
     {
+        Player player = session.For(peer) ?? session.Add(peer);
+
         OperationResponse response = new(request)
         {
             Parameters =
             {
-                [(byte)ParameterKey.ActorNr] = (int)peer.Id,
-                [(byte)ParameterKey.Username] = "Player",
+                [(byte)ParameterKey.ActorNr] = player.Actor,
+                [(byte)ParameterKey.Username] = player.Username,
                 [(byte)ParameterKey.PlanetOwnershipType] = 0,
                 [(byte)ParameterKey.IsGamePublished] = false,
                 [(byte)ParameterKey.GameType] = (int)GameType.Classic,
