@@ -16,7 +16,7 @@ public sealed class OperationRouter
         Register(new GetCreditStatus());
         Register(new GetBuiltInItemBusinessData());
         Register(new GetDBTimeTicks());
-        Register(new RequestMaterials());
+        Register(new RequestMaterials(session));
         Register(new DBQuery());
         Register(new LargeDBQuery());
         Register(new GetNextResultSet(session));
@@ -31,6 +31,9 @@ public sealed class OperationRouter
         Register(new UpdatePrototype(session));
         Register(new RequestBuiltInItem(session));
         Register(new AddItemToWorld(session));
+        Register(new AddWorldObjectToInventory(session));
+        Register(new RemoveItemFromInventory(session));
+        Register(new UpdateInventorySlots(session));
         Register(new TransferOwnership(session));
         Register(new UnregisterWorldObject(session));
         Register(new CloneWorldObjectTree(session));
@@ -46,10 +49,12 @@ public sealed class OperationRouter
         Register(new LinkOperation(session, objectLink: true, adding: true));
         Register(new LinkOperation(session, objectLink: true, adding: false));
         Register(new ResetTerrain(session));
+        Register(new RuntimeEvent(session));
+        Register(new ResetLogicChunk(session));
         Register(new WorldObjectData(session, DataChange.Replace));
         Register(new WorldObjectData(session, DataChange.Merge));
         Register(new WorldObjectData(session, DataChange.Remove));
-        Register(new UpdateWorldObjectRunTimeData(server));
+        Register(new UpdateWorldObjectRunTimeData(session));
         Register(new UpdateLineOfFire(server));
         Register(new PostGameMsg(session));
     }

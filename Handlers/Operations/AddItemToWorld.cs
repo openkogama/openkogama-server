@@ -12,7 +12,7 @@ public sealed class AddItemToWorld(Session session) : IOperationHandler
     public void Handle(PhotonPeer peer, OperationRequest request)
     {
         int itemId = Convert.ToInt32(request[(byte)ParameterKey.ItemID]);
-        Item? item = Items.For("2015").Find(itemId);
+        Item? item = Inventories.Find(session.For(peer)?.ProfileId ?? 0, itemId);
         if (item is null)
         {
             Console.WriteLine($"peer {peer.Id}: unknown item {itemId}");

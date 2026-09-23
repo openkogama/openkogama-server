@@ -17,6 +17,7 @@ public sealed class GameWorld
     readonly List<WorldObject> _objects = [];
     readonly List<Link> _links = [];
     readonly List<Link> _objectLinks = [];
+    readonly List<byte[]> _runtimeEvents = [];
     int _nextObjectId = 1;
     int _nextPrototypeId = 1;
     int _nextLinkId = 1;
@@ -91,6 +92,20 @@ public sealed class GameWorld
             var link = new Link(objectLink ? _nextObjectLinkId++ : _nextLinkId++, from, to);
             (objectLink ? _objectLinks : _links).Add(link);
             return link;
+        }
+    }
+
+    public List<int> LogicChunk(int id)
+    {
+        lock (_sync)
+        {
+            var chunk = new HashSet<int> { id };
+            var pending = new Queue<int>([id]);
+            while (pending.TryDequeue(out int current))
+                foreach (Link link in _links.Where(link => link.From == current || link.To == current))
+                    foreach (int next in new[] { link.From, link.To })
+                        if (chunk.Add(next)) pending.Enqueue(next);
+            return [.. chunk];
         }
     }
 
@@ -255,7 +270,16 @@ public sealed class GameWorld
 
     public Snapshot ToSnapshot()
     {
-        lock (_sync) return new Snapshot([.. _prototypes.Values], Ordered(), [.. _links], [.. _objectLinks]);
+        lock (_sync)
+            return new Snapshot([.. _prototypes.Values], Ordered(), [.. _links], [.. _objectLinks])
+            {
+                RuntimeEvents = [.. _runtimeEvents],
+            };
+    }
+
+    public void AddRuntimeEvent(byte[] runtimeEvent)
+    {
+        lock (_sync) _runtimeEvents.Add(runtimeEvent);
     }
 
     List<WorldObject> Ordered()

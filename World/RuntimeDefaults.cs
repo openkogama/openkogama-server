@@ -11,6 +11,13 @@ public static class RuntimeDefaults
                 obj.Runtime.Add((key, type, value));
     }
 
+    public static void Reset(WorldObject obj)
+    {
+        var keys = For(obj.Type).Select(pair => pair.Item1).ToHashSet();
+        obj.Runtime.RemoveAll(pair => keys.Contains(pair.Key));
+        Apply(obj);
+    }
+
     static List<(string, PackedType, object)> For(WorldObjectType type) => type switch
     {
         WorldObjectType.SentryGun =>

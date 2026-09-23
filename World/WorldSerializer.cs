@@ -8,7 +8,10 @@ public sealed record Snapshot(
     IReadOnlyList<Prototype> Prototypes,
     IReadOnlyList<WorldObject> Objects,
     IReadOnlyList<Link> Links,
-    IReadOnlyList<Link> ObjectLinks);
+    IReadOnlyList<Link> ObjectLinks)
+{
+    public IReadOnlyList<byte[]> RuntimeEvents { get; init; } = [];
+}
 
 // The packed world (BytePacker v11), the same bytes the client gets in GetGameBatch:
 //   int32 prototypeCount    + records
@@ -21,7 +24,7 @@ public static class WorldSerializer
     const byte HasOwner = 1;
     const byte HasPreviewOwner = 2;
 
-    public static byte[] Write(Snapshot snapshot)
+    public static byte[] Write(Snapshot snapshot, bool runtime = true)
     {
         var writer = new BytePackerWriter();
 
@@ -31,11 +34,15 @@ public static class WorldSerializer
 
         writer.WriteInt32(snapshot.Objects.Count);
         foreach (WorldObject obj in snapshot.Objects)
-            WriteObject(writer, obj);
+            WriteObject(writer, obj, runtime);
 
         WriteLinks(writer, snapshot.Links);
         WriteLinks(writer, snapshot.ObjectLinks);
-        writer.WriteInt32(0);   // runtime events
+        if (!runtime) return writer.ToArray();
+
+        writer.WriteInt32(snapshot.RuntimeEvents.Count);
+        foreach (byte[] runtimeEvent in snapshot.RuntimeEvents)
+            writer.WriteBytes(runtimeEvent);
 
         return writer.ToArray();
     }
@@ -82,7 +89,7 @@ public static class WorldSerializer
         return new Prototype(id, scale, authorId, CubeModel.FromBytes(cubes));
     }
 
-    static void WriteObject(BytePackerWriter writer, WorldObject obj)
+    static void WriteObject(BytePackerWriter writer, WorldObject obj, bool runtime)
     {
         writer.WriteInt32(obj.Id);
         writer.WriteInt32(obj.ParentId);
@@ -94,6 +101,7 @@ public static class WorldSerializer
         writer.WriteVector3(obj.Scale[0], obj.Scale[1], obj.Scale[2]);
 
         writer.WritePairs(obj.Data);
+        if (!runtime) return;
 
         byte flags = 0;
         if (obj.Owner is not null) flags |= HasOwner;

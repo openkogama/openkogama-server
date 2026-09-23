@@ -8,6 +8,7 @@ public sealed class Item
     public string Name { get; set; } = "";
     public string Description { get; set; } = "";
     public int Category { get; set; }
+    public int Author { get; set; }
     public string Data { get; set; } = "";
 
     public byte[] Bytes => Convert.FromBase64String(Data);

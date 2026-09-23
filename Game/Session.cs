@@ -17,7 +17,11 @@ public sealed class Session
             ? GameWorld.Load(SavePath)
             : GameWorld.Load(TemplatePath, onlyImportable: true);
         _avatarPrototypes = Avatar.AddPrototypes(World);
+        Logic = new Logic(this);
+        Logic.Reset(World.ToSnapshot().Objects.Where(obj => obj.Type == WorldObjectType.TimeTrigger).Select(obj => obj.Id));
     }
+
+    public Logic Logic { get; }
 
     public GameWorld World { get; }
     public Triggers Triggers { get; } = new();

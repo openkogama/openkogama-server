@@ -7,7 +7,7 @@ public sealed class HttpServer
 {
     readonly HttpListener _listener = new();
 
-    public string SessionJson { get; set; } = "";
+    public Func<int, string> SessionJson { get; set; } = _ => "{}";
 
     public HttpServer(string prefix) => _listener.Prefixes.Add(prefix);
 
@@ -22,7 +22,7 @@ public sealed class HttpServer
 
             try
             {
-                Route(path, context.Response);
+                Route(path, context.Request, context.Response);
             }
             catch (Exception error)
             {
@@ -31,11 +31,12 @@ public sealed class HttpServer
         }
     }
 
-    void Route(string path, HttpListenerResponse response)
+    void Route(string path, HttpListenerRequest request, HttpListenerResponse response)
     {
         if (path is "/" or "/session")
         {
-            Json(response, SessionJson);
+            int profile = int.TryParse(request.QueryString["profile"], out int requested) && requested > 0 ? requested : 1;
+            Json(response, SessionJson(profile));
             return;
         }
 

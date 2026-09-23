@@ -21,7 +21,7 @@ public sealed class WorldObjectData(Session session, DataChange change) : IOpera
         int objectId = Convert.ToInt32(request[(byte)ParameterKey.WorldObjectID]);
         byte dataKey = (byte)(change == DataChange.Remove ? ParameterKey.WorldObjectDataToRemove : ParameterKey.WorldObjectData);
         object? raw = request[dataKey];
-        var table = (Dictionary<object, object?>)Normalize(raw)!;
+        var table = (Dictionary<object, object?>)PhotonValues.Normalize(raw)!;
 
         bool found = session.World.Modify(objectId, obj =>
         {
@@ -57,11 +57,4 @@ public sealed class WorldObjectData(Session session, DataChange change) : IOpera
         foreach (Player player in session.Players)
             player.Peer.Send(evt);
     }
-
-    static object? Normalize(object? value) => value switch
-    {
-        PhotonDictionary dictionary => dictionary.Entries.ToDictionary(entry => entry.Key, entry => Normalize(entry.Value)),
-        Dictionary<object, object?> table => table.ToDictionary(entry => entry.Key, entry => Normalize(entry.Value)),
-        _ => value,
-    };
 }

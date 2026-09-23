@@ -36,7 +36,8 @@ public sealed class RequestBuiltInItem(Session session) : IOperationHandler
                 float cubeScale = Convert.ToSingle(data[(byte)1]);
                 byte material = Convert.ToByte(data[(byte)2]);
 
-                var prototype = new Prototype(world.NewPrototypeId(), cubeScale, 1, CubeModel.SingleCube(material));
+                int author = session.For(peer)?.ProfileId ?? 0;
+                var prototype = new Prototype(world.NewPrototypeId(), cubeScale, author, CubeModel.SingleCube(material));
                 prototypes.Add(prototype);
                 obj.Type = WorldObjectType.CubeModel;
                 obj.Data = [("protoTypeID", PackedType.Int32, prototype.Id)];

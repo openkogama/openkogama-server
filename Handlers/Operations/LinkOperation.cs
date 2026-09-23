@@ -51,6 +51,7 @@ public sealed class LinkOperation(Session session, bool objectLink, bool adding)
         }
 
         session.World.MarkChanged();
+        session.Logic.Evaluate();
 
         foreach (Player player in session.Players)
             if (player.Peer != peer)

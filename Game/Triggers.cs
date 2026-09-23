@@ -24,6 +24,11 @@ public sealed class Triggers
         }
     }
 
+    public bool IsPressed(int objectId)
+    {
+        lock (_inside) return _inside.TryGetValue(objectId, out HashSet<int>? actors) && actors.Count > 0;
+    }
+
     public List<int> ExitAll(int actor)
     {
         lock (_inside)

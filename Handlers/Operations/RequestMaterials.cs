@@ -4,12 +4,15 @@ using OpenKogama.Photon;
 
 namespace OpenKogama.Handlers.Operations;
 
-public sealed class RequestMaterials : IOperationHandler
+public sealed class RequestMaterials(Session session) : IOperationHandler
 {
     public byte Code => (byte)OperationCode.RequestMaterials;
 
     public void Handle(PhotonPeer peer, OperationRequest request)
     {
+        if (session.For(peer) is Player player && request.Parameters.TryGetValue((byte)ParameterKey.ProfileID, out object? profile))
+            player.ProfileId = Convert.ToInt32(profile);
+
         PhotonDictionary list = PhotonDictionary.Untyped();
 
         foreach (Material material in Materials.For("2015"))

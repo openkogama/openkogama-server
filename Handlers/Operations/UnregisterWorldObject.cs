@@ -22,6 +22,7 @@ public sealed class UnregisterWorldObject(Session session) : IOperationHandler
 
         List<int> removedPrototypes = session.World.RemoveTree(objectId);
         session.World.MarkChanged();
+        session.Logic.Evaluate();
 
         foreach (int prototypeId in removedPrototypes)
         {

@@ -32,13 +32,9 @@ public sealed class GetNextResultSet(Session session) : IOperationHandler
     static PhotonDictionary Inventory(int profileId)
     {
         PhotonDictionary inventory = PhotonDictionary.Untyped();
-        var nextSlot = new Dictionary<int, int>();
 
-        foreach (Item item in Items.For("2015").Items)
+        foreach ((Item item, int slot) in Inventories.WithSlots(profileId))
         {
-            int slot = nextSlot.GetValueOrDefault(item.Category);
-            nextSlot[item.Category] = slot + 1;
-
             PhotonDictionary entry = PhotonDictionary.Untyped();
             entry.Add((byte)DBQueryKey.ItemID, item.Id);
             entry.Add((byte)DBQueryKey.ItemCategoryID, item.Category);
@@ -47,9 +43,9 @@ public sealed class GetNextResultSet(Session session) : IOperationHandler
             entry.Add((byte)DBQueryKey.ItemDescription, item.Description);
             entry.Add((byte)DBQueryKey.PriceGold, 0);
             entry.Add((byte)DBQueryKey.PriceSilver, 0);
-            entry.Add((byte)DBQueryKey.Resellable, false);
+            entry.Add((byte)DBQueryKey.Resellable, item.Author == profileId);
             entry.Add((byte)DBQueryKey.ShopInventoryID, 0);
-            entry.Add((byte)DBQueryKey.AuthorProfileID, profileId);
+            entry.Add((byte)DBQueryKey.AuthorProfileID, item.Author);
             entry.Add((byte)DBQueryKey.OriginalItemID, item.Id);
             entry.Add((byte)DBQueryKey.Deleted, false);
             entry.Add((byte)DBQueryKey.ItemData, item.Bytes);

@@ -8,6 +8,7 @@ using OpenKogama.Web;
 
 var server = new PhotonServer(5055) { Log = Console.WriteLine };
 var session = new Session();
+session.Logic.Clock = () => server.Now;
 
 server.Connected += peer => Console.WriteLine($"peer {peer.Id}: photon init done");
 server.Disconnected += (peer, reason) =>
@@ -20,6 +21,7 @@ server.Disconnected += (peer, reason) =>
 
     foreach (int trigger in session.Triggers.ExitAll(gone.Actor))
         TriggerBox.Send(session, trigger, gone.Actor, pressed: false);
+    session.Logic.Evaluate();
 
     var evt = new EventData((byte)EventCode.UnregisterWorldObject)
     {
@@ -45,11 +47,22 @@ _ = Task.Run(async () =>
 });
 AppDomain.CurrentDomain.ProcessExit += (_, _) => session.SaveIfChanged();
 
-// run kogama with "kogama.exe kogamaPackage:aHR0cDovLzEyNy4wLjAuMTo4MDgwL3Nlc3Npb24="
-var sessionData = new SessionData("127.0.0.1:5055", 1, 0, GameMode.Edit, "en_US", false, "0",
-    "http://127.0.0.1:8080/ping", "http://127.0.0.1:8080/disconnect");
-var json = JsonSerializer.Serialize(sessionData, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+_ = Task.Run(async () =>
+{
+    while (true)
+    {
+        await Task.Delay(50);
+        session.Logic.Tick();
+    }
+});
 
-var web = new HttpServer("http://127.0.0.1:8080/") { SessionJson = json };
+// run kogama with "kogama.exe kogamaPackage:aHR0cDovLzEyNy4wLjAuMTo4MDgwL3Nlc3Npb24="
+var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+string SessionJson(int profile) => JsonSerializer.Serialize(
+    new SessionData("127.0.0.1:5055", profile, 0, GameMode.Edit, "en_US", false, "0",
+        "http://127.0.0.1:8080/ping", "http://127.0.0.1:8080/disconnect"),
+    jsonOptions);
+
+var web = new HttpServer("http://127.0.0.1:8080/") { SessionJson = SessionJson };
 Console.WriteLine("http 8080");
 web.Run();
