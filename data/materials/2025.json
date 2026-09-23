@@ -1,0 +1,1244 @@
+[
+  {
+    "id": 0,
+    "name": "Light Red",
+    "description": "A basic building material.\nHint: Try using different colors!",
+    "path": "Cube/Materials/scarletred00",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 20,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 1,
+    "name": "Red",
+    "description": "A basic building material.\nHint: Try using different colors!",
+    "path": "Cube/Materials/scarletred01",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 2,
+    "name": "Dark Red",
+    "description": "A basic building material.\nHint: Try using different colors!",
+    "path": "Cube/Materials/scarletred02",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 25,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 3,
+    "name": "Light Chocolate",
+    "description": "A basic building material.\nHint: Try using different colors!",
+    "path": "Cube/Materials/chocolate00",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 4,
+    "name": "Light Purple",
+    "description": "A basic building material.\nHint: Try using different colors!",
+    "path": "Cube/Materials/plum00",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 5,
+    "name": "Light Blue",
+    "description": "A basic building material.\nHint: Try using different colors!",
+    "path": "Cube/Materials/skyblue00",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 10,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 6,
+    "name": "Blue",
+    "description": "A basic building material.\nHint: Try using different colors!",
+    "path": "Cube/Materials/skyblue01",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 7,
+    "name": "Dark Blue",
+    "description": "A basic building material.\nHint: Try using different colors!",
+    "path": "Cube/Materials/skyblue02",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 25,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 8,
+    "name": "Chokolate",
+    "description": "A basic building material.\nHint: Try using different colors!",
+    "path": "Cube/Materials/chocolate01",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 25,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 9,
+    "name": "Purple",
+    "description": "A basic building material.\nHint: Try using different colors!",
+    "path": "Cube/Materials/plum01",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 10,
+    "name": "Light Green",
+    "description": "A basic building material.\nHint: Try using different colors!",
+    "path": "Cube/Materials/chameleon00",
+    "sound": 1,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 25,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 11,
+    "name": "Green",
+    "description": "A basic building material.\nHint: Try using different colors!",
+    "path": "Cube/Materials/chameleon01",
+    "sound": 1,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 12,
+    "name": "Dark Green",
+    "description": "A basic building material.\nHint: Try using different colors!",
+    "path": "Cube/Materials/chameleon02",
+    "sound": 1,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 25,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 13,
+    "name": "Dark Chocolate",
+    "description": "A basic building material.\nHint: Try using different colors!",
+    "path": "Cube/Materials/chocolate02",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 14,
+    "name": "Dark Purple",
+    "description": "A basic building material.\nHint: Try using different colors!",
+    "path": "Cube/Materials/plum02",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 15,
+    "name": "Light Orange",
+    "description": "A basic building material.\nHint: Try using different colors!",
+    "path": "Cube/Materials/orange00",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 16,
+    "name": "Orange",
+    "description": "A basic building material.\nHint: Try using different colors!",
+    "path": "Cube/Materials/orange01",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 17,
+    "name": "Dark Orange",
+    "description": "A basic building material.\nHint: Try using different colors!",
+    "path": "Cube/Materials/orange02",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 18,
+    "name": "Light Sand",
+    "description": "A basic building material.\nHint: Try using different colors!",
+    "path": "Cube/Materials/butter00",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 19,
+    "name": "Sand",
+    "description": "A basic building material.\nHint: Try using different colors!",
+    "path": "Cube/Materials/butter01",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 20,
+    "name": "Light Gray",
+    "description": "A basic building material.\nHint: Try using different colors!",
+    "path": "Cube/Materials/aluminium00",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 10,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 21,
+    "name": "Gray",
+    "description": "A basic building material.\nHint: Try using different colors!",
+    "path": "Cube/Materials/aluminium01",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 22,
+    "name": "Dark Gray",
+    "description": "A basic building material.\nHint: Try using different colors!",
+    "path": "Cube/Materials/aluminium02",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 10,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 23,
+    "name": "Black",
+    "description": "A basic building material.\nHint: Try using different colors!",
+    "path": "Cube/Materials/aluminium03",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 25,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 24,
+    "name": "Dark Sand",
+    "description": "A basic building material.\nHint: Try using different colors!",
+    "path": "Cube/Materials/butter02",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 25,
+    "name": "Ice",
+    "description": "Has a very slippery surface.\nHint: Try building a ramp!",
+    "path": "Cube/Materials/func_ice00",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 10,
+    "priceSilver": 0,
+    "physical": [
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0
+    ]
+  },
+  {
+    "id": 26,
+    "name": "Lava",
+    "description": "Watch out! Very hot!\nHint: Try to avoid walking on this!",
+    "path": "Cube/Materials/func_lava00",
+    "sound": 0,
+    "modifier": 1,
+    "animation": "LavaAnimator",
+    "priceGold": 10,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      0.0,
+      0.0
+    ]
+  },
+  {
+    "id": 27,
+    "name": "Bouncy",
+    "description": "Trampoline fun!\nHint: Try to place a block at an angle!",
+    "path": "Cube/Materials/func_bouncy00",
+    "sound": 5,
+    "modifier": 5,
+    "animation": "",
+    "priceGold": 25,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.699999988079071,
+      0.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 28,
+    "name": "Poison",
+    "description": "Poison!\nPick up health to heal yourself!",
+    "path": "Cube/Materials/func_lava01",
+    "sound": 0,
+    "modifier": 4,
+    "animation": "LavaAnimator",
+    "priceGold": 50,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 29,
+    "name": "Parkour",
+    "description": "You can wall jump on this!\n",
+    "path": "Cube/Materials/func_parkour00",
+    "sound": 4,
+    "modifier": 5,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 30,
+    "name": "Brickwall",
+    "description": "A realistic building material, that looks like bricks",
+    "path": "Cube/Materials/Brickwall00",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 15,
+    "priceSilver": 0,
+    "physical": [
+      0.699999988079071,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 31,
+    "name": "WoodFloor",
+    "description": "A realistic building material, that looks like a wooden floor",
+    "path": "Cube/Materials/Wood01",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 32,
+    "name": "Pavement",
+    "description": "A realistic building material, that looks like pavement",
+    "path": "Cube/Materials/Pavement00",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 33,
+    "name": "Concrete",
+    "description": "A realistic building material, that looks like concrete",
+    "path": "Cube/Materials/Concrete00",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 34,
+    "name": "Camouflage",
+    "description": "Cool camouflage material",
+    "path": "Cube/Materials/Cloth01",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 35,
+    "name": "Cracked Pavement",
+    "description": "A pavement material with patina",
+    "path": "Cube/Materials/Pavement02",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 10,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 36,
+    "name": "Cracked Dry Ground",
+    "description": "Sundried and cracked ground",
+    "path": "Cube/Materials/Pavement03",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 10,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 37,
+    "name": "Jumbo Brick Red",
+    "description": "Big red building blocks",
+    "path": "Cube/Materials/Brickwall01",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 38,
+    "name": "Jumbo Brick Yellow",
+    "description": "Big yellow buildiing blocks",
+    "path": "Cube/Materials/Brickwall02",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 39,
+    "name": "Arrow Block",
+    "description": "Cool looking arrow material",
+    "path": "Cube/Materials/aluminium04",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 10,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 40,
+    "name": "Reinforced Metal Plate",
+    "description": "Heavily reinforced rusty metal plate",
+    "path": "Cube/Materials/metal00",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 41,
+    "name": "Rusty Metal Plate",
+    "description": "Rusty metal plate with bolts",
+    "path": "Cube/Materials/metal01",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 42,
+    "name": "Mushroom",
+    "description": "Slightly slippery and bouncy",
+    "path": "Cube/Materials/func_bouncy01",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.23000000417232513,
+      0.30000001192092896,
+      0.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 43,
+    "name": "Black Ice",
+    "description": "Has a very slippery surface",
+    "path": "Cube/Materials/func_ice01",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0
+    ]
+  },
+  {
+    "id": 44,
+    "name": "Pink",
+    "description": "A basic building material",
+    "path": "Cube/Materials/pink00",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 10,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 45,
+    "name": "Red Glowing Grid",
+    "description": "Science fiction material that glows!",
+    "path": "Cube/Materials/grid00",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 10,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 46,
+    "name": "Green Glowing Grid",
+    "description": "Science fiction material that glows!",
+    "path": "Cube/Materials/grid01",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 10,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 47,
+    "name": "Circuit Board",
+    "description": "Computer circuit board material",
+    "path": "Cube/Materials/circuit00",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 48,
+    "name": "Castle Brick",
+    "description": "Build a defensive wall",
+    "path": "Cube/Materials/Brickwall03",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 49,
+    "name": "Polka Dot",
+    "description": "Polka dot wallpaper or carpet",
+    "path": "Cube/Materials/Pattern01",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 50,
+    "name": "Construction",
+    "description": "Construction steel plates",
+    "path": "Cube/Materials/metal02",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 51,
+    "name": "Slime",
+    "description": "Slippery and slimy",
+    "path": "Cube/Materials/func_slime00",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "LavaAnimator",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.20000000298023224,
+      0.0,
+      1.0,
+      5.0,
+      0.0
+    ]
+  },
+  {
+    "id": 52,
+    "name": "Wrapping Paper",
+    "description": "Wrapping paper pattern",
+    "path": "Cube/Materials/pattern02",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 53,
+    "name": "Dark wood",
+    "description": "Dark wood planks",
+    "path": "Cube/Materials/wood02",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 10,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 54,
+    "name": "Super Bouncy",
+    "description": "Lets fly even higher",
+    "path": "Cube/Materials/func_bouncy02",
+    "sound": 5,
+    "modifier": 5,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      1.2999999523162842,
+      0.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 55,
+    "name": "Cloud",
+    "description": "Description: Bright white material, perfect for cloud creation",
+    "path": "Cube/Materials/cloud00",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.20000000298023224,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 56,
+    "name": "Soft destructive material",
+    "description": "Destructible material",
+    "path": "Cube/Materials/destructable02",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      20.0
+    ]
+  },
+  {
+    "id": 57,
+    "name": "Medium destructive material",
+    "description": "Destructible material",
+    "path": "Cube/Materials/destructable01",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      50.0
+    ]
+  },
+  {
+    "id": 58,
+    "name": "Strong destructive material",
+    "description": "Destructible material",
+    "path": "Cube/Materials/destructable00",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      75.0
+    ]
+  },
+  {
+    "id": 59,
+    "name": "Cracked ice",
+    "description": "Ice that can be destroyed",
+    "path": "Cube/Materials/func_ice02",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 50,
+    "priceSilver": 0,
+    "physical": [
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      75.0
+    ]
+  },
+  {
+    "id": 60,
+    "name": "Striped Cement",
+    "description": "Rough surface",
+    "path": "Cube/Materials/func_ice02",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.6000000238418579,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 61,
+    "name": "Machinery",
+    "description": "Factory ready",
+    "path": "Cube/Materials/func_ice02",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 62,
+    "name": "Embossed Metal",
+    "description": "That industrial look",
+    "path": "Cube/Materials/func_ice02",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 63,
+    "name": "Scrolling",
+    "description": " ",
+    "path": " ",
+    "sound": 0,
+    "modifier": 0,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 64,
+    "name": "Kill",
+    "description": " ",
+    "path": " ",
+    "sound": 0,
+    "modifier": 20,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 65,
+    "name": "Heal",
+    "description": " ",
+    "path": " ",
+    "sound": 0,
+    "modifier": 21,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      0.0,
+      0.0
+    ]
+  },
+  {
+    "id": 66,
+    "name": "Slow",
+    "description": " ",
+    "path": " ",
+    "sound": 0,
+    "modifier": 22,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.6000000238418579,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 67,
+    "name": "Speed",
+    "description": " ",
+    "path": " ",
+    "sound": 0,
+    "modifier": 23,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.2199999988079071,
+      0.0,
+      1.0,
+      20.0,
+      0.0
+    ]
+  },
+  {
+    "id": 69,
+    "name": "Crumble",
+    "description": "",
+    "path": " ",
+    "sound": 0,
+    "modifier": 24,
+    "animation": "",
+    "priceGold": 0,
+    "priceSilver": 0,
+    "physical": [
+      0.4300000071525574,
+      0.0,
+      1.0,
+      20.0,
+      75.0
+    ]
+  }
+]

@@ -22,8 +22,7 @@ public sealed class GetNextGameBatch(Session session) : IOperationHandler
         Player? me = session.For(peer);
         if (me is null) return;
 
-        // full world (terrain + every avatar) to the joining player
-        byte[] world = WorldBuilder.BuildWorld(session.Players, session.Terrain);
+        byte[] world = WorldSerializer.Write(session.World.ToSnapshot());
 
         peer.Send(new EventData((byte)EventCode.GetGameBatch)
         {
@@ -42,8 +41,7 @@ public sealed class GetNextGameBatch(Session session) : IOperationHandler
             Parameters = { [(byte)ParameterKey.QueryId] = queryId },
         });
 
-        // spawn the newcomer's avatar for everyone already in the world
-        byte[] addition = WorldBuilder.BuildAvatarAddition(me);
+        byte[] addition = WorldSerializer.Write([], session.World.Subtree(me.AvatarId));
 
         foreach (Player other in session.Players)
         {

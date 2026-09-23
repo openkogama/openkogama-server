@@ -1,3 +1,4 @@
+using OpenKogama.Game;
 using OpenKogama.Kogama;
 using OpenKogama.Photon;
 
@@ -15,9 +16,8 @@ public sealed class DBQuery : IOperationHandler
         switch (type)
         {
             case DBQueryType.RequestItemCategories:
-                outData.Add(1, "Cube");
-                outData.Add(2, "Model");
-                outData.Add(3, "Avatar");
+                foreach ((int id, string name) in Items.For("2015").Categories)
+                    outData.Add(id, name);
                 break;
 
             case DBQueryType.RequestPlanetOwnershipTypes:

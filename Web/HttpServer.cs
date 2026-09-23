@@ -39,6 +39,12 @@ public sealed class HttpServer
             return;
         }
 
+        if (path is "/ping" or "/disconnect")
+        {
+            Json(response, "{}");
+            return;
+        }
+
         if (path.StartsWith("/api/xp_level/init_data"))
         {
             Json(response, """

@@ -1,25 +1,50 @@
 using OpenKogama.Photon;
+using OpenKogama.World;
 
 namespace OpenKogama.Game;
 
 public sealed class Session
 {
+    const string SavePath = "worlds/default.kgmap";
+    static readonly string TemplatePath = Path.Combine(AppContext.BaseDirectory, "data", "maps", "default.kgmap");
+
     readonly List<Player> _players = [];
-    int _nextAvatarId = 10;
+    readonly int[] _avatarPrototypes;
 
+    public Session()
+    {
+        World = File.Exists(SavePath)
+            ? GameWorld.Load(SavePath)
+            : GameWorld.Load(TemplatePath, onlyImportable: true);
+        _avatarPrototypes = Avatar.AddPrototypes(World);
+    }
+
+    public GameWorld World { get; }
+    public Triggers Triggers { get; } = new();
     public IReadOnlyList<Player> Players => _players;
-    public CubeModel Terrain { get; } = CubeModel.FromBytes(Map.Default.Terrain.CubeData);
 
-    // Each avatar subtree takes a block of ids: avatar, body, and one per bone.
     public Player Add(PhotonPeer peer)
     {
-        Player player = new(peer, peer.Id, _nextAvatarId);
-        _nextAvatarId += 2 + Avatar.Parts.Count;
+        List<WorldObject> avatar = Avatar.Build(World, peer.Id, World.RootId, _avatarPrototypes);
+        foreach (WorldObject obj in avatar) World.Add(obj);
+
+        Player player = new(peer, peer.Id, avatar[0].Id);
         _players.Add(player);
         return player;
     }
 
     public Player? For(PhotonPeer peer) => _players.FirstOrDefault(p => p.Peer == peer);
 
-    public void Remove(PhotonPeer peer) => _players.RemoveAll(p => p.Peer == peer);
+    public void Remove(Player player)
+    {
+        _players.Remove(player);
+        World.Remove(player.AvatarId);
+    }
+
+    public void SaveIfChanged()
+    {
+        if (!World.TakeChanged()) return;
+        World.Save(SavePath);
+        Console.WriteLine("world saved");
+    }
 }

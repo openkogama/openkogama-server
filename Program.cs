@@ -1,6 +1,7 @@
 using System.Text.Json;
 using OpenKogama.Game;
 using OpenKogama.Handlers;
+using OpenKogama.Handlers.Operations;
 using OpenKogama.Kogama;
 using OpenKogama.Photon;
 using OpenKogama.Web;
@@ -14,8 +15,11 @@ server.Disconnected += (peer, reason) =>
     Console.WriteLine($"peer {peer.Id}: gone ({reason})");
 
     Player? gone = session.For(peer);
-    session.Remove(peer);
     if (gone is null) return;
+    session.Remove(gone);
+
+    foreach (int trigger in session.Triggers.ExitAll(gone.Actor))
+        TriggerBox.Send(session, trigger, gone.Actor, pressed: false);
 
     var evt = new EventData((byte)EventCode.UnregisterWorldObject)
     {
@@ -31,8 +35,19 @@ server.Operation = router.Handle;
 _ = server.RunAsync();
 Console.WriteLine("udp 5055");
 
+_ = Task.Run(async () =>
+{
+    while (true)
+    {
+        await Task.Delay(5000);
+        session.SaveIfChanged();
+    }
+});
+AppDomain.CurrentDomain.ProcessExit += (_, _) => session.SaveIfChanged();
+
 // run kogama with "kogama.exe kogamaPackage:aHR0cDovLzEyNy4wLjAuMTo4MDgwL3Nlc3Npb24="
-var sessionData = new SessionData("127.0.0.1:5055", 1, 0, GameMode.Edit, "en_US", false, "0");
+var sessionData = new SessionData("127.0.0.1:5055", 1, 0, GameMode.Edit, "en_US", false, "0",
+    "http://127.0.0.1:8080/ping", "http://127.0.0.1:8080/disconnect");
 var json = JsonSerializer.Serialize(sessionData, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
 
 var web = new HttpServer("http://127.0.0.1:8080/") { SessionJson = json };

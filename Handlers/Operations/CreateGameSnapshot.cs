@@ -1,6 +1,7 @@
 using OpenKogama.Game;
 using OpenKogama.Kogama;
 using OpenKogama.Photon;
+using OpenKogama.World;
 
 namespace OpenKogama.Handlers.Operations;
 
@@ -41,7 +42,8 @@ public sealed class CreateGameSnapshot(Session session) : IOperationHandler
                 [(byte)ParameterKey.GameStateStartTime] = 0,
                 [(byte)ParameterKey.GameStateDuration] = 0,
                 [(byte)ParameterKey.GameStateReason] = 0,
-                [(byte)ParameterKey.FineGrainedTerrainPrototypeID] = 101,
+                [(byte)ParameterKey.FineGrainedTerrainPrototypeID] =
+                    session.World.FindFirst(WorldObjectType.CubeModelTerrainFineGrained)?.PrototypeId ?? -1,
                 [(byte)ParameterKey.GameStatCounterData] = new byte[sizeof(int)],
             },
         };

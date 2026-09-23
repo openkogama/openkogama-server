@@ -3,17 +3,36 @@ using OpenKogama.Kogama;
 
 namespace OpenKogama.Game;
 
-// Cubes of one prototype. Each cube is kept as its own wire bytes:
-//   flags (bit0 default corners, bit1 one material, rest = row length)
-//   [8 corner bytes]  [1 or 6 material bytes]
 public sealed class CubeModel
 {
     const byte DefaultCorners = 1;
     const byte OneMaterial = 2;
 
     readonly Dictionary<(short X, short Y, short Z), byte[]> _cubes = [];
+    readonly object _sync = new();
 
     public int Count => _cubes.Count;
+
+    public static CubeModel SingleCube(byte material)
+    {
+        var model = new CubeModel();
+        model._cubes[(0, 0, 0)] = [DefaultCorners | OneMaterial, material];
+        return model;
+    }
+
+    public void Clear()
+    {
+        lock (_sync) _cubes.Clear();
+    }
+
+    public CubeModel Clone()
+    {
+        var copy = new CubeModel();
+        lock (_sync)
+            foreach (var (position, cube) in _cubes)
+                copy._cubes[position] = cube;
+        return copy;
+    }
 
     public static CubeModel FromBytes(byte[] data)
     {
@@ -38,6 +57,11 @@ public sealed class CubeModel
     }
 
     public void Apply(byte[] changes)
+    {
+        lock (_sync) ApplyUnsafe(changes);
+    }
+
+    void ApplyUnsafe(byte[] changes)
     {
         int offset = 0;
 
@@ -68,6 +92,11 @@ public sealed class CubeModel
 
     public byte[] ToBytes()
     {
+        lock (_sync) return ToBytesUnsafe();
+    }
+
+    byte[] ToBytesUnsafe()
+    {
         using var stream = new MemoryStream();
         Span<byte> buffer = stackalloc byte[4];
 
@@ -80,7 +109,7 @@ public sealed class CubeModel
             BinaryPrimitives.WriteInt16BigEndian(buffer, y); stream.Write(buffer[..2]);
             BinaryPrimitives.WriteInt16BigEndian(buffer, z); stream.Write(buffer[..2]);
 
-            stream.WriteByte((byte)((1 << 2) | (cube[0] & 3)));   // every cube is its own row of 1
+            stream.WriteByte((byte)((1 << 2) | (cube[0] & 3)));
             stream.Write(cube, 1, cube.Length - 1);
         }
 

@@ -14,8 +14,15 @@ public sealed class UpdatePrototype(Session session) : IOperationHandler
         int prototypeId = Convert.ToInt32(request[(byte)ParameterKey.WorldInventoryID]);
         var changes = (byte[])request[(byte)ParameterKey.WorldInventoryData]!;
 
-        if (prototypeId == WorldBuilder.TerrainPrototypeId)
-            session.Terrain.Apply(changes);
+        Prototype? prototype = session.World.FindPrototype(prototypeId);
+        if (prototype is null)
+        {
+            Console.WriteLine($"peer {peer.Id}: unknown prototype {prototypeId}");
+            return;
+        }
+
+        prototype.Cubes.Apply(changes);
+        session.World.MarkChanged();
 
         var evt = new EventData((byte)EventCode.UpdatePrototype)
         {

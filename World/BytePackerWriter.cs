@@ -30,6 +30,8 @@ public sealed class BytePackerWriter
 
     public void WriteByte(byte value) => _bytes.Add(value);
 
+    public void WriteBytes(byte[] value) => _bytes.AddRange(value);
+
     public void WriteBool(bool value) => _bytes.Add(value ? (byte)1 : (byte)0);
 
     public void WriteInt16(short value)
@@ -138,6 +140,13 @@ public sealed class BytePackerWriter
                     int[] items = (int[])value;
                     WriteInt32(items.Length);
                     foreach (int item in items) WriteInt32(item);
+                    break;
+                }
+                case PackedType.Int64Array:
+                {
+                    long[] items = (long[])value;
+                    WriteInt32(items.Length);
+                    foreach (long item in items) WriteInt64(item);
                     break;
                 }
                 case PackedType.Hashtable:
