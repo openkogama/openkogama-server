@@ -32,7 +32,7 @@ _ = server.RunAsync();
 Console.WriteLine("udp 5055");
 
 // run kogama with "kogama.exe kogamaPackage:aHR0cDovLzEyNy4wLjAuMTo4MDgwL3Nlc3Npb24="
-var sessionData = new SessionData("127.0.0.1:5055", 1, 0, GameMode.Play, "en_US", false, "0");
+var sessionData = new SessionData("127.0.0.1:5055", 1, 0, GameMode.Edit, "en_US", false, "0");
 var json = JsonSerializer.Serialize(sessionData, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
 
 var web = new HttpServer("http://127.0.0.1:8080/") { SessionJson = json };

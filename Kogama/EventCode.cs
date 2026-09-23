@@ -4,6 +4,7 @@ public enum EventCode : byte
 {
     UnregisterWorldObject = 1,
     UpdateWorldObject = 2,
+    UpdatePrototype = 10,
     UpdateWorldObjectRunTimeData = 31,
     UpdateLineOfFire = 33,
     PostGameMsg = 36,

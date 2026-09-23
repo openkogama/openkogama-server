@@ -14,9 +14,12 @@ public sealed class OperationRouter
         _log = log;
         Register(new Join(session));
         Register(new GetCreditStatus());
+        Register(new GetBuiltInItemBusinessData());
         Register(new GetDBTimeTicks());
         Register(new RequestMaterials());
         Register(new DBQuery());
+        Register(new LargeDBQuery());
+        Register(new GetNextResultSet());
         Register(new RequestStreamingAssetList());
         Register(new RequestStreamingAssetInventory());
         Register(new CreateGameSnapshot(session));
@@ -25,6 +28,7 @@ public sealed class OperationRouter
         Register(new SetTeam());
         Register(new SetActorReady());
         Register(new UpdateWorldObject(server));
+        Register(new UpdatePrototype(session));
         Register(new UpdateWorldObjectRunTimeData(server));
         Register(new UpdateLineOfFire(server));
         Register(new PostGameMsg(session));

@@ -23,7 +23,7 @@ public sealed class GetNextGameBatch(Session session) : IOperationHandler
         if (me is null) return;
 
         // full world (terrain + every avatar) to the joining player
-        byte[] world = WorldBuilder.BuildWorld(session.Players);
+        byte[] world = WorldBuilder.BuildWorld(session.Players, session.Terrain);
 
         peer.Send(new EventData((byte)EventCode.GetGameBatch)
         {

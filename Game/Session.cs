@@ -8,6 +8,7 @@ public sealed class Session
     int _nextAvatarId = 10;
 
     public IReadOnlyList<Player> Players => _players;
+    public CubeModel Terrain { get; } = CubeModel.FromBytes(Map.Default.Terrain.CubeData);
 
     // Each avatar subtree takes a block of ids: avatar, body, and one per bone.
     public Player Add(PhotonPeer peer)

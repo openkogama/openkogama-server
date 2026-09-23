@@ -42,18 +42,16 @@ public static class WorldBuilder
     const int FineTerrainId = 3;
 
     const int BodyPrototypeId = 1;
-    const int TerrainPrototypeId = 100;
+    public const int TerrainPrototypeId = 100;
     const int FineTerrainPrototypeId = 101;
 
-    const int TerrainSize = 32;
-
     // The full world for a joining player: shared terrain plus every player's avatar.
-    public static byte[] BuildWorld(IReadOnlyList<Player> players)
+    public static byte[] BuildWorld(IReadOnlyList<Player> players, CubeModel terrain)
     {
         var writer = new BytePackerWriter();
 
         writer.WriteInt32(2 + Parts.Count);   // prototypes, shared by all avatars
-        WriteTerrainPrototype(writer, TerrainPrototypeId, material: 0);
+        WriteCubeModelPrototype(writer, TerrainPrototypeId, Map.Default.Terrain.Scale, terrain.ToBytes());
         WriteEmptyPrototype(writer, FineTerrainPrototypeId);
         for (int i = 0; i < Parts.Count; i++)
             WriteCubeModelPrototype(writer, BodyPrototypeId + i, Parts[i].Scale, Parts[i].CubeData);
@@ -125,7 +123,8 @@ public static class WorldBuilder
         writer.WriteInt32(0);
         writer.WriteInt32((int)WorldObjectType.Avatar);
 
-        writer.WriteVector3(0f, 2f, 0f);
+        float[] spawn = Map.Default.Spawn;
+        writer.WriteVector3(spawn[0], spawn[1], spawn[2]);
         writer.WriteQuaternion(0f, 0f, 0f, 1f);
         writer.WriteVector3(1f, 1f, 1f);
 
@@ -155,29 +154,6 @@ public static class WorldBuilder
 
         writer.WriteInt32(cubes.Length);
         foreach (byte value in cubes) writer.WriteByte(value);
-    }
-
-    static void WriteTerrainPrototype(BytePackerWriter writer, int prototypeId, byte material)
-    {
-        writer.WriteInt32(prototypeId);
-        writer.WriteSingle(1f);
-        writer.WriteInt32(1);
-
-        var cubes = new BytePackerWriter();
-        cubes.WriteInt32(TerrainSize);          // one run per row
-
-        for (int z = 0; z < TerrainSize; z++)
-        {
-            cubes.WriteInt16(0);                // run starts at x 0
-            cubes.WriteInt16(-1);               // one cube below the avatar
-            cubes.WriteInt16((short)z);
-            cubes.WriteByte((TerrainSize << 2) | 1 | 2);
-            cubes.WriteByte(material);
-        }
-
-        byte[] data = cubes.ToArray();
-        writer.WriteInt32(data.Length);
-        foreach (byte value in data) writer.WriteByte(value);
     }
 
     static void WriteFineTerrain(BytePackerWriter writer, int objectId, int parentId)
