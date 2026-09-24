@@ -25,6 +25,7 @@ public sealed class CloneWorldObjectTree(Session session) : IOperationHandler
 
         WorldObject clone = session.World.CloneTree(objectId)!;
         session.World.MarkChanged();
+        session.Teams.Update();
 
         var evt = new EventData((byte)EventCode.CloneWorldObjectTree)
         {

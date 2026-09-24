@@ -25,6 +25,7 @@ public sealed class SpawnVehicleWithDriver(PhotonServer server, Session session)
         if (player is null || spawner is null || TemplateOf(spawner) is not int templateId)
         {
             Console.WriteLine($"peer {peer.Id}: cannot spawn vehicle from {spawnerId}");
+            peer.Send(new OperationResponse(request) { ReturnCode = -1 });
             return;
         }
 

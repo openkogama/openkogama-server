@@ -28,6 +28,10 @@ public sealed class TriggerBox(Session session, bool entering) : IOperationHandl
                 session.Logic.Evaluate();
                 break;
 
+            case WorldObjectType.CollectibleItem:
+                if (entering) session.Round.Collect(player, obj);
+                break;
+
             case WorldObjectType.PickupItemSpawner or WorldObjectType.PickupCubeGun:
                 if (entering) Pickup.Take(session, player, obj);
                 break;

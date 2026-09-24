@@ -23,6 +23,7 @@ public sealed class AttachWorldObjectToSeat(Session session) : IOperationHandler
         if (player is null || session.World.Find(vehicleId) is null)
         {
             Console.WriteLine($"peer {peer.Id}: cannot sit in {vehicleId}");
+            peer.Send(new OperationResponse(request) { ReturnCode = -1 });
             return;
         }
 

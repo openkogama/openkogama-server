@@ -1,4 +1,4 @@
-namespace OpenKogama.Kogama;
+﻿namespace OpenKogama.Kogama;
 
 public enum EventCode : byte
 {
@@ -17,22 +17,29 @@ public enum EventCode : byte
     TriggerBoxStayBegin = 21,
     TriggerBoxStayEnd = 22,
     WoUniquePrototype = 27,
+    GameStateChange = 28,
     ResetLogicChunk = 30,
     UpdateWorldObjectRunTimeData = 31,
     PickupItemStateChange = 32,
     UpdateLineOfFire = 33,
-    PostGameMsg = 36,
     WorldObjectRPCEvent = 34,
+    PostGameMsg = 36,
     SetTeam = 37,
     AddObjectLink = 38,
     RemoveObjectLink = 39,
+    AddTeam = 40,
+    RemoveTeam = 41,
     CloneWorldObjectTree = 43,
     GetGameBatch = 44,
     GameQueryReady = 45,
+    PostWinnerReport = 46,
+    CollectiblePickedUp = 47,
     AttachWorldObjectToSeat = 51,
     DetachWorldObjectFromVehicle = 52,
     SpawnVehicleWithDriver = 53,
     RuntimeEvent = 55,
     ResetTerrain = 56,
+    UpdateGameStat = 57,
+    LevelChanged = 60,
     Join = 255,
 }

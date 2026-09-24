@@ -51,6 +51,11 @@ public static class Avatar
             ],
         };
 
+        return [avatar, .. BuildBody(world, actor, avatar.Id, partPrototypes)];
+    }
+
+    public static List<WorldObject> BuildBody(GameWorld world, int actor, int parentId, int[] partPrototypes)
+    {
         int bodyId = world.NewObjectId();
         var parts = Parts.Select((part, i) => new WorldObject
         {
@@ -64,7 +69,7 @@ public static class Avatar
         var body = new WorldObject
         {
             Id = bodyId,
-            ParentId = avatar.Id,
+            ParentId = parentId,
             Type = WorldObjectType.Blueprint,
             Data =
             [
@@ -78,6 +83,6 @@ public static class Avatar
             Owner = actor,
         };
 
-        return [avatar, body, .. parts];
+        return [body, .. parts];
     }
 }

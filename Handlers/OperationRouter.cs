@@ -22,12 +22,19 @@ public sealed class OperationRouter
         Register(new GetNextResultSet(session));
         Register(new RequestStreamingAssetList());
         Register(new RequestStreamingAssetInventory());
+        Register(new PurchaseProduct());
+        Register(new SetAvatarAccessorySlot(session));
+        Register(new UpdateAvatarAccessoryOffset(session));
+        Register(new InitializeAvatarEdit(session));
+        Register(new GetActiveAvatar(session));
         Register(new CreateGameSnapshot(session));
         Register(new GetNextGameBatch(session));
         Register(new RequestFriends());
-        Register(new SetTeam());
+        Register(new SetTeam(session));
+        Register(new LevelChanged(session));
+        Register(new ReportCaptureFlag(session));
         Register(new SetActorReady());
-        Register(new UpdateWorldObject(server));
+        Register(new UpdateWorldObject(session));
         Register(new UpdatePrototype(session));
         Register(new RequestBuiltInItem(session));
         Register(new AddItemToWorld(session));
@@ -63,9 +70,20 @@ public sealed class OperationRouter
 
     public void Handle(PhotonPeer peer, OperationRequest request)
     {
-        if (_handlers.TryGetValue(request.OperationCode, out IOperationHandler? handler))
-            handler.Handle(peer, request);
-        else
+        if (!_handlers.TryGetValue(request.OperationCode, out IOperationHandler? handler))
+        {
             _log?.Invoke($"peer {peer.Id}: no handler for {request}");
+            return;
+        }
+
+        try
+        {
+            handler.Handle(peer, request);
+        }
+        catch (Exception error)
+        {
+            _log?.Invoke($"peer {peer.Id}: op {request.OperationCode} failed: {error}");
+            peer.Send(new OperationResponse(request) { ReturnCode = -1 });
+        }
     }
 }

@@ -19,7 +19,6 @@ public sealed class Logic(Session session)
     readonly Dictionary<int, int> _timerVersions = [];
     readonly object _sync = new();
 
-    public Func<int> Clock { get; set; } = () => Environment.TickCount;
 
     public void Evaluate(bool react = true)
     {
@@ -205,7 +204,7 @@ public sealed class Logic(Session session)
         int on = (int)(Seconds(pulse, "intervalOn") * 1000);
         int off = (int)(Seconds(pulse, "intervalOff") * 1000);
         if (on + off <= 0) return false;
-        return Math.Abs(Clock()) % (on + off) <= on;
+        return Math.Abs(session.Clock()) % (on + off) <= on;
     }
 
     bool TimerOutput(WorldObject timer)

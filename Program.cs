@@ -8,16 +8,19 @@ using OpenKogama.Web;
 
 var server = new PhotonServer(5055) { Log = Console.WriteLine };
 var session = new Session();
-session.Logic.Clock = () => server.Now;
+session.Clock = () => server.Now;
+var editors = new Dictionary<PhotonPeer, OperationRouter>();
 
 server.Connected += peer => Console.WriteLine($"peer {peer.Id}: photon init done");
 server.Disconnected += (peer, reason) =>
 {
     Console.WriteLine($"peer {peer.Id}: gone ({reason})");
+    if (editors.Remove(peer)) return;
 
     Player? gone = session.For(peer);
     if (gone is null) return;
     session.Remove(gone);
+    session.Round.Stats.RemoveActor(gone.Actor);
 
     foreach (int trigger in session.Triggers.ExitAll(gone.Actor))
         TriggerBox.Send(session, trigger, gone.Actor, pressed: false);
@@ -32,7 +35,20 @@ server.Disconnected += (peer, reason) =>
 };
 
 var router = new OperationRouter(server, session, Console.WriteLine);
-server.Operation = router.Handle;
+server.Operation = (peer, request) =>
+{
+    if (request.OperationCode == (byte)OperationCode.Join
+        && request.Parameters.TryGetValue((byte)ParameterKey.GameMode, out object? mode)
+        && Convert.ToInt32(mode) == (int)GameMode.CharacterEditor)
+    {
+        Session editor = Session.CharacterEditor(peer.Id);
+        editor.Clock = () => server.Now;
+        editors[peer] = new OperationRouter(server, editor, Console.WriteLine);
+        Console.WriteLine($"peer {peer.Id}: character editor");
+    }
+
+    (editors.GetValueOrDefault(peer) ?? router).Handle(peer, request);
+};
 
 _ = server.RunAsync();
 Console.WriteLine("udp 5055");
@@ -58,11 +74,18 @@ _ = Task.Run(async () =>
 
 // run kogama with "kogama.exe kogamaPackage:aHR0cDovLzEyNy4wLjAuMTo4MDgwL3Nlc3Npb24="
 var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-string SessionJson(int profile) => JsonSerializer.Serialize(
-    new SessionData("127.0.0.1:5055", profile, 0, GameMode.Edit, "en_US", false, "0",
+string SessionJson(int profile, GameMode mode) => JsonSerializer.Serialize(
+    new SessionData("127.0.0.1:5055", profile, 0, mode, "en_US", false, "0",
         "http://127.0.0.1:8080/ping", "http://127.0.0.1:8080/disconnect"),
     jsonOptions);
 
-var web = new HttpServer("http://127.0.0.1:8080/") { SessionJson = SessionJson };
+StreamingAssetCatalog streaming = StreamingAssets.For("2015");
+var assets = new AssetCache(streaming.Root);
+_ = Task.Run(() => assets.PrefetchAsync(streaming.Assets.Select(asset => asset.Path)));
+
+_ = new NullProxy(8081).RunAsync();
+Console.WriteLine("proxy 8081");
+
+var web = new HttpServer("http://127.0.0.1:8080/") { SessionJson = SessionJson, Assets = assets };
 Console.WriteLine("http 8080");
 web.Run();

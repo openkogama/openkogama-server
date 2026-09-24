@@ -16,19 +16,20 @@ public sealed class CreateGameSnapshot(Session session) : IOperationHandler
         {
             PhotonDictionary info = PhotonDictionary.ByteKeyed();
             info.Add((byte)ParameterKey.ProfileID, p.ProfileId);
-            info.Add((byte)ParameterKey.TeamID, 0);
+            info.Add((byte)ParameterKey.TeamID, (int)p.Team);
             info.Add((byte)ParameterKey.Username, p.Username);
-            info.Add((byte)ParameterKey.Level, 1);
+            info.Add((byte)ParameterKey.Level, p.Level);
             info.Add((byte)ParameterKey.RegionCode, p.Region);
             users.Add(p.Actor, info);
         }
 
+        List<Team> active = session.Teams.Active;
         PhotonDictionary teams = PhotonDictionary.Untyped();
-        for (int team = 0; team < 4; team++)
+        foreach (Team team in Enum.GetValues<Team>())
         {
             PhotonDictionary entry = PhotonDictionary.Untyped();
-            entry.Add((byte)TeamDataKey.Active, team == 0);
-            teams.Add(team, entry);
+            entry.Add((byte)TeamDataKey.Active, active.Contains(team));
+            teams.Add((int)team, entry);
         }
 
         OperationResponse response = new(request)
@@ -38,13 +39,13 @@ public sealed class CreateGameSnapshot(Session session) : IOperationHandler
                 [(byte)ParameterKey.UserList] = users,
                 [(byte)ParameterKey.TeamList] = teams,
                 [(byte)ParameterKey.QueryId] = 1,
-                [(byte)ParameterKey.GameStateType] = (int)GameStateType.Round,
-                [(byte)ParameterKey.GameStateStartTime] = 0,
-                [(byte)ParameterKey.GameStateDuration] = 0,
-                [(byte)ParameterKey.GameStateReason] = 0,
+                [(byte)ParameterKey.GameStateType] = (int)session.Round.State,
+                [(byte)ParameterKey.GameStateStartTime] = session.Round.StartTime,
+                [(byte)ParameterKey.GameStateDuration] = session.Round.Duration,
+                [(byte)ParameterKey.GameStateReason] = (int)session.Round.Reason,
                 [(byte)ParameterKey.FineGrainedTerrainPrototypeID] =
                     session.World.FindFirst(WorldObjectType.CubeModelTerrainFineGrained)?.PrototypeId ?? -1,
-                [(byte)ParameterKey.GameStatCounterData] = new byte[sizeof(int)],
+                [(byte)ParameterKey.GameStatCounterData] = session.Round.Stats.ToBytes(),
             },
         };
 

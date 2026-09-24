@@ -28,8 +28,8 @@ public sealed class Join(Session session) : IOperationHandler
                 [(byte)ParameterKey.PublishLevel] = 0,
                 [(byte)ParameterKey.Format] = SecurityHelper.Encrypt("openkogama"),
                 [(byte)ParameterKey.APIUrl] = "http://127.0.0.1:8080/api/",
-                [(byte)ParameterKey.AssetBundleRootUrl] = "http://127.0.0.1:8080/assets/",
-                [(byte)ParameterKey.LevelingSilentMode] = true,
+                [(byte)ParameterKey.AssetBundleRootUrl] = "http://127.0.0.1:8080/bundles/",
+                [(byte)ParameterKey.LevelingSilentMode] = false,
             },
         };
 

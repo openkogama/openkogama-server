@@ -1,4 +1,4 @@
-namespace OpenKogama.Kogama;
+﻿namespace OpenKogama.Kogama;
 
 public enum OperationCode : byte
 {
@@ -21,6 +21,7 @@ public enum OperationCode : byte
     TriggerBoxEnter = 25,
     TriggerBoxExit = 26,
     RequestWoUniquePrototype = 31,
+    ReportCaptureFlag = 32,
     ResetLogicChunk = 34,
     UpdateWorldObjectRunTimeData = 35,
     UpdateLineOfFire = 37,
@@ -31,20 +32,26 @@ public enum OperationCode : byte
     RemoveObjectLink = 43,
     CloneWorldObjectTree = 45,
     RequestMaterials = 46,
+    PurchaseProduct = 48,
     GetNextGameBatch = 51,
     RequestStreamingAssetList = 52,
     RequestStreamingAssetInventory = 53,
     RequestBuiltInItem = 55,
     AddItemToWorld = 56,
     AddWorldObjectToInventory = 57,
+    GetActiveAvatar = 61,
     GetCreditStatus = 62,
     GetBuiltInItemBusinessData = 63,
+    GetDBTimeTicks = 64,
+    SetAvatarAccessorySlot = 68,
     CreateGameSnapshot = 69,
     AttachWorldObjectToSeat = 70,
     DetachWorldObjectFromVehicle = 71,
     SpawnVehicleWithDriver = 72,
+    UpdateAvatarAccessoryOffset = 74,
     RuntimeEvent = 75,
     ResetTerrain = 76,
-    GetDBTimeTicks = 64,
+    InitializeAvatarEdit = 77,
+    LevelChanged = 80,
     Join = 255,
 }

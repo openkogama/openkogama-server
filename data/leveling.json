@@ -1,0 +1,192 @@
+{
+  "minPlayersActivateXP": 2,
+  "xp": [
+    {
+      "type": "1MinXpRewardPlayMode",
+      "id": 1,
+      "amount": 10
+    }
+  ],
+  "levels": [
+    {
+      "xp": 0,
+      "friends": 30
+    },
+    {
+      "xp": 400,
+      "friends": 40
+    },
+    {
+      "xp": 1200,
+      "friends": 60
+    },
+    {
+      "xp": 2400,
+      "friends": 80
+    },
+    {
+      "xp": 4010,
+      "friends": 90
+    },
+    {
+      "xp": 6030,
+      "friends": 110
+    },
+    {
+      "xp": 9060,
+      "friends": 120
+    },
+    {
+      "xp": 12600,
+      "friends": 140
+    },
+    {
+      "xp": 16660,
+      "friends": 150
+    },
+    {
+      "xp": 21240,
+      "friends": 170
+    },
+    {
+      "xp": 26340,
+      "friends": 180
+    },
+    {
+      "xp": 37460,
+      "friends": 200
+    },
+    {
+      "xp": 49600,
+      "friends": 220
+    },
+    {
+      "xp": 62760,
+      "friends": 230
+    },
+    {
+      "xp": 76950,
+      "friends": 250
+    },
+    {
+      "xp": 92170,
+      "friends": 270
+    },
+    {
+      "xp": 108420,
+      "friends": 280
+    },
+    {
+      "xp": 125700,
+      "friends": 290
+    },
+    {
+      "xp": 144020,
+      "friends": 290
+    },
+    {
+      "xp": 163380,
+      "friends": 300
+    },
+    {
+      "xp": 183780,
+      "friends": 320
+    },
+    {
+      "xp": 218010,
+      "friends": 320
+    },
+    {
+      "xp": 254530,
+      "friends": 330
+    },
+    {
+      "xp": 293400,
+      "friends": 350
+    },
+    {
+      "xp": 334680,
+      "friends": 350
+    },
+    {
+      "xp": 378430,
+      "friends": 360
+    },
+    {
+      "xp": 424710,
+      "friends": 360
+    },
+    {
+      "xp": 473580,
+      "friends": 370
+    },
+    {
+      "xp": 525100,
+      "friends": 380
+    },
+    {
+      "xp": 579330,
+      "friends": 400
+    },
+    {
+      "xp": 636330,
+      "friends": 405
+    },
+    {
+      "xp": 1014530,
+      "friends": 405
+    },
+    {
+      "xp": 1411330,
+      "friends": 405
+    },
+    {
+      "xp": 1827130,
+      "friends": 410
+    },
+    {
+      "xp": 2262330,
+      "friends": 410
+    },
+    {
+      "xp": 2717330,
+      "friends": 410
+    },
+    {
+      "xp": 3192530,
+      "friends": 415
+    },
+    {
+      "xp": 3688330,
+      "friends": 415
+    },
+    {
+      "xp": 4205130,
+      "friends": 415
+    },
+    {
+      "xp": 4743330,
+      "friends": 420
+    },
+    {
+      "xp": 5303330,
+      "friends": 420
+    },
+    {
+      "xp": 5885530,
+      "friends": 420
+    },
+    {
+      "xp": 6490330,
+      "friends": 425
+    },
+    {
+      "xp": 7118130,
+      "friends": 425
+    },
+    {
+      "xp": 7769330,
+      "friends": 430
+    }
+  ]
+}

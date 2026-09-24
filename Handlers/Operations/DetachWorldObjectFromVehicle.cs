@@ -19,7 +19,12 @@ public sealed class DetachWorldObjectFromVehicle(Session session) : IOperationHa
             obj.ParentId = rootId;
             obj.SetRuntime("seat", PackedType.Int32, -1);
         });
-        if (!found) return;
+        if (!found)
+        {
+            Console.WriteLine($"peer {peer.Id}: cannot detach unknown object {objectId}");
+            peer.Send(new OperationResponse(request) { ReturnCode = -1 });
+            return;
+        }
 
         var evt = new EventData((byte)EventCode.DetachWorldObjectFromVehicle)
         {

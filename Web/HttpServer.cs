@@ -1,5 +1,7 @@
 using System.Net;
 using System.Text;
+using System.Web;
+using OpenKogama.Game;
 
 namespace OpenKogama.Web;
 
@@ -7,7 +9,8 @@ public sealed class HttpServer
 {
     readonly HttpListener _listener = new();
 
-    public Func<int, string> SessionJson { get; set; } = _ => "{}";
+    public Func<int, GameMode, string> SessionJson { get; set; } = (_, _) => "{}";
+    public AssetCache? Assets { get; set; }
 
     public HttpServer(string prefix) => _listener.Prefixes.Add(prefix);
 
@@ -36,7 +39,22 @@ public sealed class HttpServer
         if (path is "/" or "/session")
         {
             int profile = int.TryParse(request.QueryString["profile"], out int requested) && requested > 0 ? requested : 1;
-            Json(response, SessionJson(profile));
+            GameMode mode = request.QueryString["mode"] switch
+            {
+                "play" => GameMode.Play,
+                "avatar" => GameMode.CharacterEditor,
+                _ => GameMode.Edit,
+            };
+            Json(response, SessionJson(profile, mode));
+            return;
+        }
+
+        if (path.StartsWith("/bundles/") && Assets?.Get(Uri.UnescapeDataString(path["/bundles/".Length..])) is byte[] asset)
+        {
+            response.ContentType = "application/octet-stream";
+            response.ContentLength64 = asset.Length;
+            response.OutputStream.Write(asset);
+            response.Close();
             return;
         }
 
@@ -46,19 +64,41 @@ public sealed class HttpServer
             return;
         }
 
-        if (path.StartsWith("/api/xp_level/init_data"))
+        if (path.StartsWith("/api/xp_level/"))
         {
-            Json(response, """
+            int profile = int.TryParse(request.QueryString["profile_id"], out int id) ? id : 0;
+            switch (path["/api/xp_level/".Length..].TrimEnd('/'))
             {
-              "XPManagerData": {},
-              "BadgeUrlData": [],
-              "Level": 1,
-              "XP": 0,
-              "XPLevelLimits": { "Levels": [] },
-              "MinPlayersActivateXP": 2
+                case "init_data":
+                    Json(response, Leveling.InitData(profile, "http://127.0.0.1:8080/badges/").ToJsonString());
+                    return;
+                case "level":
+                    Json(response, Leveling.LevelOf(profile).ToString());
+                    return;
+                case "xp_limits_data":
+                    Json(response, Leveling.Limits(int.TryParse(request.QueryString["level"], out int level) ? level : 1).ToJsonString());
+                    return;
+                case "xp":
+                    var form = HttpUtility.ParseQueryString(new StreamReader(request.InputStream).ReadToEnd());
+                    int formProfile = int.TryParse(form["profile_id"], out int p) ? p : 0;
+                    int type = int.TryParse(form["xp_type_id"], out int t) ? t : 0;
+                    Json(response, $$"""{"XP":{{Leveling.Add(formProfile, type)}},"XPTypeID":{{type}}}""");
+                    return;
             }
-            """);
-            return;
+        }
+
+        if (path.StartsWith("/badges/"))
+        {
+            string file = Path.Combine(AppContext.BaseDirectory, "data", "badges", Path.GetFileName(path));
+            if (File.Exists(file))
+            {
+                byte[] image = File.ReadAllBytes(file);
+                response.ContentType = "image/png";
+                response.ContentLength64 = image.Length;
+                response.OutputStream.Write(image);
+                response.Close();
+                return;
+            }
         }
 
         if (path.StartsWith("/api/"))

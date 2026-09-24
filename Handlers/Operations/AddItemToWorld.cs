@@ -30,6 +30,8 @@ public sealed class AddItemToWorld(Session session) : IOperationHandler
         int parentId = Convert.ToInt32(request[(byte)ParameterKey.WorldObjectGroupID]);
         Snapshot added = session.World.Insert(template, parentId);
         session.World.MarkChanged();
+        session.Teams.Update();
+        if (root.Type == WorldObjectType.RoundCube) session.Round.Start();
 
         var evt = new EventData((byte)EventCode.GetGameBatch)
         {

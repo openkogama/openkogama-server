@@ -282,6 +282,11 @@ public sealed class GameWorld
         lock (_sync) _runtimeEvents.Add(runtimeEvent);
     }
 
+    public void ClearRuntimeEvents()
+    {
+        lock (_sync) _runtimeEvents.Clear();
+    }
+
     List<WorldObject> Ordered()
     {
         var ids = _objects.Select(obj => obj.Id).ToHashSet();
