@@ -1,15 +1,19 @@
 using System.Net;
 using System.Text;
+using System.Text.Json;
 using System.Web;
 using OpenKogama.Game;
+using OpenKogama.Storage;
 
 namespace OpenKogama.Web;
 
 public sealed class HttpServer
 {
+    static readonly JsonSerializerOptions WorldJson = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+
     readonly HttpListener _listener = new();
 
-    public Func<int, GameMode, string> SessionJson { get; set; } = (_, _) => "{}";
+    public Func<int, GameMode, int, string> SessionJson { get; set; } = (_, _, _) => "{}";
     public AssetCache? Assets { get; set; }
 
     public HttpServer(string prefix) => _listener.Prefixes.Add(prefix);
@@ -30,6 +34,14 @@ public sealed class HttpServer
             catch (Exception error)
             {
                 Console.WriteLine($"http: {path}: {error.Message}");
+                try
+                {
+                    context.Response.StatusCode = 500;
+                    context.Response.Close();
+                }
+                catch (Exception)
+                {
+                }
             }
         }
     }
@@ -45,7 +57,37 @@ public sealed class HttpServer
                 "avatar" => GameMode.CharacterEditor,
                 _ => GameMode.Edit,
             };
-            Json(response, SessionJson(profile, mode));
+            int world = int.TryParse(request.QueryString["world"], out int chosen) ? chosen : 0;
+            Json(response, SessionJson(profile, mode, world));
+            return;
+        }
+
+        if (path.TrimEnd('/') == "/api/templates")
+        {
+            Json(response, JsonSerializer.Serialize(Templates.All.Select(template => new { template.Id, template.Name }), WorldJson));
+            return;
+        }
+
+        if (path.TrimEnd('/') == "/api/worlds/import" && request.HttpMethod == "POST")
+        {
+            using var body = new MemoryStream();
+            request.InputStream.CopyTo(body);
+            string name = request.QueryString["name"] is { Length: > 0 } given ? given : "Imported World";
+            Json(response, JsonSerializer.Serialize(new { id = Session.ImportWorld(name, body.ToArray()) }));
+            return;
+        }
+
+        if (path.TrimEnd('/') == "/api/worlds")
+        {
+            if (request.HttpMethod == "POST")
+            {
+                string name = request.QueryString["name"] is { Length: > 0 } given ? given : "New World";
+                Json(response, JsonSerializer.Serialize(new { id = Session.CreateWorld(name, request.QueryString["template"]) }));
+            }
+            else
+            {
+                Json(response, JsonSerializer.Serialize(Stores.Worlds.List(), WorldJson));
+            }
             return;
         }
 
@@ -62,6 +104,12 @@ public sealed class HttpServer
         {
             Json(response, "{}");
             return;
+        }
+
+        if (path is "/shutdown" && IPAddress.IsLoopback(request.RemoteEndPoint.Address))
+        {
+            Json(response, "{}");
+            Environment.Exit(0);
         }
 
         if (path.StartsWith("/api/xp_level/"))

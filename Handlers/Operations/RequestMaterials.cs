@@ -11,7 +11,10 @@ public sealed class RequestMaterials(Session session) : IOperationHandler
     public void Handle(PhotonPeer peer, OperationRequest request)
     {
         if (session.For(peer) is Player player && request.Parameters.TryGetValue((byte)ParameterKey.ProfileID, out object? profile))
+        {
             player.ProfileId = Convert.ToInt32(profile);
+            session.LoadAvatar(player);
+        }
 
         PhotonDictionary list = PhotonDictionary.Untyped();
 

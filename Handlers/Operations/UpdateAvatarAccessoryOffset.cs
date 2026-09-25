@@ -1,6 +1,7 @@
 using OpenKogama.Game;
 using OpenKogama.Kogama;
 using OpenKogama.Photon;
+using OpenKogama.Storage;
 using OpenKogama.World;
 
 namespace OpenKogama.Handlers.Operations;
@@ -31,6 +32,9 @@ public sealed class UpdateAvatarAccessoryOffset(Session session) : IOperationHan
                 moved.Add(inventoryId);
             }
         });
+
+        if (session.For(peer) is Player owner)
+            Stores.Profiles.SetAccessoryOffset(owner.ProfileId, slot, offset);
 
         if (moved.Count == 0) return;
 

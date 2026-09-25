@@ -1,6 +1,7 @@
 using OpenKogama.Game;
 using OpenKogama.Kogama;
 using OpenKogama.Photon;
+using OpenKogama.Storage;
 using OpenKogama.World;
 
 namespace OpenKogama.Handlers.Operations;
@@ -48,6 +49,9 @@ public sealed class SetAvatarAccessorySlot(Session session) : IOperationHandler
             if (equip) PackedData.Merge(obj.Data, table);
             else PackedData.Remove(obj.Data, table);
         });
+
+        if (session.For(peer) is Player owner)
+            Stores.Profiles.SetAccessory(owner.ProfileId, inventoryId, slot, offset);
 
         peer.Send(new OperationResponse(request));
 

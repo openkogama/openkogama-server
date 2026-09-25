@@ -1,0 +1,44 @@
+[
+  {
+    "id": "classic",
+    "name": "Classic",
+    "file": "classic.kgmap",
+    "sourceGame": "friends/17953"
+  },
+  {
+    "id": "base",
+    "name": "Base Template",
+    "file": "base.kgmap",
+    "sourceGame": "www/10885258"
+  },
+  {
+    "id": "city",
+    "name": "City Template",
+    "file": "city.kgmap",
+    "sourceGame": "www/10885259"
+  },
+  {
+    "id": "parkour",
+    "name": "Parkour Template",
+    "file": "parkour.kgmap",
+    "sourceGame": "www/10885260"
+  },
+  {
+    "id": "island",
+    "name": "Island Template",
+    "file": "island.kgmap",
+    "sourceGame": "www/10885261"
+  },
+  {
+    "id": "terrain",
+    "name": "Terrain Template",
+    "file": "terrain.kgmap",
+    "sourceGame": "www/10885263"
+  },
+  {
+    "id": "logic",
+    "name": "Logic Template",
+    "file": "logic.kgmap",
+    "sourceGame": "www/10885264"
+  }
+]

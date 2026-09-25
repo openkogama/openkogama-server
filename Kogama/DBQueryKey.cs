@@ -2,11 +2,14 @@ namespace OpenKogama.Kogama;
 
 public enum DBQueryKey : byte
 {
+    ProfileID = 0,
     ItemID = 9,
     ItemName = 10,
     ItemData = 11,
     ItemTypeID = 15,
     SlotIndex = 22,
+    FriendProfileID = 26,
+    FriendStatus = 28,
     MaterialName = 51,
     MaterialDescription = 52,
     MaterialPath = 53,

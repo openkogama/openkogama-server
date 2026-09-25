@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using OpenKogama.Storage;
 
 namespace OpenKogama.Game;
 
@@ -25,22 +26,15 @@ public sealed class LevelingData
 
 public static class Leveling
 {
-    const string SavePath = "profiles/xp.json";
-
     static readonly JsonSerializerOptions Options = new() { PropertyNameCaseInsensitive = true };
-    static readonly object Sync = new();
     static LevelingData? _data;
-    static Dictionary<int, int>? _xp;
 
     public static LevelingData Data => _data ??= JsonSerializer.Deserialize<LevelingData>(
         File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "data", "leveling.json")), Options) ?? new();
 
     public static int MaxLevel => Data.Levels.Count;
 
-    public static int XpOf(int profile)
-    {
-        lock (Sync) return Saved().GetValueOrDefault(profile);
-    }
+    public static int XpOf(int profile) => Stores.Profiles.Xp(profile);
 
     public static int LevelOf(int profile) => LevelFor(XpOf(profile));
 
@@ -57,15 +51,7 @@ public static class Leveling
     public static int Add(int profile, int typeId)
     {
         XpType? type = Data.Xp.Find(xp => xp.Id == typeId);
-        lock (Sync)
-        {
-            Dictionary<int, int> saved = Saved();
-            int total = saved.GetValueOrDefault(profile) + (type?.Amount ?? 0);
-            saved[profile] = total;
-            Directory.CreateDirectory(Path.GetDirectoryName(SavePath)!);
-            File.WriteAllText(SavePath, JsonSerializer.Serialize(saved));
-            return total;
-        }
+        return Stores.Profiles.AddXp(profile, type?.Amount ?? 0);
     }
 
     public static JsonObject InitData(int profile, string badgeRoot)
@@ -89,8 +75,4 @@ public static class Leveling
             ["MinPlayersActivateXP"] = Data.MinPlayersActivateXP,
         };
     }
-
-    static Dictionary<int, int> Saved() => _xp ??= File.Exists(SavePath)
-        ? JsonSerializer.Deserialize<Dictionary<int, int>>(File.ReadAllText(SavePath)) ?? []
-        : [];
 }

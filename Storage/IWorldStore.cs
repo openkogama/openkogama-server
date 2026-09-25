@@ -1,0 +1,13 @@
+namespace OpenKogama.Storage;
+
+public sealed record StoredWorld(int Id, string Name, int Owner, byte[] Data);
+
+public sealed record WorldInfo(int Id, string Name, int Owner, string SavedAt);
+
+public interface IWorldStore
+{
+    List<WorldInfo> List();
+    StoredWorld? World(int id);
+    int Create(string name, int owner, byte[] data);
+    void SaveWorld(StoredWorld world);
+}

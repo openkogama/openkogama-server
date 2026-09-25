@@ -1,17 +1,10 @@
+using System.Numerics;
 using System.Text.Json.Nodes;
 
 namespace OpenKogama.World;
 
 public sealed class GameWorld
 {
-    static readonly HashSet<WorldObjectType> Importable =
-    [
-        WorldObjectType.Group,
-        WorldObjectType.CubeModel,
-        WorldObjectType.CubeModelPrototypeTerrain,
-        WorldObjectType.CubeModelTerrainFineGrained,
-    ];
-
     readonly object _sync = new();
     readonly Dictionary<int, Prototype> _prototypes = [];
     readonly List<WorldObject> _objects = [];
@@ -233,6 +226,49 @@ public sealed class GameWorld
         }
     }
 
+    public bool SetPrototypeScale(int prototypeId, float scale)
+    {
+        lock (_sync)
+        {
+            if (!_prototypes.TryGetValue(prototypeId, out Prototype? prototype)) return false;
+
+            _prototypes[prototypeId] = new Prototype(prototypeId, scale, prototype.AuthorId, prototype.Cubes);
+            foreach (WorldObject obj in _objects.Where(o => o.PrototypeId == prototypeId))
+                obj.Scale = [scale, scale, scale];
+            return true;
+        }
+    }
+
+    public bool Reparent(int id, int parentId)
+    {
+        lock (_sync)
+        {
+            WorldObject? obj = _objects.Find(o => o.Id == id);
+            if (obj is null || _objects.All(o => o.Id != parentId) || Subtree(id).Any(o => o.Id == parentId)) return false;
+
+            Matrix4x4.Invert(WorldMatrix(parentId), out Matrix4x4 toParent);
+            Matrix4x4.Decompose(WorldMatrix(id) * toParent, out Vector3 scale, out Quaternion rotation, out Vector3 position);
+
+            obj.ParentId = parentId;
+            obj.Position = [position.X, position.Y, position.Z];
+            obj.Rotation = [rotation.X, rotation.Y, rotation.Z, rotation.W];
+            obj.Scale = [scale.X, scale.Y, scale.Z];
+            return true;
+        }
+    }
+
+    Matrix4x4 WorldMatrix(int id)
+    {
+        Matrix4x4 matrix = Matrix4x4.Identity;
+        for (WorldObject? obj = _objects.Find(o => o.Id == id); obj is not null; obj = _objects.Find(o => o.Id == obj.ParentId))
+        {
+            matrix *= Matrix4x4.CreateScale(obj.Scale[0], obj.Scale[1], obj.Scale[2])
+                * Matrix4x4.CreateFromQuaternion(new Quaternion(obj.Rotation[0], obj.Rotation[1], obj.Rotation[2], obj.Rotation[3]))
+                * Matrix4x4.CreateTranslation(obj.Position[0], obj.Position[1], obj.Position[2]);
+        }
+        return matrix;
+    }
+
     public bool Modify(int id, Action<WorldObject> change)
     {
         lock (_sync)
@@ -317,9 +353,10 @@ public sealed class GameWorld
         return [.. _prototypes.Values.Where(prototype => used.Contains(prototype.Id))];
     }
 
+    public byte[] ToData() => WorldSerializer.Write(ToSaveSnapshot());
+
     public void Save(string path)
     {
-        Snapshot snapshot = ToSaveSnapshot();
         var meta = new JsonObject
         {
             ["GameTitle"] = Name,
@@ -328,13 +365,24 @@ public sealed class GameWorld
             ["Spawn"] = new JsonArray(Spawn.Select(v => (JsonNode)v).ToArray()),
         };
 
-        KgmapFile.Write(path, meta, WorldSerializer.Write(snapshot));
+        KgmapFile.Write(path, meta, ToData());
     }
 
-    public static GameWorld Load(string path, bool onlyImportable = false)
+    public static GameWorld Load(string path, Func<WorldObject, bool>? keep = null) =>
+        Read(File.ReadAllBytes(path), keep);
+
+    public static GameWorld Read(byte[] file, Func<WorldObject, bool>? keep = null)
     {
-        (JsonObject meta, List<byte[]> batches) = KgmapFile.Read(path);
-        var world = new GameWorld { Name = meta["GameTitle"]?.GetValue<string>() ?? "" };
+        if (!KgmapFile.IsKgmap(file)) return FromData("", null, [file], keep);
+
+        (JsonObject meta, List<byte[]> batches) = KgmapFile.Read(file);
+        float[]? spawn = meta["Spawn"] is JsonArray values ? [.. values.Select(v => v!.GetValue<float>())] : null;
+        return FromData(meta["GameTitle"]?.GetValue<string>() ?? "", spawn, batches, keep);
+    }
+
+    public static GameWorld FromData(string name, float[]? spawn, IEnumerable<byte[]> batches, Func<WorldObject, bool>? keep = null)
+    {
+        var world = new GameWorld { Name = name };
 
         var objects = new List<WorldObject>();
         foreach (byte[] batch in batches)
@@ -346,16 +394,15 @@ public sealed class GameWorld
             world._objectLinks.AddRange(snapshot.ObjectLinks);
         }
 
-        world.Spawn = meta["Spawn"] is JsonArray spawn
-            ? [.. spawn.Select(v => v!.GetValue<float>())]
-            : objects.Find(obj => obj.Type is WorldObjectType.SpawnPointBlue or WorldObjectType.SpawnPoint)?.Position
-              ?? world.Spawn;
+        world.Spawn = spawn
+            ?? objects.Find(obj => obj.Type is WorldObjectType.SpawnPointBlue or WorldObjectType.SpawnPoint)?.Position
+            ?? world.Spawn;
 
         var kept = new HashSet<int>();
         foreach (WorldObject obj in objects)
         {
             bool parentKept = obj.ParentId == -1 || kept.Contains(obj.ParentId);
-            if (!parentKept || onlyImportable && !Importable.Contains(obj.Type)) continue;
+            if (!parentKept || keep?.Invoke(obj) == false) continue;
 
             kept.Add(obj.Id);
             world.Add(obj);

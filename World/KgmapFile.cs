@@ -9,13 +9,17 @@ public static class KgmapFile
     const uint Magic = 0x504D474B;
     const ushort Version = 6;
 
-    public static (JsonObject Meta, List<byte[]> Batches) Read(string path)
-    {
-        using var file = File.OpenRead(path);
-        using var gzip = new GZipStream(file, CompressionMode.Decompress);
-        using var reader = new BinaryReader(gzip, Encoding.UTF8);
+    public static bool IsKgmap(byte[] file) =>
+        file.Length >= 4 && (file[0] == 0x1f && file[1] == 0x8b || BitConverter.ToUInt32(file, 0) == Magic);
 
-        if (reader.ReadUInt32() != Magic) throw new InvalidDataException($"{path}: not a .kgmap");
+    public static (JsonObject Meta, List<byte[]> Batches) Read(byte[] file)
+    {
+        using Stream input = file[0] == 0x1f && file[1] == 0x8b
+            ? new GZipStream(new MemoryStream(file), CompressionMode.Decompress)
+            : new MemoryStream(file);
+        using var reader = new BinaryReader(input, Encoding.UTF8);
+
+        if (reader.ReadUInt32() != Magic) throw new InvalidDataException("not a .kgmap");
         ushort version = reader.ReadUInt16();
 
         JsonObject meta = [];

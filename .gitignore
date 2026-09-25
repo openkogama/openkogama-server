@@ -4,3 +4,4 @@ obj/
 worlds/
 profiles/
 cache/
+server.db*

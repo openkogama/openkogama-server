@@ -29,13 +29,21 @@ public sealed class OperationRouter
         Register(new GetActiveAvatar(session));
         Register(new CreateGameSnapshot(session));
         Register(new GetNextGameBatch(session));
-        Register(new RequestFriends());
+        Register(new RequestFriends(session));
+        Register(new RequestFriendship(session, byName: true));
+        Register(new RequestFriendship(session, byName: false));
+        Register(new AnswerFriendship(session, accept: true));
+        Register(new AnswerFriendship(session, accept: false));
         Register(new SetTeam(session));
         Register(new LevelChanged(session));
         Register(new ReportCaptureFlag(session));
         Register(new SetActorReady());
         Register(new UpdateWorldObject(session));
         Register(new UpdatePrototype(session));
+        Register(new UpdatePrototypeScale(session));
+        Register(new Ungroup(session));
+        Register(new LockHierarchy(session));
+        Register(new TransferWorldObjectsToGroup(session));
         Register(new RequestBuiltInItem(session));
         Register(new AddItemToWorld(session));
         Register(new AddWorldObjectToInventory(session));
@@ -62,7 +70,7 @@ public sealed class OperationRouter
         Register(new WorldObjectData(session, DataChange.Merge));
         Register(new WorldObjectData(session, DataChange.Remove));
         Register(new UpdateWorldObjectRunTimeData(session));
-        Register(new UpdateLineOfFire(server));
+        Register(new UpdateLineOfFire(session));
         Register(new PostGameMsg(session));
     }
 

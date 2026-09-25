@@ -1,0 +1,36 @@
+namespace OpenKogama.World;
+
+public static class WorldConverter
+{
+    static readonly HashSet<int> Supported2015 = [.. Enumerable.Range(1, 64), 145, 146, 148, 149];
+
+    public static GameWorld Load(string path) => Convert(keep => GameWorld.Load(path, keep), out _);
+
+    public static GameWorld Import(byte[] file, out Dictionary<int, int> dropped) =>
+        Convert(keep => GameWorld.Read(file, keep), out dropped);
+
+    static GameWorld Convert(Func<Func<WorldObject, bool>, GameWorld> read, out Dictionary<int, int> dropped)
+    {
+        var skipped = new Dictionary<int, int>();
+        GameWorld world = read(obj =>
+        {
+            if (Supported2015.Contains((int)obj.Type)) return true;
+            skipped[(int)obj.Type] = skipped.GetValueOrDefault((int)obj.Type) + 1;
+            return false;
+        });
+
+        foreach (WorldObject obj in world.ToSnapshot().Objects)
+        {
+            world.Modify(obj.Id, o =>
+            {
+                o.Runtime.Clear();
+                o.Owner = null;
+                o.PreviewOwner = null;
+                RuntimeDefaults.Apply(o);
+            });
+        }
+
+        dropped = skipped;
+        return world;
+    }
+}
