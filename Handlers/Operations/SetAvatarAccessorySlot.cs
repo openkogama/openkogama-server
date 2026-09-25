@@ -51,7 +51,7 @@ public sealed class SetAvatarAccessorySlot(Session session) : IOperationHandler
         });
 
         if (session.For(peer) is Player owner)
-            Stores.Profiles.SetAccessory(owner.ProfileId, inventoryId, slot, offset);
+            Stores.Profiles.SetAccessory(session.AvatarOfBody(avatarId, owner.ProfileId), inventoryId, slot, offset);
 
         peer.Send(new OperationResponse(request));
 

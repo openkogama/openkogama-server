@@ -15,6 +15,7 @@ public sealed class HttpServer
 
     public Func<int, GameMode, int, string> SessionJson { get; set; } = (_, _, _) => "{}";
     public AssetCache? Assets { get; set; }
+    public Func<int, bool> DeleteWorld { get; set; } = _ => false;
 
     public HttpServer(string prefix) => _listener.Prefixes.Add(prefix);
 
@@ -65,6 +66,30 @@ public sealed class HttpServer
         if (path.TrimEnd('/') == "/api/templates")
         {
             Json(response, JsonSerializer.Serialize(Templates.All.Select(template => new { template.Id, template.Name }), WorldJson));
+            return;
+        }
+
+        if (path.TrimEnd('/') == "/api/worlds/revision")
+        {
+            Json(response, JsonSerializer.Serialize(new { revision = Revision.Value }));
+            return;
+        }
+
+        if (path.TrimEnd('/') == "/api/worlds/delete" && request.HttpMethod == "POST")
+        {
+            bool deleted = int.TryParse(request.QueryString["id"], out int id) && DeleteWorld(id);
+            response.StatusCode = deleted ? 200 : 409;
+            Json(response, "{}");
+            return;
+        }
+
+        if (path.TrimEnd('/') == "/api/worlds/rename" && request.HttpMethod == "POST")
+        {
+            bool renamed = int.TryParse(request.QueryString["id"], out int id)
+                && request.QueryString["name"] is { Length: > 0 } name
+                && Stores.Worlds.Rename(id, name.Trim());
+            response.StatusCode = renamed ? 200 : 400;
+            Json(response, "{}");
             return;
         }
 
@@ -132,6 +157,20 @@ public sealed class HttpServer
                     int type = int.TryParse(form["xp_type_id"], out int t) ? t : 0;
                     Json(response, $$"""{"XP":{{Leveling.Add(formProfile, type)}},"XPTypeID":{{type}}}""");
                     return;
+            }
+        }
+
+        if (path.StartsWith("/images/"))
+        {
+            string[] parts = path["/images/".Length..].Replace(".png", "").Split('/');
+            if (parts.Length == 2 && int.TryParse(parts[0], out int type) && int.TryParse(parts[1], out int id)
+                && Stores.Images.Image(type, id) is byte[] image)
+            {
+                response.ContentType = "image/png";
+                response.ContentLength64 = image.Length;
+                response.OutputStream.Write(image);
+                response.Close();
+                return;
             }
         }
 

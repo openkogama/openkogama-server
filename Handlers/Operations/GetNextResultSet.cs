@@ -1,6 +1,7 @@
 using OpenKogama.Game;
 using OpenKogama.Kogama;
 using OpenKogama.Photon;
+using OpenKogama.Storage;
 
 namespace OpenKogama.Handlers.Operations;
 
@@ -15,6 +16,8 @@ public sealed class GetNextResultSet(Session session) : IOperationHandler
         PhotonDictionary outData = (DBQueryType)queryId switch
         {
             DBQueryType.RequestInventory => Inventory(session.For(peer)?.ProfileId ?? 0),
+            DBQueryType.RequestAvatarShopInventory => AvatarShopInventory(),
+            DBQueryType.RequestClientShopInventoryForPlayer => ItemShopInventory(),
             _ => PhotonDictionary.Untyped(),
         };
 
@@ -27,6 +30,41 @@ public sealed class GetNextResultSet(Session session) : IOperationHandler
                 [(byte)ParameterKey.HasMoreResultSets] = false,
             },
         });
+    }
+
+    static PhotonDictionary ItemShopInventory()
+    {
+        PhotonDictionary shop = PhotonDictionary.Untyped();
+        foreach ((Listing listing, int index) in Stores.Market.List(ListingKind.Item).Select((listing, index) => (listing, index)))
+        {
+            PhotonDictionary entry = PhotonDictionary.Untyped();
+            entry.Add((byte)DBQueryKey.ItemCategoryID, listing.Category);
+            entry.Add((byte)DBQueryKey.ItemTypeID, listing.Id);
+            entry.Add((byte)DBQueryKey.ItemName, listing.Name);
+            entry.Add((byte)DBQueryKey.ItemDescription, listing.Description);
+            entry.Add((byte)DBQueryKey.ItemData, listing.Data);
+            entry.Add((byte)DBQueryKey.Resellable, false);
+            entry.Add((byte)DBQueryKey.PriceSilver, listing.Price);
+            entry.Add((byte)DBQueryKey.PriceGold, 0);
+            entry.Add((byte)DBQueryKey.PositionIndex, index);
+            shop.Add(listing.Id, entry);
+        }
+        return shop;
+    }
+
+    static PhotonDictionary AvatarShopInventory()
+    {
+        PhotonDictionary shop = PhotonDictionary.Untyped();
+        foreach (ShopAvatar avatar in AvatarShop.Avatars)
+        {
+            PhotonDictionary entry = PhotonDictionary.Untyped();
+            entry.Add((byte)DBQueryKey.KogamaData, avatar.Bytes);
+            entry.Add((byte)DBQueryKey.PriceSilver, avatar.Price);
+            entry.Add((byte)DBQueryKey.PriceGold, 0);
+            entry.Add((byte)DBQueryKey.PositionIndex, avatar.Slot);
+            shop.Add(avatar.Id, entry);
+        }
+        return shop;
     }
 
     static PhotonDictionary Inventory(int profileId)
@@ -44,7 +82,7 @@ public sealed class GetNextResultSet(Session session) : IOperationHandler
             entry.Add((byte)DBQueryKey.PriceGold, 0);
             entry.Add((byte)DBQueryKey.PriceSilver, 0);
             entry.Add((byte)DBQueryKey.Resellable, item.Author == profileId);
-            entry.Add((byte)DBQueryKey.ShopInventoryID, 0);
+            entry.Add((byte)DBQueryKey.ShopInventoryID, Stores.Market.FindBySource(ListingKind.Item, item.Id)?.Id ?? 0);
             entry.Add((byte)DBQueryKey.AuthorProfileID, item.Author);
             entry.Add((byte)DBQueryKey.OriginalItemID, item.Id);
             entry.Add((byte)DBQueryKey.Deleted, false);

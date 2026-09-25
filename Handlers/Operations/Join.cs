@@ -11,6 +11,8 @@ public sealed class Join(Session session) : IOperationHandler
     public void Handle(PhotonPeer peer, OperationRequest request)
     {
         Player player = session.For(peer) ?? session.Add(peer);
+        if (int.TryParse(request[(byte)ParameterKey.Token] as string, out int profile) && profile > 0)
+            player.ProfileId = profile;
 
         OperationResponse response = new(request)
         {
@@ -18,8 +20,8 @@ public sealed class Join(Session session) : IOperationHandler
             {
                 [(byte)ParameterKey.ActorNr] = player.Actor,
                 [(byte)ParameterKey.Username] = player.Username,
-                [(byte)ParameterKey.PlanetOwnershipType] = 0,
-                [(byte)ParameterKey.IsGamePublished] = false,
+                [(byte)ParameterKey.PlanetOwnershipType] = (int)session.OwnershipOf(player),
+                [(byte)ParameterKey.IsGamePublished] = session.Published,
                 [(byte)ParameterKey.GameType] = (int)GameType.Classic,
                 [(byte)ParameterKey.ClientSettingFlags] = 0,
                 [(byte)ParameterKey.Prices] = PhotonDictionary.Untyped(),

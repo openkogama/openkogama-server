@@ -2,22 +2,29 @@ using OpenKogama.Game;
 
 namespace OpenKogama.Storage;
 
+public sealed record StoredAvatar(int Id, bool Active, int? Source);
+
 public interface IProfileStore
 {
     int Xp(int profile);
     int AddXp(int profile, int amount);
 
     List<Item> Items(int profile);
-    Item AddItem(int profile, string name, int category, byte[] data);
+    Item AddItem(int profile, string name, int category, byte[] data, int author);
     bool RemoveItem(int profile, int itemId);
 
     Dictionary<int, int> Slots(int profile);
     void SetSlots(int profile, Dictionary<int, int> slots);
 
-    List<AvatarPart>? Avatar(int profile);
-    void SaveAvatar(int profile, List<AvatarPart> parts);
+    List<StoredAvatar> Avatars(int profile);
+    int ActiveAvatar(int profile);
+    int AddAvatar(int profile, int? source);
+    int? AvatarSource(int avatar);
+    List<AvatarPart>? AvatarParts(int avatar);
+    void SaveAvatar(int avatar, List<AvatarPart> parts);
+    void SetActiveAvatar(int profile, int avatar);
 
-    List<WornAccessory> Accessories(int profile);
-    void SetAccessory(int profile, int item, int slot, float offset);
-    void SetAccessoryOffset(int profile, int slot, float offset);
+    List<WornAccessory> Accessories(int avatar);
+    void SetAccessory(int avatar, int item, int slot, float offset);
+    void SetAccessoryOffset(int avatar, int slot, float offset);
 }

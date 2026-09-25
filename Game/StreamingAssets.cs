@@ -1,4 +1,6 @@
 using System.Text.Json;
+using OpenKogama.Kogama;
+using OpenKogama.Photon;
 
 namespace OpenKogama.Game;
 
@@ -10,6 +12,23 @@ public sealed class StreamingAsset
     public string Name { get; set; } = "";
     public string Description { get; set; } = "";
     public string Path { get; set; } = "";
+    public int RentSeconds { get; set; }
+
+    public PhotonDictionary Describe()
+    {
+        PhotonDictionary entry = PhotonDictionary.Untyped();
+        entry.Add((byte)DBQueryKey.StreamingAssetTypeID, Type);
+        entry.Add((byte)DBQueryKey.StreamingAssetCategoryID, Category);
+        entry.Add((byte)DBQueryKey.StreamingAssetName, Name);
+        entry.Add((byte)DBQueryKey.StreamingAssetDescription, Description);
+        entry.Add((byte)DBQueryKey.StreamingAssetURL, Path);
+        entry.Add((byte)DBQueryKey.PriceGold, 0);
+        entry.Add((byte)DBQueryKey.PriceSilver, 0);
+        entry.Add((byte)DBQueryKey.RentPriceSilver, 0);
+        entry.Add((byte)DBQueryKey.RentPriceGold, 0);
+        entry.Add((byte)DBQueryKey.RentExpireSeconds, RentSeconds);
+        return entry;
+    }
 }
 
 public sealed class StreamingAssetCatalog
@@ -23,6 +42,8 @@ public sealed class StreamingAssetCatalog
 
 public static class StreamingAssets
 {
+    public static StreamingAsset? Find(int id) => For("2015").Assets.Find(asset => asset.Id == id);
+
     static readonly JsonSerializerOptions Options = new() { PropertyNameCaseInsensitive = true };
     static readonly Dictionary<string, StreamingAssetCatalog> Cache = [];
 

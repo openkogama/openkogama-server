@@ -16,7 +16,7 @@ public sealed class UpdateAvatarAccessoryOffset(Session session) : IOperationHan
         int slot = Convert.ToInt32(request[(byte)ParameterKey.AvatarAccessorySlot]);
         float offset = Convert.ToSingle(request[(byte)ParameterKey.AvatarAccessoryOffset]);
 
-        var moved = new List<string>();
+        var moved = new List<(string Id, object Entry)>();
         session.World.Modify(bodyId, body =>
         {
             if (Find(body.Data, "BlueprintData") is not { } blueprint || Find(blueprint, "3") is not { } accessories) return;
@@ -29,37 +29,54 @@ public sealed class UpdateAvatarAccessoryOffset(Session session) : IOperationHan
 
                 accessory.RemoveAll(pair => pair.Key == "3");
                 accessory.Add(("3", PackedType.Single, offset));
-                moved.Add(inventoryId);
+                moved.Add((inventoryId, PackedData.ToPhoton(accessory)));
             }
         });
 
         if (session.For(peer) is Player owner)
-            Stores.Profiles.SetAccessoryOffset(owner.ProfileId, slot, offset);
+            Stores.Profiles.SetAccessoryOffset(session.AvatarOfBody(bodyId, owner.ProfileId), slot, offset);
 
         if (moved.Count == 0) return;
 
-        PhotonDictionary changes = PhotonDictionary.Untyped();
-        foreach (string inventoryId in moved)
+        PhotonDictionary removed = PhotonDictionary.Untyped();
+        PhotonDictionary added = PhotonDictionary.Untyped();
+        foreach ((string id, object entry) in moved)
         {
-            PhotonDictionary accessory = PhotonDictionary.Untyped();
-            accessory.Add("3", offset);
-            changes.Add(inventoryId, accessory);
+            removed.Add(id, "");
+            added.Add(id, entry);
         }
-        PhotonDictionary blueprint = PhotonDictionary.Untyped();
-        blueprint.Add("3", changes);
-        PhotonDictionary data = PhotonDictionary.Untyped();
-        data.Add("BlueprintData", blueprint);
 
-        var evt = new EventData((byte)EventCode.UpdateWorldObjectDataPartial)
+        var remove = new EventData((byte)EventCode.RemoveWorldObjectDataPartial)
         {
             Parameters =
             {
                 [(byte)ParameterKey.WorldObjectID] = bodyId,
-                [(byte)ParameterKey.WorldObjectData] = data,
+                [(byte)ParameterKey.WorldObjectDataToRemove] = Accessories(removed),
+            },
+        };
+        var add = new EventData((byte)EventCode.UpdateWorldObjectDataPartial)
+        {
+            Parameters =
+            {
+                [(byte)ParameterKey.WorldObjectID] = bodyId,
+                [(byte)ParameterKey.WorldObjectData] = Accessories(added),
             },
         };
         foreach (Player player in session.Players)
-            if (player.Peer != peer) player.Peer.Send(evt);
+        {
+            if (player.Peer == peer) continue;
+            player.Peer.Send(remove);
+            player.Peer.Send(add);
+        }
+    }
+
+    static PhotonDictionary Accessories(PhotonDictionary accessories)
+    {
+        PhotonDictionary blueprint = PhotonDictionary.Untyped();
+        blueprint.Add("3", accessories);
+        PhotonDictionary data = PhotonDictionary.Untyped();
+        data.Add("BlueprintData", blueprint);
+        return data;
     }
 
     static List<(string Key, PackedType Type, object Value)>? Find(List<(string Key, PackedType Type, object Value)> pairs, string key) =>

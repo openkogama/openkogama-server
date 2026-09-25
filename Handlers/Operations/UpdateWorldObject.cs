@@ -6,6 +6,7 @@ namespace OpenKogama.Handlers.Operations;
 
 public sealed class UpdateWorldObject(Session session) : IOperationHandler
 {
+
     public byte Code => (byte)OperationCode.UpdateWorldObject;
 
     public void Handle(PhotonPeer peer, OperationRequest request)

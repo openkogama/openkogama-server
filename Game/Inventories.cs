@@ -7,8 +7,8 @@ public static class Inventories
     public static Item? Find(int profile, int itemId) =>
         Items.For("2015").Find(itemId) ?? Stores.Profiles.Items(profile).Find(item => item.Id == itemId);
 
-    public static Item Add(int profile, string name, int category, byte[] data) =>
-        Stores.Profiles.AddItem(profile, name, category, data);
+    public static Item Add(int profile, string name, int category, byte[] data, int author) =>
+        Stores.Profiles.AddItem(profile, name, category, data, author);
 
     public static bool Remove(int profile, int itemId) => Stores.Profiles.RemoveItem(profile, itemId);
 

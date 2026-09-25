@@ -1,5 +1,5 @@
 {
-  "minPlayersActivateXP": 2,
+  "minPlayersActivateXP": 1,
   "xp": [
     {
       "type": "1MinXpRewardPlayMode",

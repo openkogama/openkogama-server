@@ -33,6 +33,8 @@ public enum DBQueryKey : byte
     RentExpireSeconds = 80,
     IsRented = 81,
     PurchaseTimeTicks = 83,
+    KogamaData = 92,
+    PositionIndex = 101,
     Resellable = 104,
     AuthorProfileID = 106,
     ItemDescription = 107,
@@ -42,3 +44,4 @@ public enum DBQueryKey : byte
     MaterialPhysicalProperties = 115,
     ItemCategoryID = 116,
 }
+

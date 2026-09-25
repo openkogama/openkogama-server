@@ -347,6 +347,15 @@ public sealed class GameWorld
         }
     }
 
+    public Snapshot SubtreeSnapshot(int id)
+    {
+        lock (_sync)
+        {
+            List<WorldObject> objects = Subtree(id);
+            return new Snapshot(UsedPrototypes(objects), objects, [], []);
+        }
+    }
+
     List<Prototype> UsedPrototypes(IEnumerable<WorldObject> objects)
     {
         var used = objects.Select(obj => obj.PrototypeId).OfType<int>().ToHashSet();

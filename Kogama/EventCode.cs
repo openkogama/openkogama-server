@@ -8,6 +8,7 @@ public enum EventCode : byte
     UpdateWorldObjectDataPartial = 4,
     RemoveWorldObjectDataPartial = 5,
     TransferOwnership = 6,
+    UpdateNetworkInput = 7,
     UnregisterPrototype = 9,
     UpdatePrototype = 10,
     UpdatePrototypeScale = 11,
@@ -46,6 +47,10 @@ public enum EventCode : byte
     RuntimeEvent = 55,
     ResetTerrain = 56,
     UpdateGameStat = 57,
+    UpdateAvatarMetaData = 59,
     LevelChanged = 60,
+    XPRewarded = 61,
+    GameBoost = 62,
+    Leave = 254,
     Join = 255,
 }

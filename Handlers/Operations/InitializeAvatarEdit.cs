@@ -16,12 +16,7 @@ public sealed class InitializeAvatarEdit(Session session) : IOperationHandler
         foreach (int body in session.Bodies)
         {
             writer.WriteInt32(body);
-            writer.WriteInt32(body);
-            writer.WriteString($"Avatar {body}");
-            writer.WriteInt32(0);
-            writer.WriteInt32(0);
-            writer.WriteBool(false);
-            writer.WriteBool(false);
+            AvatarMetaData.Write(writer, body);
         }
 
         peer.Send(new OperationResponse(request)

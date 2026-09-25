@@ -5,10 +5,14 @@ using OpenKogama.Photon;
 using OpenKogama.Storage;
 using OpenKogama.Web;
 
+LogFile.Start("logs");
+
 var database = new Database("server.db");
 Stores.Profiles = new SqliteProfileStore(database);
 Stores.Worlds = new SqliteWorldStore(database);
 Stores.Friends = new SqliteFriendStore(database);
+Stores.Images = new SqliteImageStore(database);
+Stores.Market = new SqliteMarketStore(database);
 Session.EnsureDefaultWorld();
 
 var server = new PhotonServer(5055) { Log = Console.WriteLine };
@@ -46,7 +50,7 @@ _ = Task.Run(async () =>
 
 var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 string SessionJson(int profile, GameMode mode, int world) => JsonSerializer.Serialize(
-    new SessionData("127.0.0.1:5055", profile, world, mode, "en_US", false, "0",
+    new SessionData("127.0.0.1:5055", profile, world, mode, "en_US", false, profile.ToString(),
         "http://127.0.0.1:8080/ping", "http://127.0.0.1:8080/disconnect"),
     jsonOptions);
 
@@ -57,6 +61,6 @@ _ = Task.Run(() => assets.PrefetchAsync(streaming.Assets.Select(asset => asset.P
 _ = new NullProxy(8081).RunAsync();
 Console.WriteLine("proxy 8081");
 
-var web = new HttpServer("http://127.0.0.1:8080/") { SessionJson = SessionJson, Assets = assets };
+var web = new HttpServer("http://127.0.0.1:8080/") { SessionJson = SessionJson, Assets = assets, DeleteWorld = host.DeleteWorld };
 Console.WriteLine("http 8080");
 web.Run();

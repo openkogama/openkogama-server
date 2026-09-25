@@ -4,6 +4,7 @@ using OpenKogama.Handlers.Operations;
 using OpenKogama.Kogama;
 using OpenKogama.Photon;
 using OpenKogama.Storage;
+using OpenKogama.World;
 
 namespace OpenKogama.Hosting;
 
@@ -12,7 +13,7 @@ public sealed class SessionHost(PhotonServer server)
     sealed record Entry(Session Session, OperationRouter Router, bool Editor);
 
     readonly object _sync = new();
-    readonly Dictionary<int, Entry> _worlds = [];
+    readonly Dictionary<(int Id, bool Play), Entry> _worlds = [];
     readonly Dictionary<PhotonPeer, Entry> _peers = [];
 
     public void Handle(PhotonPeer peer, OperationRequest request)
@@ -52,6 +53,7 @@ public sealed class SessionHost(PhotonServer server)
             return;
         }
 
+        ReleaseEverything(session, gone);
         session.Remove(gone);
         session.Round.Stats.RemoveActor(gone.Actor);
 
@@ -59,19 +61,82 @@ public sealed class SessionHost(PhotonServer server)
             TriggerBox.Send(session, trigger, gone.Actor, pressed: false);
         session.Logic.Evaluate();
 
-        var evt = new EventData((byte)EventCode.UnregisterWorldObject)
+        var unregister = new EventData((byte)EventCode.UnregisterWorldObject)
         {
             Parameters = { [(byte)ParameterKey.WorldObjectID] = gone.AvatarId },
         };
+        var leave = new EventData((byte)EventCode.Leave)
+        {
+            Parameters = { [(byte)ParameterKey.ActorNr] = gone.Actor },
+        };
         foreach (Player other in session.Players)
-            other.Peer.Send(evt);
+        {
+            other.Peer.Send(unregister);
+            other.Peer.Send(leave);
+        }
 
         if (session.Players.Count == 0 && session.WorldId is int id)
         {
             session.SaveIfChanged();
-            lock (_sync) _worlds.Remove(id);
-            Console.WriteLine($"world {id} closed");
+            lock (_sync) _worlds.Remove((id, session.Play));
+            Console.WriteLine($"world {id} {(session.Play ? "play" : "edit")} closed");
         }
+    }
+
+    static void ReleaseEverything(Session session, Player gone)
+    {
+        var events = new List<EventData>();
+
+        if (session.World.Find(gone.AvatarId) is { } avatar && avatar.ParentId != session.World.RootId)
+        {
+            int rootId = session.World.RootId;
+            session.World.Modify(gone.AvatarId, obj =>
+            {
+                obj.ParentId = rootId;
+                obj.SetRuntime("seat", PackedType.Int32, -1);
+            });
+            events.Add(new EventData((byte)EventCode.DetachWorldObjectFromVehicle)
+            {
+                Parameters = { [(byte)ParameterKey.WorldObjectID] = gone.AvatarId },
+            });
+        }
+
+        var own = session.World.Subtree(gone.AvatarId).Select(obj => obj.Id).ToHashSet();
+        foreach (WorldObject obj in session.World.ToSnapshot().Objects)
+        {
+            if (obj.Owner != gone.Actor || own.Contains(obj.Id)) continue;
+
+            session.World.Modify(obj.Id, o => o.Owner = null);
+            events.Add(new EventData((byte)EventCode.TransferOwnership)
+            {
+                Parameters =
+                {
+                    [(byte)ParameterKey.WorldObjectID] = obj.Id,
+                    [(byte)ParameterKey.OwnerActorNr] = 0,
+                    [(byte)ParameterKey.FinalizeTransform] = false,
+                },
+            });
+        }
+
+        foreach (Player other in session.Players)
+            if (other != gone)
+                foreach (EventData evt in events)
+                    other.Peer.Send(evt);
+
+        if (events.Count > 0)
+            Console.WriteLine($"actor {gone.Actor}: released {events.Count} objects");
+    }
+
+    public bool DeleteWorld(int id)
+    {
+        lock (_sync)
+        {
+            if (_worlds.Keys.Any(key => key.Id == id) || !Stores.Worlds.Delete(id)) return false;
+        }
+
+        Stores.Images.DeleteImage(0, id);
+        Console.WriteLine($"world {id} deleted");
+        return true;
     }
 
     public void SaveAll()
@@ -93,21 +158,23 @@ public sealed class SessionHost(PhotonServer server)
 
     Entry? Assign(PhotonPeer peer, OperationRequest request)
     {
-        if (request.Parameters.TryGetValue((byte)ParameterKey.GameMode, out object? mode)
-            && Convert.ToInt32(mode) == (int)GameMode.CharacterEditor)
+        int mode = request.Parameters.TryGetValue((byte)ParameterKey.GameMode, out object? value) ? Convert.ToInt32(value) : (int)GameMode.Edit;
+        if (mode == (int)GameMode.CharacterEditor)
         {
             Console.WriteLine($"peer {peer.Id}: character editor");
-            return Create(Session.CharacterEditor(peer.Id), editor: true);
+            int profile = int.TryParse(request.Parameters.GetValueOrDefault((byte)ParameterKey.Token) as string, out int parsed) && parsed > 0 ? parsed : 1;
+            return Create(Session.CharacterEditor(peer.Id, profile), editor: true);
         }
 
         int id = request.Parameters.TryGetValue((byte)ParameterKey.PlanetID, out object? planet) ? Convert.ToInt32(planet) : 0;
         if (id <= 0) id = Stores.Worlds.List().FirstOrDefault()?.Id ?? 0;
 
-        if (_worlds.TryGetValue(id, out Entry? open)) return open;
-        if (Session.Open(id) is not { } session) return null;
+        bool play = mode == (int)GameMode.Play;
+        if (_worlds.TryGetValue((id, play), out Entry? open)) return open;
+        if (Session.Open(id, play) is not { } session) return null;
 
-        Console.WriteLine($"world {id} opened");
-        return _worlds[id] = Create(session, editor: false);
+        Console.WriteLine($"world {id} {(play ? "play" : "edit")} opened");
+        return _worlds[(id, play)] = Create(session, editor: false);
     }
 
     Entry Create(Session session, bool editor)

@@ -21,8 +21,9 @@ public sealed class DBQuery : IOperationHandler
                 break;
 
             case DBQueryType.RequestPlanetOwnershipTypes:
-                outData.Add(0, "Owner");
-                outData.Add(1, "Visitor");
+                outData.Add((int)PlanetOwnership.None, "None");
+                outData.Add((int)PlanetOwnership.Editor, "Editor");
+                outData.Add((int)PlanetOwnership.Owner, "Owner");
                 break;
         }
 

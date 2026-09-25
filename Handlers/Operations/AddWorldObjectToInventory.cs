@@ -7,8 +7,8 @@ namespace OpenKogama.Handlers.Operations;
 
 public sealed class AddWorldObjectToInventory(Session session) : IOperationHandler
 {
-    const int ModelCategory = 1;
-    const string ModelName = "CubeModel";
+    const short NotCreatorCanBuy = -6;
+    const short Failed = -1;
 
     public byte Code => (byte)OperationCode.AddWorldObjectToInventory;
 
@@ -19,55 +19,33 @@ public sealed class AddWorldObjectToInventory(Session session) : IOperationHandl
         WorldObject? obj = session.World.Find(objectId);
         Prototype? prototype = obj?.PrototypeId is int id ? session.World.FindPrototype(id) : null;
 
-        if (player is null || obj?.Type != WorldObjectType.CubeModel || prototype is null || prototype.AuthorId != player.ProfileId)
+        if (player is null || obj?.Type != WorldObjectType.CubeModel || prototype is null)
         {
             Console.WriteLine($"peer {peer.Id}: cannot add {objectId} to inventory");
+            Respond(peer, request, Failed, objectId, 0);
             return;
         }
 
-        var itemPrototype = new Prototype(1, prototype.Scale, prototype.AuthorId, prototype.Cubes.Clone());
-        var itemObject = new WorldObject
+        if (prototype.AuthorId != player.ProfileId)
         {
-            Id = 1,
-            ParentId = -1,
-            Type = WorldObjectType.CubeModel,
-            Scale = [.. obj.Scale],
-            Data = [("protoTypeID", PackedType.Int32, itemPrototype.Id)],
-        };
-        byte[] data = WorldSerializer.Write(new Snapshot([itemPrototype], [itemObject], [], []), runtime: false);
+            Respond(peer, request, NotCreatorCanBuy, objectId, 0);
+            return;
+        }
 
-        Item item = Inventories.Add(player.ProfileId, ModelName, ModelCategory, data);
-        int slot = Inventories.WithSlots(player.ProfileId).First(entry => entry.Item.Id == item.Id).Slot;
-
-        peer.Send(new EventData((byte)EventCode.AddItemToInventory)
-        {
-            Parameters =
-            {
-                [(byte)ParameterKey.ActorNr] = player.Actor,
-                [(byte)ParameterKey.ItemID] = item.Id,
-                [(byte)ParameterKey.ItemCategoryID] = ModelCategory,
-                [(byte)ParameterKey.ItemTypeID] = item.Id,
-                [(byte)ParameterKey.ItemName] = item.Name,
-                [(byte)ParameterKey.ItemData] = data,
-                [(byte)ParameterKey.SlotIndex] = slot,
-                [(byte)ParameterKey.WorldObjectID] = objectId,
-                [(byte)ParameterKey.IsResellable] = true,
-                [(byte)ParameterKey.AuthorProfileID] = player.ProfileId,
-                [(byte)ParameterKey.OriginalItemID] = item.Id,
-                [(byte)ParameterKey.ItemPrice] = 0,
-            },
-        });
-
-        peer.Send(new OperationResponse(request)
-        {
-            Parameters =
-            {
-                [(byte)ParameterKey.WorldObjectID] = objectId,
-                [(byte)ParameterKey.ItemID] = item.Id,
-                [(byte)ParameterKey.ItemPrice] = 0,
-            },
-        });
-
+        Item item = ModelInventory.Add(player, obj, prototype, objectId);
+        Respond(peer, request, 0, objectId, item.Id);
         Console.WriteLine($"peer {peer.Id}: added model {objectId} to inventory of profile {player.ProfileId} as item {item.Id}");
     }
+
+    static void Respond(PhotonPeer peer, OperationRequest request, short code, int objectId, int itemId) =>
+        peer.Send(new OperationResponse(request)
+        {
+            ReturnCode = code,
+            Parameters =
+            {
+                [(byte)ParameterKey.WorldObjectID] = objectId,
+                [(byte)ParameterKey.ItemID] = itemId,
+                [(byte)ParameterKey.ItemPrice] = 0,
+            },
+        });
 }

@@ -14,18 +14,7 @@ public sealed class RequestStreamingAssetList : IOperationHandler
         request.Parameters.TryGetValue((byte)ParameterKey.StreamingAssetTypeIDs, out object? types);
         foreach (StreamingAsset asset in StreamingAssets.For("2015").OfTypes(types))
         {
-            PhotonDictionary entry = PhotonDictionary.Untyped();
-            entry.Add((byte)DBQueryKey.StreamingAssetTypeID, asset.Type);
-            entry.Add((byte)DBQueryKey.StreamingAssetCategoryID, asset.Category);
-            entry.Add((byte)DBQueryKey.StreamingAssetName, asset.Name);
-            entry.Add((byte)DBQueryKey.StreamingAssetDescription, asset.Description);
-            entry.Add((byte)DBQueryKey.StreamingAssetURL, asset.Path);
-            entry.Add((byte)DBQueryKey.PriceGold, 0);
-            entry.Add((byte)DBQueryKey.PriceSilver, 0);
-            entry.Add((byte)DBQueryKey.RentPriceSilver, 0);
-            entry.Add((byte)DBQueryKey.RentPriceGold, 0);
-            entry.Add((byte)DBQueryKey.RentExpireSeconds, 0);
-            list.Add(asset.Id, entry);
+            list.Add(asset.Id, asset.Describe());
         }
 
         peer.Send(new OperationResponse(request)

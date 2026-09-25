@@ -41,7 +41,7 @@ public sealed class GetNextGameBatch(Session session) : IOperationHandler
             Parameters = { [(byte)ParameterKey.QueryId] = queryId },
         });
 
-        byte[] addition = WorldSerializer.Write([], session.World.Subtree(me.AvatarId));
+        byte[] addition = WorldSerializer.Write(session.World.SubtreeSnapshot(me.AvatarId));
 
         foreach (Player other in session.Players)
         {

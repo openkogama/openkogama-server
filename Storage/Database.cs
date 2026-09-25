@@ -79,6 +79,38 @@ public sealed class Database
         CREATE INDEX friends_profile ON friends (profile);
         CREATE INDEX friends_friend ON friends (friend);
         """,
+        """
+        CREATE TABLE images (
+            type INTEGER NOT NULL,
+            id INTEGER NOT NULL,
+            data BLOB NOT NULL,
+            PRIMARY KEY (type, id)
+        );
+        """,
+        """
+        ALTER TABLE worlds ADD COLUMN published_data BLOB;
+        ALTER TABLE worlds ADD COLUMN published_at TEXT;
+        """,
+        """
+        ALTER TABLE avatars ADD COLUMN source INTEGER;
+        """,
+        """
+        CREATE TABLE market (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            kind INTEGER NOT NULL,
+            owner INTEGER NOT NULL,
+            source INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            description TEXT NOT NULL DEFAULT '',
+            category INTEGER NOT NULL DEFAULT 0,
+            price INTEGER NOT NULL DEFAULT 0,
+            data BLOB NOT NULL,
+            created_at TEXT NOT NULL,
+            UNIQUE (kind, source)
+        );
+
+        INSERT INTO sqlite_sequence (name, seq) VALUES ('market', 1000000);
+        """,
     ];
 
     readonly string _connectionString;
