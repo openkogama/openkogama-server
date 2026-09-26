@@ -8,12 +8,15 @@ public static class ClientProtocols
     const byte GameId = 255;
     static readonly string[] Legacy = ["1.9.0.1", "1.8.15.2", "1.8.8.4"];
 
+    public static string NativeVersion(OperationRequest join) =>
+        join[GameId] is string hint && ProtocolTable.Resolve(hint) is string table && !ProtocolTable.IsLegacy(table) ? table : ServerVersion;
+
     public static LegacyTranslator? Detect(OperationRequest join)
     {
         ProtocolTable server = ProtocolTable.For(ServerVersion);
         if (join[(byte)server.ParameterKeys["ProfileToken"]] is string) return null;
 
-        if (join[GameId] is string hint && ProtocolTable.Resolve(hint) is string table && table != ServerVersion)
+        if (join[GameId] is string hint && ProtocolTable.Resolve(hint) is string table && ProtocolTable.IsLegacy(table))
             return new LegacyTranslator(ProtocolTable.For(table), server);
 
         foreach (string version in Legacy)

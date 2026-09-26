@@ -11,6 +11,7 @@ public sealed class Join(Session session) : IOperationHandler
     public void Handle(PhotonPeer peer, OperationRequest request)
     {
         Player player = session.For(peer) ?? session.Add(peer);
+        if (peer.Translator is null) player.ClientVersion = Kogama.Protocols.ClientProtocols.NativeVersion(request);
         if (int.TryParse(request[(byte)ParameterKey.Token] as string, out int profile) && profile > 0)
             player.ProfileId = profile;
 

@@ -7,24 +7,68 @@ public static class LegacyWorld
 {
     public static byte[] Convert(byte[] data, ProtocolTable client, bool runtime = true) => Convert(data, client, runtime, out _);
 
+    public static Snapshot KnownItems(Snapshot snapshot, ProtocolTable client, out int dropped)
+    {
+        var known = client.AvatarItemType.Values.ToHashSet();
+        var removed = WithBrokenBlueprints(snapshot.Objects, snapshot.Objects
+            .Where(obj => obj.Data.Find(pair => pair.Key == "itemType").Value is int item && !known.Contains(item))
+            .Select(obj => obj.Id)
+            .ToHashSet());
+        dropped = removed.Count;
+        if (dropped == 0) return snapshot;
+
+        return snapshot with
+        {
+            Objects = [.. snapshot.Objects.Where(obj => !removed.Contains(obj.Id))],
+            Links = [.. snapshot.Links.Where(link => !removed.Contains(link.From) && !removed.Contains(link.To))],
+            ObjectLinks = [.. snapshot.ObjectLinks.Where(link => !removed.Contains(link.From) && !removed.Contains(link.To))],
+        };
+    }
+
+    public static HashSet<int> WithBrokenBlueprints(IReadOnlyList<WorldObject> objects, HashSet<int> removed)
+    {
+        var byId = objects.ToDictionary(obj => obj.Id);
+        bool Missing(WorldObject parent, object value) =>
+            value is int id && (removed.Contains(id) || !byId.TryGetValue(id, out WorldObject? child) || child.ParentId != parent.Id);
+
+        while (true)
+        {
+            WithDescendants(objects, removed);
+            var broken = objects
+                .Where(obj => !removed.Contains(obj.Id)
+                    && obj.Data.Find(pair => pair.Key == "BlueprintData").Value is List<(string Key, PackedType Type, object Value)> blueprint
+                    && blueprint.Find(pair => pair.Key == "ChildrenMap").Value is List<(string Key, PackedType Type, object Value)> children
+                    && children.Exists(child => Missing(obj, child.Value)))
+                .Select(obj => obj.Id)
+                .ToList();
+            if (broken.Count == 0) return removed;
+            removed.UnionWith(broken);
+        }
+    }
+
+    static HashSet<int> WithDescendants(IReadOnlyList<WorldObject> objects, HashSet<int> removed)
+    {
+        bool grew = removed.Count > 0;
+        while (grew)
+        {
+            grew = false;
+            foreach (WorldObject obj in objects)
+                if (removed.Contains(obj.ParentId) && removed.Add(obj.Id))
+                    grew = true;
+        }
+        return removed;
+    }
+
     public static byte[] Convert(byte[] data, ProtocolTable client, bool runtime, out int dropped)
     {
         Snapshot snapshot = WorldSerializer.Read(data, runtime);
         ProtocolTable server = ProtocolTable.For(ClientProtocols.ServerVersion);
         var types = new CodeMap(server.WorldObjectType, client.WorldObjectType);
         var items = new CodeMap(server.AvatarItemType, client.AvatarItemType);
-        var removed = snapshot.Objects
+        var removed = WithBrokenBlueprints(snapshot.Objects, snapshot.Objects
             .Where(obj => types.Map((int)obj.Type) is null || obj.Data.Find(pair => pair.Key == "itemType").Value is int item && items.Map(item) is null)
             .Select(obj => obj.Id)
-            .ToHashSet();
-        bool grew = removed.Count > 0;
-        while (grew)
-        {
-            grew = false;
-            foreach (WorldObject obj in snapshot.Objects)
-                if (removed.Contains(obj.ParentId) && removed.Add(obj.Id))
-                    grew = true;
-        }
+            .ToHashSet());
 
         var objects = snapshot.Objects.Where(obj => !removed.Contains(obj.Id)).ToList();
         dropped = removed.Count;

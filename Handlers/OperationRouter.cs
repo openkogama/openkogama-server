@@ -43,7 +43,7 @@ public sealed class OperationRouter
         Register(new SetTeam(session));
         Register(new LevelChanged(session));
         Register(new ReportCaptureFlag(session));
-        Register(new SetActorReady());
+        Register(new SetActorReady(session));
         Register(new RegisterWorldObject(session));
         Register(new AddPlanetToPlanet(session));
         Register(new UpdateWorldObject(session));

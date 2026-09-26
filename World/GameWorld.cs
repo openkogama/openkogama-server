@@ -8,6 +8,7 @@ public sealed class GameWorld
     readonly object _sync = new();
     readonly Dictionary<int, Prototype> _prototypes = [];
     readonly List<WorldObject> _objects = [];
+    readonly Dictionary<int, WorldObject> _byId = [];
     readonly List<Link> _links = [];
     readonly List<Link> _objectLinks = [];
     readonly List<byte[]> _runtimeEvents = [];
@@ -44,28 +45,37 @@ public sealed class GameWorld
         RuntimeDefaults.Apply(obj);
         lock (_sync)
         {
-            _objects.Add(obj);
+            Store(obj);
             _nextObjectId = Math.Max(_nextObjectId, obj.Id + 1);
         }
     }
 
     public List<WorldObject> Subtree(int id)
     {
-        lock (_sync)
-        {
-            var result = new List<WorldObject>();
-            WorldObject? root = _objects.Find(obj => obj.Id == id);
-            if (root is not null) Visit(root);
-            return result;
+        lock (_sync) return Subtree(id, _objects.ToLookup(obj => obj.ParentId));
+    }
 
-            void Visit(WorldObject obj)
-            {
-                result.Add(obj);
-                foreach (WorldObject child in _objects.Where(o => o.ParentId == obj.Id).ToList())
-                    Visit(child);
-            }
+    List<WorldObject> Subtree(int id, ILookup<int, WorldObject> children)
+    {
+        var result = new List<WorldObject>();
+        if (Get(id) is WorldObject root) Visit(root);
+        return result;
+
+        void Visit(WorldObject obj)
+        {
+            result.Add(obj);
+            foreach (WorldObject child in children[obj.Id])
+                Visit(child);
         }
     }
+
+    void Store(WorldObject obj)
+    {
+        _objects.Add(obj);
+        _byId[obj.Id] = obj;
+    }
+
+    WorldObject? Get(int id) => _byId.GetValueOrDefault(id);
 
     public void Remove(int id)
     {
@@ -73,6 +83,7 @@ public sealed class GameWorld
         {
             var ids = Subtree(id).Select(obj => obj.Id).ToHashSet();
             _objects.RemoveAll(obj => ids.Contains(obj.Id));
+            foreach (int removed in ids) _byId.Remove(removed);
             _links.RemoveAll(link => ids.Contains(link.From) || ids.Contains(link.To));
             _objectLinks.RemoveAll(link => ids.Contains(link.From) || ids.Contains(link.To));
         }
@@ -125,7 +136,7 @@ public sealed class GameWorld
     {
         lock (_sync)
         {
-            WorldObject? obj = _objects.Find(o => o.Id == objectId);
+            WorldObject? obj = Get(objectId);
             if (obj?.PrototypeId is not int oldId || !_prototypes.TryGetValue(oldId, out Prototype? old)) return null;
 
             var unique = new Prototype(_nextPrototypeId++, old.Scale, old.AuthorId, old.Cubes.Clone());
@@ -166,7 +177,7 @@ public sealed class GameWorld
 
             foreach (Prototype prototype in prototypes) _prototypes[prototype.Id] = prototype;
             objects.ForEach(RuntimeDefaults.Apply);
-            _objects.AddRange(objects);
+            objects.ForEach(Store);
             _links.AddRange(links);
             _objectLinks.AddRange(objectLinks);
 
@@ -206,7 +217,7 @@ public sealed class GameWorld
 
             foreach (WorldObject original in originals)
             {
-                _objects.Add(new WorldObject
+                Store(new WorldObject
                 {
                     Id = newIds[original.Id],
                     ParentId = original.Id == id ? RootId : newIds[original.ParentId],
@@ -222,7 +233,7 @@ public sealed class GameWorld
                 });
             }
 
-            return _objects.Find(obj => obj.Id == newIds[id]);
+            return Get(newIds[id]);
         }
     }
 
@@ -243,8 +254,8 @@ public sealed class GameWorld
     {
         lock (_sync)
         {
-            WorldObject? obj = _objects.Find(o => o.Id == id);
-            if (obj is null || _objects.All(o => o.Id != parentId) || Subtree(id).Any(o => o.Id == parentId)) return false;
+            WorldObject? obj = Get(id);
+            if (obj is null || !_byId.ContainsKey(parentId) || Subtree(id).Any(o => o.Id == parentId)) return false;
 
             Matrix4x4.Invert(WorldMatrix(parentId), out Matrix4x4 toParent);
             Matrix4x4.Decompose(WorldMatrix(id) * toParent, out Vector3 scale, out Quaternion rotation, out Vector3 position);
@@ -260,7 +271,7 @@ public sealed class GameWorld
     Matrix4x4 WorldMatrix(int id)
     {
         Matrix4x4 matrix = Matrix4x4.Identity;
-        for (WorldObject? obj = _objects.Find(o => o.Id == id); obj is not null; obj = _objects.Find(o => o.Id == obj.ParentId))
+        for (WorldObject? obj = Get(id); obj is not null; obj = Get(obj.ParentId))
         {
             matrix *= Matrix4x4.CreateScale(obj.Scale[0], obj.Scale[1], obj.Scale[2])
                 * Matrix4x4.CreateFromQuaternion(new Quaternion(obj.Rotation[0], obj.Rotation[1], obj.Rotation[2], obj.Rotation[3]))
@@ -273,7 +284,7 @@ public sealed class GameWorld
     {
         lock (_sync)
         {
-            WorldObject? obj = _objects.Find(o => o.Id == id);
+            WorldObject? obj = Get(id);
             if (obj is null) return false;
             change(obj);
             return true;
@@ -282,7 +293,7 @@ public sealed class GameWorld
 
     public WorldObject? Find(int id)
     {
-        lock (_sync) return _objects.Find(obj => obj.Id == id);
+        lock (_sync) return Get(id);
     }
 
     public int RootId
@@ -303,6 +314,15 @@ public sealed class GameWorld
     public void MarkChanged() => Interlocked.Exchange(ref _changed, 1);
 
     public bool TakeChanged() => Interlocked.Exchange(ref _changed, 0) == 1;
+
+    public Snapshot LogicGraph()
+    {
+        lock (_sync)
+        {
+            var ids = _links.SelectMany(link => new[] { link.From, link.To }).ToHashSet();
+            return new Snapshot([], [.. ids.Select(Get).OfType<WorldObject>()], [.. _links], []);
+        }
+    }
 
     public Snapshot ToSnapshot()
     {
@@ -325,10 +345,10 @@ public sealed class GameWorld
 
     List<WorldObject> Ordered()
     {
-        var ids = _objects.Select(obj => obj.Id).ToHashSet();
+        ILookup<int, WorldObject> children = _objects.ToLookup(obj => obj.ParentId);
         var ordered = new List<WorldObject>(_objects.Count);
-        foreach (WorldObject top in _objects.Where(obj => !ids.Contains(obj.ParentId)))
-            ordered.AddRange(Subtree(top.Id));
+        foreach (WorldObject top in _objects.Where(obj => !_byId.ContainsKey(obj.ParentId)))
+            ordered.AddRange(Subtree(top.Id, children));
         return ordered;
     }
 

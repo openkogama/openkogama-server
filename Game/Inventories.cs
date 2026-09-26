@@ -4,8 +4,8 @@ namespace OpenKogama.Game;
 
 public static class Inventories
 {
-    public static Item? Find(int profile, int itemId) =>
-        Items.For("2015").Find(itemId) ?? Stores.Profiles.Items(profile).Find(item => item.Id == itemId);
+    public static Item? Find(int profile, int itemId, string version = Kogama.Protocols.ClientProtocols.ServerVersion) =>
+        Items.ForClient(version).Find(itemId) ?? Stores.Profiles.Items(profile).Find(item => item.Id == itemId);
 
     public static Item Add(int profile, string name, int category, byte[] data, int author) =>
         Stores.Profiles.AddItem(profile, name, category, data, author);
@@ -14,10 +14,10 @@ public static class Inventories
 
     public static void SetSlots(int profile, Dictionary<int, int> slots) => Stores.Profiles.SetSlots(profile, slots);
 
-    public static List<(Item Item, int Slot)> WithSlots(int profile)
+    public static List<(Item Item, int Slot)> WithSlots(int profile, string version = Kogama.Protocols.ClientProtocols.ServerVersion)
     {
         Dictionary<int, int> slots = Stores.Profiles.Slots(profile);
-        List<Item> all = [.. Items.For("2015").Items, .. Stores.Profiles.Items(profile)];
+        List<Item> all = [.. Items.ForClient(version).Items, .. Stores.Profiles.Items(profile)];
         var taken = all.GroupBy(item => item.Category).ToDictionary(
             group => group.Key,
             group => group.Where(item => slots.ContainsKey(item.Id)).Select(item => slots[item.Id]).ToHashSet());

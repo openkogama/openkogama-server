@@ -13,7 +13,7 @@ namespace OpenKogama.Hosting;
 
 public sealed class SessionHost(PhotonServer server, bool mixedClients)
 {
-    sealed record Entry(Session Session, OperationRouter Router, bool Editor, string Client = "", Router2012? Classic = null);
+    sealed record Entry(Session Session, OperationRouter? Router, bool Editor, string Client = "", Router2012? Classic = null);
 
     readonly object _sync = new();
     readonly Dictionary<(int Id, bool Play, string Client), Entry> _worlds = [];
@@ -55,7 +55,7 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
             }
         }
 
-        if (entry is null)
+        if (entry?.Router is null)
         {
             Console.WriteLine($"peer {peer.Id}: op {request.OperationCode} rejected, not in a world");
             peer.Send(new OperationResponse(request) { ReturnCode = -1 });
@@ -84,7 +84,15 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
             return;
         }
 
-        entry.Classic.Handle(peer, request);
+        try
+        {
+            entry.Classic.Handle(peer, request);
+        }
+        catch (Exception error)
+        {
+            Console.WriteLine($"peer {peer.Id}: 2012 op {request.OperationCode} failed: {error}");
+            peer.Send(new OperationResponse(request) { ReturnCode = -1 });
+        }
     }
 
     Entry? Assign2012(OperationRequest join)
@@ -94,11 +102,12 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
 
         bool play = join[(byte)Key2012.JoinEditMode] is not true;
         if (_worlds.TryGetValue((id, play, Client), out Entry? open)) return open;
-        if (!play && _worlds.Keys.Any(key => key.Id == id && !key.Play)) return null;
+        if (!play && EditLocked(id)) return null;
         if (Session.Open(id, play) is not { } session) return null;
 
         Console.WriteLine($"world {id} {(play ? "play" : "edit")} opened for {Client}");
-        return _worlds[(id, play, Client)] = Create(session, editor: false, Client) with { Classic = new Router2012(session) };
+        session.Begin(() => server.Now);
+        return _worlds[(id, play, Client)] = new Entry(session, null, false, Client, new Router2012(session));
     }
 
     public void Disconnect(PhotonPeer peer)
@@ -249,7 +258,7 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
         bool play = mode == (int)GameMode.Play;
         string client = mixedClients ? "" : (peer.Translator as LegacyTranslator)?.Version ?? "";
         if (_worlds.TryGetValue((id, play, client), out Entry? open)) return open;
-        if (!play && _worlds.Keys.Any(key => key.Id == id && !key.Play))
+        if (!play && EditLocked(id))
         {
             Console.WriteLine($"peer {peer.Id}: world {id} is already edited by another client version");
             return null;
@@ -259,6 +268,8 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
         Console.WriteLine($"world {id} {(play ? "play" : "edit")} opened{(client == "" ? "" : $" for {client}")}");
         return _worlds[(id, play, client)] = Create(session, editor: false, client);
     }
+
+    bool EditLocked(int id) => _worlds.Keys.Any(key => key.Id == id && !key.Play);
 
     Entry Create(Session session, bool editor, string client = "")
     {

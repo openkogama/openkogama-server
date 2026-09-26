@@ -15,7 +15,7 @@ public sealed class GetNextResultSet(Session session) : IOperationHandler
 
         PhotonDictionary outData = (DBQueryType)queryId switch
         {
-            DBQueryType.RequestInventory => Inventory(session.For(peer)?.ProfileId ?? 0),
+            DBQueryType.RequestInventory => Inventory(session.For(peer)?.ProfileId ?? 0, session.For(peer)?.ClientVersion ?? Kogama.Protocols.ClientProtocols.ServerVersion),
             DBQueryType.RequestAvatarShopInventory => AvatarShopInventory(),
             DBQueryType.RequestClientShopInventoryForPlayer => ItemShopInventory(),
             _ => PhotonDictionary.Untyped(),
@@ -67,11 +67,11 @@ public sealed class GetNextResultSet(Session session) : IOperationHandler
         return shop;
     }
 
-    static PhotonDictionary Inventory(int profileId)
+    static PhotonDictionary Inventory(int profileId, string version)
     {
         PhotonDictionary inventory = PhotonDictionary.Untyped();
 
-        foreach ((Item item, int slot) in Inventories.WithSlots(profileId))
+        foreach ((Item item, int slot) in Inventories.WithSlots(profileId, version))
         {
             PhotonDictionary entry = PhotonDictionary.Untyped();
             entry.Add((byte)DBQueryKey.ItemID, item.Id);

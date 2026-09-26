@@ -27,11 +27,14 @@ public sealed class Logic(Session session)
         {
             for (int round = 0; round < MaxPasses; round++)
             {
-                Snapshot world = session.World.ToSnapshot();
+                Snapshot world = session.World.LogicGraph();
                 Dictionary<int, bool> inputs = Propagate(world);
                 bool changed = false;
 
-                foreach (WorldObject obj in world.Objects.Where(obj => Stateful.Contains(obj.Type)))
+                var linked = world.Objects.Select(obj => obj.Id).ToHashSet();
+                IEnumerable<WorldObject> unlinked = _inputs.Where(entry => entry.Value && !linked.Contains(entry.Key))
+                    .Select(entry => session.World.Find(entry.Key)).OfType<WorldObject>();
+                foreach (WorldObject obj in world.Objects.Concat(unlinked.ToList()).Where(obj => Stateful.Contains(obj.Type)))
                 {
                     bool input = inputs.GetValueOrDefault(obj.Id);
                     bool before = _inputs.GetValueOrDefault(obj.Id);
@@ -43,6 +46,26 @@ public sealed class Logic(Session session)
 
                 if (!changed) return;
             }
+        }
+    }
+
+    public void Resync(Player player)
+    {
+        if (DataChanged is not null) return;
+
+        foreach (WorldObject obj in session.World.LogicGraph().Objects.Where(obj => Stateful.Contains(obj.Type)))
+        {
+            string key = obj.Type == WorldObjectType.RandomBox ? "currentOutput" : "state";
+            if (obj.Data.Find(pair => pair.Key == key).Value is not { } value) continue;
+
+            player.Peer.Send(new EventData((byte)EventCode.UpdateWorldObjectDataPartial)
+            {
+                Parameters =
+                {
+                    [(byte)ParameterKey.WorldObjectID] = obj.Id,
+                    [(byte)ParameterKey.WorldObjectData] = new Dictionary<object, object?> { [key] = value },
+                },
+            });
         }
     }
 
@@ -273,7 +296,6 @@ public sealed class Logic(Session session)
     {
         var change = new Dictionary<object, object?> { [key] = value };
         session.World.Modify(id, obj => PackedData.Merge(obj.Data, change));
-        session.World.MarkChanged();
 
         if (DataChanged is not null)
         {
@@ -290,6 +312,7 @@ public sealed class Logic(Session session)
             },
         };
         foreach (Player player in session.Players)
-            player.Peer.Send(evt);
+            if (player.InWorld)
+                player.Peer.Send(evt);
     }
 }

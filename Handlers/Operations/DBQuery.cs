@@ -16,7 +16,7 @@ public sealed class DBQuery : IOperationHandler
         switch (type)
         {
             case DBQueryType.RequestItemCategories:
-                foreach ((int id, string name) in Items.For("2015").Categories)
+                foreach ((int id, string name) in Items.Catalog.Categories)
                     outData.Add(id, name);
                 break;
 

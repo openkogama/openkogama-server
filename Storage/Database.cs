@@ -111,6 +111,9 @@ public sealed class Database
 
         INSERT INTO sqlite_sequence (name, seq) VALUES ('market', 1000000);
         """,
+        """
+        ALTER TABLE worlds ADD COLUMN played_at TEXT;
+        """,
     ];
 
     readonly string _connectionString;

@@ -173,6 +173,7 @@ public sealed class Session
         if (Stores.Worlds.World(id) is not { } stored) return null;
 
         byte[] data = play ? Stores.Worlds.Published(id) ?? stored.Data : stored.Data;
+        Stores.Worlds.MarkPlayed(id);
         return new Session(GameWorld.FromData(stored.Name, null, [data]), id, stored.Name, play);
     }
 

@@ -22,7 +22,15 @@ public sealed class GetNextGameBatch(Session session) : IOperationHandler
         Player? me = session.For(peer);
         if (me is null) return;
 
-        byte[] world = WorldSerializer.Write(session.World.ToSnapshot());
+        me.InWorld = true;
+        if (peer.Translator is null) Console.WriteLine($"peer {peer.Id}: client {me.ClientVersion}");
+        Snapshot snapshot = session.World.ToSnapshot();
+        if (peer.Translator is null)
+        {
+            snapshot = LegacyWorld.KnownItems(snapshot, Kogama.Protocols.ProtocolTable.For(me.ClientVersion), out int dropped);
+            if (dropped > 0) Console.WriteLine($"peer {peer.Id}: hid {dropped} unsupported or broken objects");
+        }
+        byte[] world = WorldSerializer.Write(snapshot);
 
         peer.Send(new EventData((byte)EventCode.GetGameBatch)
         {

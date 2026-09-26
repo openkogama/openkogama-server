@@ -71,7 +71,10 @@ public sealed class Router2012
             case Op2012.TriggerBoxExit: TriggerBox(peer, request, entering: false); break;
             case Op2012.UpdateWorldObjectRunTimeData: UpdateWorldObjectRunTimeData(peer, request); break;
             case Op2012.UpdateLineOfFire: Relay(peer, request, Event2012.UpdateLineOfFire, reliable: false); break;
-            case Op2012.SetActorReady: Reply(peer, request); break;
+            case Op2012.SetActorReady:
+                if (session.For(peer) is Player ready) ready.InWorld = true;
+                Reply(peer, request);
+                break;
             case Op2012.RaiseEvent: RaiseEvent(peer, request); break;
             case Op2012.SetProperties: SetProperties(peer, request); break;
             case Op2012.GetProperties: Reply(peer, request); break;
@@ -122,6 +125,11 @@ public sealed class Router2012
 
     public void Left(Player gone)
     {
+        lock (_sync)
+        {
+            _objects.Remove(gone.Peer.Id);
+            _prototypes.Remove(gone.Peer.Id);
+        }
         foreach (int trigger in session.Triggers.ExitAll(gone.Actor))
             Broadcast(gone.Peer, new EventData((byte)Event2012.TriggerBoxStayEnd) { Parameters = { [(byte)Key2012.WorldObjectID] = trigger } });
         if (gone.AvatarId >= 0)
@@ -142,7 +150,7 @@ public sealed class Router2012
         switch ((DBQuery2012)Convert.ToByte(request[(byte)Key2012.DBQuery]))
         {
             case DBQuery2012.RequestItemTypes:
-                foreach ((int id, string name) in Items.For("2015").Categories) outData[id] = name;
+                foreach ((int id, string name) in Items.Catalog.Categories) outData[id] = name;
                 break;
             case DBQuery2012.RequestPlanetOwnershipTypes:
                 foreach (PlanetOwnership ownership in Enum.GetValues<PlanetOwnership>()) outData[(int)ownership] = ownership.ToString();
@@ -568,15 +576,18 @@ public sealed class Router2012
 
     void SendData(int objectId)
     {
-        if (session.World.Find(objectId) is not WorldObject obj) return;
-        Broadcast(null, new EventData((byte)Event2012.UpdateWorldObjectData)
+        if (session.World.Find(objectId) is not WorldObject obj || WorldObjects2012.Data(obj) is not { } data) return;
+        var evt = new EventData((byte)Event2012.UpdateWorldObjectData)
         {
             Parameters =
             {
                 [(byte)Key2012.WorldObjectID] = objectId,
-                [(byte)Key2012.WorldObjectData] = WorldObjects2012.Table(obj.Data),
+                [(byte)Key2012.WorldObjectData] = WorldObjects2012.Table(data),
             },
-        });
+        };
+        foreach (Player player in session.Players)
+            if (player.InWorld)
+                player.Peer.Send(evt);
     }
 
     void UpdatePrototype(PhotonPeer peer, OperationRequest request)

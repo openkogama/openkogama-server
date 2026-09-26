@@ -15,11 +15,32 @@ public static class WorldObjects2012
         [WorldObjectType.SpawnPointYellow] = WorldObjectType.SpawnPoint,
     };
 
+    static readonly HashSet<string> FloatKeys = ["time", "currentTime", "volume", "range", "intensity"];
+    static readonly HashSet<WorldObjectType> WithOnce = [WorldObjectType.TriggerBox, WorldObjectType.ToggleBox, WorldObjectType.TimeTrigger];
+    const int TimerFiring = 2;
+
+    public static List<(string Key, PackedType Type, object Value)>? Data(WorldObject obj)
+    {
+        List<(string Key, PackedType Type, object Value)> data = [.. obj.Data.Select(pair =>
+            FloatKeys.Contains(pair.Key) && pair.Value is int number ? (pair.Key, PackedType.Single, (object)(float)number) : pair)];
+        bool Has(string key) => data.Exists(pair => pair.Key == key);
+
+        if (obj.Type == WorldObjectType.SoundEmitter && !Has("soundCue")) return null;
+        if (WithOnce.Contains(obj.Type) && !Has("once")) data.Add(("once", PackedType.Bool, false));
+        if (obj.Type == WorldObjectType.TimeTrigger && !Has("currentTime"))
+        {
+            float time = data.Find(pair => pair.Key == "time").Value as float? ?? 0f;
+            bool firing = obj.Data.Find(pair => pair.Key == "state").Value as int? == TimerFiring;
+            data.Add(("currentTime", PackedType.Single, firing ? 0f : time));
+        }
+        return data;
+    }
+
     public static List<Dictionary<object, object?>> Describe(IReadOnlyList<WorldObject> objects, ProtocolTable client)
     {
         var types = new CodeMap(ProtocolTable.For(ClientProtocols.ServerVersion).WorldObjectType, client.WorldObjectType);
         int? Type(WorldObject obj) => types.Map((int)Fallbacks.GetValueOrDefault(obj.Type, obj.Type));
-        var removed = objects.Where(obj => Type(obj) is null).Select(obj => obj.Id).ToHashSet();
+        var removed = objects.Where(obj => Type(obj) is null || Data(obj) is null).Select(obj => obj.Id).ToHashSet();
         bool grew = removed.Count > 0;
         while (grew)
         {
@@ -32,7 +53,7 @@ public static class WorldObjects2012
         return [.. objects.Where(obj => !removed.Contains(obj.Id)).Select(obj => new Dictionary<object, object?>
         {
             [(byte)Key2012.WorldObjectType] = Type(obj)!.Value,
-            [(byte)Key2012.WorldObjectData] = Table(obj.Data),
+            [(byte)Key2012.WorldObjectData] = Table(Data(obj)!),
             [(byte)Key2012.WorldObjectRunTimeData] = Table(obj.Runtime),
             [(byte)Key2012.WorldObjectID] = obj.Id,
             [(byte)Key2012.WorldObjectGroupID] = obj.ParentId,

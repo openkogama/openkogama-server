@@ -19,6 +19,14 @@ public static class WorldConverter
             return false;
         });
 
+        IReadOnlyList<WorldObject> objects = world.ToSnapshot().Objects;
+        HashSet<int> broken = LegacyWorld.WithBrokenBlueprints(objects, []);
+        foreach (WorldObject obj in objects.Where(obj => broken.Contains(obj.Id)))
+        {
+            skipped[(int)obj.Type] = skipped.GetValueOrDefault((int)obj.Type) + 1;
+            if (!broken.Contains(obj.ParentId)) world.Remove(obj.Id);
+        }
+
         foreach (WorldObject obj in world.ToSnapshot().Objects)
         {
             world.Modify(obj.Id, o =>

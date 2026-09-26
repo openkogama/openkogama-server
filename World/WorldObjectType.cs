@@ -11,6 +11,7 @@ public enum WorldObjectType
     Path = 5,
     PathNode = 6,
     SpawnPoint = 7,
+    SoundEmitter = 13,
     Battery = 19,
     ToggleBox = 20,
     Negate = 21,

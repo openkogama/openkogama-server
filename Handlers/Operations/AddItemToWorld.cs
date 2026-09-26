@@ -12,7 +12,8 @@ public sealed class AddItemToWorld(Session session) : IOperationHandler
     public void Handle(PhotonPeer peer, OperationRequest request)
     {
         int itemId = Convert.ToInt32(request[(byte)ParameterKey.ItemID]);
-        Item? item = Inventories.Find(session.For(peer)?.ProfileId ?? 0, itemId);
+        Player? owner = session.For(peer);
+        Item? item = Inventories.Find(owner?.ProfileId ?? 0, itemId, owner?.ClientVersion ?? Kogama.Protocols.ClientProtocols.ServerVersion);
         if (item is null)
         {
             Console.WriteLine($"peer {peer.Id}: unknown item {itemId}");

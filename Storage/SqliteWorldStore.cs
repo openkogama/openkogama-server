@@ -8,12 +8,12 @@ public sealed class SqliteWorldStore(Database database) : IWorldStore
     {
         using SqliteConnection connection = database.Open();
         using SqliteCommand command = connection.CreateCommand();
-        command.CommandText = "SELECT id, name, owner, saved_at, published_at FROM worlds ORDER BY id";
+        command.CommandText = "SELECT id, name, owner, saved_at, published_at, played_at FROM worlds ORDER BY played_at IS NULL, played_at DESC, id";
         using SqliteDataReader reader = command.ExecuteReader();
 
         var worlds = new List<WorldInfo>();
         while (reader.Read())
-            worlds.Add(new WorldInfo(reader.GetInt32(0), reader.GetString(1), reader.GetInt32(2), reader.GetString(3), reader.IsDBNull(4) ? null : reader.GetString(4)));
+            worlds.Add(new WorldInfo(reader.GetInt32(0), reader.GetString(1), reader.GetInt32(2), reader.GetString(3), reader.IsDBNull(4) ? null : reader.GetString(4), reader.IsDBNull(5) ? null : reader.GetString(5)));
         return worlds;
     }
 
@@ -22,7 +22,7 @@ public sealed class SqliteWorldStore(Database database) : IWorldStore
         using SqliteConnection connection = database.Open();
         using SqliteCommand command = connection.CreateCommand();
         command.CommandText = """
-            INSERT INTO worlds (name, owner, saved_at, data) VALUES ($name, $owner, $savedAt, $data)
+            INSERT INTO worlds (name, owner, saved_at, played_at, data) VALUES ($name, $owner, $savedAt, $savedAt, $data)
             RETURNING id
             """;
         command.Parameters.AddWithValue("$name", name);
@@ -83,6 +83,16 @@ public sealed class SqliteWorldStore(Database database) : IWorldStore
         command.Parameters.AddWithValue("$publishedAt", DateTime.UtcNow.ToString("O"));
         command.ExecuteNonQuery();
         Revision.Bump();
+    }
+
+    public void MarkPlayed(int id)
+    {
+        using SqliteConnection connection = database.Open();
+        using SqliteCommand command = connection.CreateCommand();
+        command.CommandText = "UPDATE worlds SET played_at = $playedAt WHERE id = $id";
+        command.Parameters.AddWithValue("$id", id);
+        command.Parameters.AddWithValue("$playedAt", DateTime.UtcNow.ToString("O"));
+        Changed(command.ExecuteNonQuery() > 0);
     }
 
     public bool Rename(int id, string name)

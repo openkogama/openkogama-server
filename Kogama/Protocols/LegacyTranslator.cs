@@ -111,11 +111,7 @@ public sealed class LegacyTranslator(ProtocolTable client, ProtocolTable server)
             DebugMessage = response.DebugMessage,
             Parameters = Overrides(Defaults(Keys(Values(Nested(response.Parameters, _nested, true), _valuesOut), _keysOut, "out"), client.Responses, name), name),
         };
-        if (_hidden > 0)
-        {
-            Console.WriteLine($"{client.Version}: {name} hid {_hidden} unsupported items");
-            _hidden = 0;
-        }
+        ReportHidden(name);
         return translated;
     }
 
@@ -133,8 +129,11 @@ public sealed class LegacyTranslator(ProtocolTable client, ProtocolTable server)
             return null;
         }
 
+        string name = _eventsOut.Name(data.Code);
         Dictionary<byte, object?> parameters = RotationOut(Worlds(data.Code, data.Parameters));
-        return new EventData((byte)code) { Parameters = Defaults(Keys(Values(Nested(parameters, _nested, true), _valuesOut), _keysOut, "out"), client.Events, _eventsOut.Name(data.Code)) };
+        var translated = new EventData((byte)code) { Parameters = Defaults(Keys(Values(Nested(parameters, _nested, true), _valuesOut), _keysOut, "out"), client.Events, name) };
+        ReportHidden(name);
+        return translated;
     }
 
     Dictionary<byte, object?> RotationIn(Dictionary<byte, object?> parameters)
@@ -274,13 +273,19 @@ public sealed class LegacyTranslator(ProtocolTable client, ProtocolTable server)
     static readonly object Unsupported = new();
     int _hidden;
 
+    void ReportHidden(string name)
+    {
+        int hidden = Interlocked.Exchange(ref _hidden, 0);
+        if (hidden > 0) Console.WriteLine($"{client.Version}: {name} hid {hidden} unsupported items");
+    }
+
     byte[]? ItemWorld(byte[] data)
     {
         try
         {
             byte[] converted = LegacyWorld.Convert(data, client, runtime: false, out int dropped);
             if (dropped == 0) return converted;
-            _hidden++;
+            Interlocked.Increment(ref _hidden);
             return null;
         }
         catch (Exception e)
