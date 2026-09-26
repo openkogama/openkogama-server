@@ -46,6 +46,16 @@ public sealed class GameStats
                 && counter.Actors.TryGetValue(actor, out int value) ? value : null;
     }
 
+    public List<(Team Team, int Actor, int Value)> Ranking(GameStatCounterType type, bool higherIsBetter)
+    {
+        lock (_sync)
+        {
+            if (!_counters.TryGetValue(type, out var teams)) return [];
+            var entries = teams.SelectMany(team => team.Value.Actors.Select(actor => (team.Key, actor.Key, actor.Value)));
+            return [.. higherIsBetter ? entries.OrderByDescending(entry => entry.Value) : entries.OrderBy(entry => entry.Value)];
+        }
+    }
+
     public void RemoveActor(int actor)
     {
         lock (_sync)

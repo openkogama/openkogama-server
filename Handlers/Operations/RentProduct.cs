@@ -10,8 +10,8 @@ public sealed class RentProduct : IOperationHandler
 
     public void Handle(PhotonPeer peer, OperationRequest request)
     {
-        var product = request.Parameters.GetValueOrDefault((byte)ParameterKey.RentProductData) as PhotonDictionary;
-        object? id = product?.Entries.FirstOrDefault(entry => entry.Key is byte or short or int && Convert.ToInt32(entry.Key) == 105).Value;
+        var product = PhotonValues.Table(request.Parameters.GetValueOrDefault((byte)ParameterKey.RentProductData));
+        object? id = product.FirstOrDefault(entry => entry.Key is byte or short or int && Convert.ToInt32(entry.Key) == 105).Value;
 
         if (id is null || StreamingAssets.Find(Convert.ToInt32(id)) is not { } asset)
         {

@@ -1,0 +1,120 @@
+{
+  "responses": {
+    "Join": {
+      "TouristChatAllowed": true,
+      "ShowErrorPopupClient": false,
+      "EnableSentry": false
+    },
+    "DBQuery": {
+      "DBQueryReturnCode": {
+        "byte": 0
+      }
+    },
+    "PurchaseProduct": {
+      "PurchaseProductData": {}
+    }
+  },
+  "events": {},
+  "nested": [
+    {
+      "parameter": "MaterialList",
+      "path": "*",
+      "keys": "DBQueryKeys"
+    },
+    {
+      "parameter": "StreamingAssetList",
+      "path": "*",
+      "keys": "DBQueryKeys"
+    },
+    {
+      "parameter": "StreamingAssetInventory",
+      "path": "*",
+      "keys": "DBQueryKeys"
+    },
+    {
+      "parameter": "StreamingAssetInventoryItems",
+      "path": "*",
+      "keys": "DBQueryKeys"
+    },
+    {
+      "parameter": "Friends",
+      "path": "*",
+      "keys": "DBQueryKeys"
+    },
+    {
+      "parameter": "ItemBusinessData",
+      "path": "*",
+      "keys": "DBQueryKeys"
+    },
+    {
+      "parameter": "DBQueryOutData",
+      "path": "*",
+      "keys": "DBQueryKeys"
+    },
+    {
+      "parameter": "PurchaseProductData",
+      "path": "",
+      "keys": "DBQueryKeys"
+    },
+    {
+      "parameter": "RentProductData",
+      "path": "",
+      "keys": "DBQueryKeys"
+    },
+    {
+      "parameter": "UserList",
+      "path": "*",
+      "keys": "ParameterKeys",
+      "defaults": {
+        "Score": 0
+      }
+    }
+  ],
+  "values": [
+    {
+      "parameter": "DBQuery",
+      "enum": "DBQuery"
+    },
+    {
+      "parameter": "LargeDBQueryID",
+      "enum": "DBQuery"
+    },
+    {
+      "parameter": "QueryType",
+      "map": {
+        "2": 0
+      }
+    }
+  ],
+  "worlds": [
+    {
+      "event": "GetGameBatch",
+      "parameter": "Data"
+    }
+  ],
+  "objects": {
+    "Avatar": {
+      "data": {
+        "actorNr": "$owner"
+      },
+      "runtime": {
+        "collectibleCount": 0
+      }
+    }
+  },
+  "nestedWorlds": [
+    "ItemData",
+    "KogamaData"
+  ],
+  "overrides": {
+    "Join": {
+      "AssetBundleRootUrl": "http://127.0.0.1:8080/bundles-3x/"
+    }
+  },
+  "stateTypes": {
+    "st": {
+      "client": "int",
+      "server": "byte"
+    }
+  }
+}

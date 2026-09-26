@@ -15,7 +15,7 @@ public sealed class SpawnVehicleWithDriver(PhotonServer server, Session session)
 
     public void Handle(PhotonPeer peer, OperationRequest request)
     {
-        var ids = (PhotonDictionary)request[(byte)ParameterKey.WorldObjectIDs]!;
+        var ids = PhotonValues.Table(request[(byte)ParameterKey.WorldObjectIDs]);
         int driverId = Convert.ToInt32(ids[Driver]);
         int spawnerId = Convert.ToInt32(ids[Spawner]);
         byte seat = Convert.ToByte(request[(byte)ParameterKey.SeatID]);

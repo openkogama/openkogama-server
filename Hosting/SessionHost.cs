@@ -1,7 +1,9 @@
 using OpenKogama.Game;
 using OpenKogama.Handlers;
+using OpenKogama.Handlers.Legacy;
 using OpenKogama.Handlers.Operations;
 using OpenKogama.Kogama;
+using OpenKogama.Kogama.Protocols;
 using OpenKogama.Photon;
 using OpenKogama.Storage;
 using OpenKogama.World;
@@ -18,6 +20,24 @@ public sealed class SessionHost(PhotonServer server)
 
     public void Handle(PhotonPeer peer, OperationRequest request)
     {
+        if (peer.Translator is null && request.OperationCode == (byte)OperationCode.Join && ClientProtocols.Detect(request) is { } detected)
+        {
+            peer.Translator = detected;
+            Console.WriteLine($"peer {peer.Id}: client {detected.Version}");
+        }
+
+        if (peer.Translator is LegacyTranslator legacy)
+        {
+            if (legacy.Incoming(request) is not { } translated)
+            {
+                Entry? owner;
+                lock (_sync) _peers.TryGetValue(peer, out owner);
+                if (owner is not null) LegacyOperations.Handle(peer, request, legacy, owner.Session);
+                return;
+            }
+            request = translated;
+        }
+
         Entry? entry;
         lock (_sync)
         {

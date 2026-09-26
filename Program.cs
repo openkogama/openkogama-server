@@ -56,11 +56,15 @@ string SessionJson(int profile, GameMode mode, int world) => JsonSerializer.Seri
 
 StreamingAssetCatalog streaming = StreamingAssets.For("2015");
 var assets = new AssetCache(streaming.Root);
+var legacyAssets = new AssetCache(StreamingAssets.For("3.x").Root, "cache/streaming-3x");
 _ = Task.Run(() => assets.PrefetchAsync(streaming.Assets.Select(asset => asset.Path)));
+
+_ = new SocketPolicyServer().RunAsync();
+Console.WriteLine("policy 843");
 
 _ = new NullProxy(8081).RunAsync();
 Console.WriteLine("proxy 8081");
 
-var web = new HttpServer("http://127.0.0.1:8080/") { SessionJson = SessionJson, Assets = assets, DeleteWorld = host.DeleteWorld };
+var web = new HttpServer("http://127.0.0.1:8080/") { SessionJson = SessionJson, Assets = assets, LegacyAssets = legacyAssets, DeleteWorld = host.DeleteWorld };
 Console.WriteLine("http 8080");
 web.Run();

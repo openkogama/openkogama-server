@@ -14,7 +14,7 @@ public sealed class AttachWorldObjectToSeat(Session session) : IOperationHandler
 
     public void Handle(PhotonPeer peer, OperationRequest request)
     {
-        var ids = (PhotonDictionary)request[(byte)ParameterKey.WorldObjectIDs]!;
+        var ids = PhotonValues.Table(request[(byte)ParameterKey.WorldObjectIDs]);
         int driverId = Convert.ToInt32(ids[Driver]);
         int vehicleId = Convert.ToInt32(ids[Vehicle]);
         byte seat = Convert.ToByte(request[(byte)ParameterKey.SeatID]);

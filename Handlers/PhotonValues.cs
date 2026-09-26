@@ -10,4 +10,7 @@ public static class PhotonValues
         Dictionary<object, object?> table => table.ToDictionary(entry => entry.Key, entry => Normalize(entry.Value)),
         _ => value,
     };
+
+    public static Dictionary<object, object?> Table(object? value) =>
+        Normalize(value) as Dictionary<object, object?> ?? [];
 }

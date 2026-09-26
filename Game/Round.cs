@@ -145,7 +145,7 @@ public sealed class Round(Session session)
 
     void End(GameStateReason reason, int actor)
     {
-        Broadcast(EventCode.PostWinnerReport, []);
+        ReportWinner(reason, actor);
         SetState(GameStateType.RoundEnded, EndedMs, reason, actor);
 
         int version = _version;
@@ -182,6 +182,32 @@ public sealed class Round(Session session)
         {
             if (_version == version) action();
         });
+
+    void ReportWinner(GameStateReason reason, int actor)
+    {
+        GameStatCounterType condition = reason switch
+        {
+            GameStateReason.FlagReached => GameStatCounterType.Flag,
+            GameStateReason.AllCollectiblesFound => GameStatCounterType.Collectible,
+            GameStateReason.Timeout => (GameStatCounterType)(RoundCube()?.Data.Find(pair => pair.Key == "winningCondition").Value as int? ?? 0),
+            _ => GameStatCounterType.Kill,
+        };
+        bool higherIsBetter = condition is not (GameStatCounterType.Flag or GameStatCounterType.YDown);
+
+        List<(Team Team, int Actor, int Value)> ranking = Stats.Ranking(condition, higherIsBetter);
+        var winner = ranking.FirstOrDefault(entry => entry.Actor == actor);
+        if (winner.Actor == 0 && ranking.Count > 0) winner = ranking[0];
+
+        var report = new WinnerReport(condition, winner.Actor == 0 ? null : (winner.Actor, winner.Team, winner.Value), session.Teams.Active.Count > 1);
+        var evt = new EventData((byte)EventCode.PostWinnerReport);
+        foreach (Player player in session.Players)
+        {
+            if (player.Peer.Translator is Kogama.Protocols.LegacyTranslator legacy)
+                legacy.SendRaw(player.Peer, Handlers.Legacy.LegacyEvents.WinnerReport(legacy, report));
+            else
+                player.Peer.Send(evt);
+        }
+    }
 
     void Broadcast(EventCode code, Dictionary<byte, object?> parameters)
     {

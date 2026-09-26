@@ -32,7 +32,7 @@ public sealed class RequestBuiltInItem(Session session) : IOperationHandler
         switch (type)
         {
             case CubeModelItem:
-                var data = (PhotonDictionary)request[(byte)ParameterKey.Data]!;
+                var data = PhotonValues.Table(request[(byte)ParameterKey.Data]);
                 float cubeScale = Convert.ToSingle(data[(byte)1]);
                 byte material = Convert.ToByte(data[(byte)2]);
 

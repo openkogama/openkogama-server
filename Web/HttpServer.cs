@@ -15,6 +15,7 @@ public sealed class HttpServer
 
     public Func<int, GameMode, int, string> SessionJson { get; set; } = (_, _, _) => "{}";
     public AssetCache? Assets { get; set; }
+    public AssetCache? LegacyAssets { get; set; }
     public Func<int, bool> DeleteWorld { get; set; } = _ => false;
 
     public HttpServer(string prefix) => _listener.Prefixes.Add(prefix);
@@ -49,6 +50,16 @@ public sealed class HttpServer
 
     void Route(string path, HttpListenerRequest request, HttpListenerResponse response)
     {
+        if (path == "/crossdomain.xml")
+        {
+            byte[] policy = Encoding.UTF8.GetBytes("<?xml version=\"1.0\"?><cross-domain-policy><allow-access-from domain=\"*\"/></cross-domain-policy>");
+            response.ContentType = "text/xml";
+            response.ContentLength64 = policy.Length;
+            response.OutputStream.Write(policy);
+            response.Close();
+            return;
+        }
+
         if (path is "/" or "/session")
         {
             int profile = int.TryParse(request.QueryString["profile"], out int requested) && requested > 0 ? requested : 1;
@@ -116,7 +127,8 @@ public sealed class HttpServer
             return;
         }
 
-        if (path.StartsWith("/bundles/") && Assets?.Get(Uri.UnescapeDataString(path["/bundles/".Length..])) is byte[] asset)
+        if ((path.StartsWith("/bundles/") ? Assets?.Get(Uri.UnescapeDataString(path["/bundles/".Length..]))
+            : path.StartsWith("/bundles-3x/") ? LegacyAssets?.Get(Uri.UnescapeDataString(path["/bundles-3x/".Length..])) : null) is byte[] asset)
         {
             response.ContentType = "application/octet-stream";
             response.ContentLength64 = asset.Length;

@@ -17,7 +17,7 @@ public sealed class PurchaseProduct(Session session) : IOperationHandler
     public void Handle(PhotonPeer peer, OperationRequest request)
     {
         int type = request.Parameters.TryGetValue((byte)ParameterKey.ProductTypeID, out object? value) ? Convert.ToInt32(value) : -1;
-        PhotonDictionary? product = request.Parameters.GetValueOrDefault((byte)ParameterKey.PurchaseProductData) as PhotonDictionary;
+        var product = PhotonValues.Table(request.Parameters.GetValueOrDefault((byte)ParameterKey.PurchaseProductData));
 
         switch (type)
         {
@@ -31,7 +31,7 @@ public sealed class PurchaseProduct(Session session) : IOperationHandler
                 BuyItem(peer, request, Convert.ToInt32(item));
                 break;
             default:
-                Console.WriteLine($"peer {peer.Id}: unknown purchase type {type}: {string.Join(", ", product?.Entries.Select(entry => $"{entry.Key} ({entry.Key.GetType().Name})={entry.Value}") ?? [])}");
+                Console.WriteLine($"peer {peer.Id}: unknown purchase type {type}: {string.Join(", ", product.Select(entry => $"{entry.Key} ({entry.Key.GetType().Name})={entry.Value}"))}");
                 peer.Send(new OperationResponse(request) { ReturnCode = -1 });
                 break;
         }
@@ -50,8 +50,8 @@ public sealed class PurchaseProduct(Session session) : IOperationHandler
         Console.WriteLine($"profile {player.ProfileId}: bought listing {listingId} as item {item.Id}");
     }
 
-    static object? Value(PhotonDictionary? product, int key) =>
-        product?.Entries.FirstOrDefault(entry => entry.Key is byte or short or int && Convert.ToInt32(entry.Key) == key).Value;
+    static object? Value(Dictionary<object, object?> product, int key) =>
+        product.FirstOrDefault(entry => entry.Key is byte or short or int && Convert.ToInt32(entry.Key) == key).Value;
 
     static void BuyStreamingAsset(PhotonPeer peer, OperationRequest request, object asset)
     {
