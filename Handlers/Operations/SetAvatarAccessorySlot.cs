@@ -17,7 +17,7 @@ public sealed class SetAvatarAccessorySlot(Session session) : IOperationHandler
         int slot = Convert.ToInt32(request[(byte)ParameterKey.AvatarAccessorySlot]);
         float offset = Convert.ToSingle(request[(byte)ParameterKey.AvatarAccessoryOffset]);
 
-        StreamingAsset? asset = StreamingAssets.For("2015").Assets.Find(asset => asset.Id == inventoryId);
+        StreamingAsset? asset = ClientContent.Streaming(peer).Assets.Find(asset => asset.Id == inventoryId);
         if (asset is null)
         {
             peer.Send(new OperationResponse(request) { ReturnCode = -1 });

@@ -1,5 +1,5 @@
 {
-  "version": "1.9.0.1",
+  "version": "1.8.15.2",
   "operationCodes": {
     "SetActorReady": 0,
     "DBQuery": 1,
@@ -80,9 +80,6 @@
     "SpawnVehicleWithDriver": 76,
     "ClientLog": 77,
     "UpdateAvatarAccessoryOffset": 78,
-    "InitializeAvatarEdit": 79,
-    "AddAvatarToAvatarShopInventory": 80,
-    "DeleteAvatarFromShopInventory": 81,
     "Leave": 254,
     "RaiseEvent": 253,
     "SetProperties": 252,
@@ -149,7 +146,6 @@
     "DetachWorldObjectFromVehicle": 56,
     "SpawnVehicleWithDriver": 57,
     "Reward": 58,
-    "UpdateAvatarMetaData": 59,
     "Leave": 254,
     "PropertiesChanged": 253,
     "Join": 255
@@ -315,10 +311,7 @@
     "ItemOverwriteExisting": 157,
     "ExtraSentryData": 158,
     "RegionCode": 159,
-    "AvatarMetaDataWoMap": 160,
-    "AvatarMetaData": 161,
-    "AvatarName": 162,
-    "ProfileToken": 163,
+    "ProfileToken": 160,
     "ActorNr": 254,
     "TargetActorNr": 253,
     "Actors": 252,
@@ -422,9 +415,7 @@
     "RequestStreamingAssetDetails": 86,
     "RequestItemDetails": 87,
     "RequestAvatarDetails": 88,
-    "InsertAvatarIntoAvatarShopInventory": 89,
-    "DeleteAvatarFromShopInventory": 90,
-    "TestQuery": 91
+    "TestQuery": 89
   },
   "dBQueryKeys": {
     "ProfileID": 0,
@@ -554,11 +545,7 @@
     "PublishAutorization": 124,
     "BlobMetaData": 125,
     "OutData": 126,
-    "PendingItemID": 127,
-    "AvatarRevisionID": 128,
-    "ActiveAvatarID": 129,
-    "Avatars": 130,
-    "AvatarMetaData": 131
+    "PendingItemID": 127
   },
   "worldObjectType": {
     "Avatar": 0,

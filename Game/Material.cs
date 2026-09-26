@@ -12,4 +12,11 @@ public sealed class Material
     public int PriceGold { get; set; }
     public int PriceSilver { get; set; }
     public float[] Physical { get; set; } = [];
+
+    public Material WithPath(string path)
+    {
+        var copy = (Material)MemberwiseClone();
+        copy.Path = path;
+        return copy;
+    }
 }

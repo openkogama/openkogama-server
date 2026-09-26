@@ -19,6 +19,7 @@ public sealed class Logic(Session session)
     readonly Dictionary<int, int> _timerVersions = [];
     readonly object _sync = new();
 
+    public Action<int>? DataChanged { get; set; }
 
     public void Evaluate(bool react = true)
     {
@@ -60,6 +61,10 @@ public sealed class Logic(Session session)
                 WorldObject? obj = session.World.Find(id);
                 switch (obj?.Type)
                 {
+                    case WorldObjectType.TimeTrigger when Classic(obj):
+                        _timerVersions[id] = _timerVersions.GetValueOrDefault(id) + 1;
+                        if (Seconds(obj, "currentTime") != Seconds(obj, "time")) SetData(id, "currentTime", Seconds(obj, "time"));
+                        break;
                     case WorldObjectType.ToggleBox when State(obj):
                         SetData(id, "state", false);
                         break;
@@ -92,6 +97,16 @@ public sealed class Logic(Session session)
                 SetData(obj.Id, "currentOutput", pick);
                 return true;
 
+            case WorldObjectType.TimeTrigger when Classic(obj) && rising:
+                if (Seconds(obj, "currentTime") > 0) After(obj.Id, Seconds(obj, "currentTime"), OnClassicCounted);
+                return false;
+
+            case WorldObjectType.TimeTrigger when Classic(obj):
+                _timerVersions[obj.Id] = _timerVersions.GetValueOrDefault(obj.Id) + 1;
+                if (Once(obj) || Seconds(obj, "currentTime") == Seconds(obj, "time")) return false;
+                SetData(obj.Id, "currentTime", Seconds(obj, "time"));
+                return true;
+
             case WorldObjectType.TimeTrigger when rising && Timer(obj) == TimerState.Listening:
                 SetTimer(obj.Id, TimerState.Counting);
                 After(obj.Id, Seconds(obj, "time"), OnCounted);
@@ -108,6 +123,12 @@ public sealed class Logic(Session session)
             default:
                 return false;
         }
+    }
+
+    void OnClassicCounted(int id)
+    {
+        if (session.World.Find(id) is not { } timer || Seconds(timer, "currentTime") <= 0) return;
+        SetData(id, "currentTime", 0f);
     }
 
     void OnCounted(int id)
@@ -209,6 +230,8 @@ public sealed class Logic(Session session)
 
     bool TimerOutput(WorldObject timer)
     {
+        if (Classic(timer)) return Seconds(timer, "currentTime") <= 0;
+
         bool latched = _timerOutputs.GetValueOrDefault(timer.Id);
         float duration = Seconds(timer, "duration");
 
@@ -226,6 +249,8 @@ public sealed class Logic(Session session)
     }
 
     static int OutputCount(Snapshot world, int id) => world.Links.Count(link => link.From == id);
+
+    static bool Classic(WorldObject obj) => obj.Data.Exists(pair => pair.Key == "currentTime");
 
     static bool Once(WorldObject obj) => obj.Data.Find(pair => pair.Key == "once").Value as bool? ?? false;
 
@@ -249,6 +274,12 @@ public sealed class Logic(Session session)
         var change = new Dictionary<object, object?> { [key] = value };
         session.World.Modify(id, obj => PackedData.Merge(obj.Data, change));
         session.World.MarkChanged();
+
+        if (DataChanged is not null)
+        {
+            DataChanged(id);
+            return;
+        }
 
         var evt = new EventData((byte)EventCode.UpdateWorldObjectDataPartial)
         {

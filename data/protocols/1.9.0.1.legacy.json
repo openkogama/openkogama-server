@@ -80,6 +80,10 @@
       "enum": "DBQuery"
     },
     {
+      "parameter": "WorldObjectType",
+      "enum": "WorldObjectType"
+    },
+    {
       "parameter": "QueryType",
       "map": {
         "2": 0
@@ -116,5 +120,9 @@
       "client": "int",
       "server": "byte"
     }
+  },
+  "content": {
+    "streaming": "3.x",
+    "materials": 56
   }
 }

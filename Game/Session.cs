@@ -28,14 +28,13 @@ public sealed class Session
         Logic.Reset(World.ToSnapshot().Objects.Where(obj => obj.Type == WorldObjectType.TimeTrigger).Select(obj => obj.Id));
         Teams = new Teams(this);
         Round = new Round(this);
-        if (World.FindFirst(WorldObjectType.RoundCube) is not null) Round.Start();
     }
 
     public string Name { get; }
     public int? WorldId => _worldId;
     public bool Play { get; }
     public bool Published => _worldId is int id && Stores.Worlds.Published(id) is not null;
-    public Func<int> Clock { get; set; } = () => Environment.TickCount;
+    public Func<int> Clock { get; private set; } = () => Environment.TickCount;
     public Logic Logic { get; }
     public Teams Teams { get; }
     public Round Round { get; }
@@ -44,12 +43,23 @@ public sealed class Session
     public Triggers Triggers { get; } = new();
     public IReadOnlyList<Player> Players => _players;
 
-    public Player Add(PhotonPeer peer)
+    public void Begin(Func<int> clock)
     {
-        List<WorldObject> avatar = Avatar.Build(World, peer.Id, World.RootId, _avatarPrototypes);
-        foreach (WorldObject obj in avatar) World.Add(obj);
+        Clock = clock;
+        if (World.FindFirst(WorldObjectType.RoundCube) is not null) Round.Start();
+    }
 
-        Player player = new(peer, peer.Id, avatar[0].Id) { Team = Teams.Default };
+    public Player Add(PhotonPeer peer, bool buildAvatar = true)
+    {
+        int avatarId = -1;
+        if (buildAvatar)
+        {
+            List<WorldObject> avatar = Avatar.Build(World, peer.Id, World.RootId, _avatarPrototypes);
+            foreach (WorldObject obj in avatar) World.Add(obj);
+            avatarId = avatar[0].Id;
+        }
+
+        Player player = new(peer, peer.Id, avatarId) { Team = Teams.Default };
         _players.Add(player);
         return player;
     }

@@ -14,6 +14,8 @@ public sealed class Round(Session session)
     readonly object _sync = new();
     int _version;
 
+    public event Action<int>? StateChanged;
+
     public GameStateType State { get; private set; } = GameStateType.Round;
     public GameStateReason Reason { get; private set; }
     public int StartTime { get; private set; }
@@ -167,6 +169,7 @@ public sealed class Round(Session session)
             _version++;
         }
 
+        StateChanged?.Invoke(actor);
         Broadcast(EventCode.GameStateChange, new()
         {
             [(byte)ParameterKey.ActorNr] = actor,
@@ -202,6 +205,8 @@ public sealed class Round(Session session)
         var evt = new EventData((byte)EventCode.PostWinnerReport);
         foreach (Player player in session.Players)
         {
+            if (player.Peer.Protocol == PhotonProtocol.Protocol15)
+                continue;
             if (player.Peer.Translator is Kogama.Protocols.LegacyTranslator legacy)
                 legacy.SendRaw(player.Peer, Handlers.Legacy.LegacyEvents.WinnerReport(legacy, report));
             else
@@ -213,6 +218,7 @@ public sealed class Round(Session session)
     {
         var evt = new EventData((byte)code) { Parameters = parameters };
         foreach (Player player in session.Players)
-            player.Peer.Send(evt);
+            if (player.Peer.Protocol != PhotonProtocol.Protocol15)
+                player.Peer.Send(evt);
     }
 }

@@ -13,7 +13,7 @@ public sealed class HttpServer
 
     readonly HttpListener _listener = new();
 
-    public Func<int, GameMode, int, string> SessionJson { get; set; } = (_, _, _) => "{}";
+    public Func<int, GameMode, int, string?, string> SessionJson { get; set; } = (_, _, _, _) => "{}";
     public AssetCache? Assets { get; set; }
     public AssetCache? LegacyAssets { get; set; }
     public Func<int, bool> DeleteWorld { get; set; } = _ => false;
@@ -50,6 +50,16 @@ public sealed class HttpServer
 
     void Route(string path, HttpListenerRequest request, HttpListenerResponse response)
     {
+        if (SessionLocator.Answer(path, request.QueryString) is string located)
+        {
+            byte[] text = Encoding.UTF8.GetBytes(located);
+            response.ContentType = "text/html";
+            response.ContentLength64 = text.Length;
+            response.OutputStream.Write(text);
+            response.Close();
+            return;
+        }
+
         if (path == "/crossdomain.xml")
         {
             byte[] policy = Encoding.UTF8.GetBytes("<?xml version=\"1.0\"?><cross-domain-policy><allow-access-from domain=\"*\"/></cross-domain-policy>");
@@ -70,7 +80,7 @@ public sealed class HttpServer
                 _ => GameMode.Edit,
             };
             int world = int.TryParse(request.QueryString["world"], out int chosen) ? chosen : 0;
-            Json(response, SessionJson(profile, mode, world));
+            Json(response, SessionJson(profile, mode, world, request.QueryString["client"]));
             return;
         }
 

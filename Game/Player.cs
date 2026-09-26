@@ -6,7 +6,7 @@ public sealed class Player(PhotonPeer peer, int actor, int avatarId)
 {
     public PhotonPeer Peer => peer;
     public int Actor => actor;
-    public int AvatarId => avatarId;
+    public int AvatarId { get; set; } = avatarId;
 
     public int ProfileId { get; set; } = actor;
     public Team Team { get; set; }

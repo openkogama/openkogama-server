@@ -1,0 +1,9 @@
+{
+  "extends": "1.8.4.7",
+  "content": {
+    "materials": 53,
+    "materialPaths": {
+      "31": "Cube/Materials/WoodFloor"
+    }
+  }
+}

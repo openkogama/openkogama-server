@@ -16,7 +16,9 @@ Stores.Market = new SqliteMarketStore(database);
 Session.EnsureDefaultWorld();
 
 var server = new PhotonServer(5055) { Log = Console.WriteLine };
-var host = new SessionHost(server);
+bool mixedClients = args.Contains("--mixed-clients");
+var host = new SessionHost(server, mixedClients);
+if (mixedClients) Console.WriteLine("mixed client versions enabled, unsupported");
 
 server.Connected += peer => Console.WriteLine($"peer {peer.Id}: photon init done");
 server.Disconnected += (peer, reason) =>
@@ -49,9 +51,9 @@ _ = Task.Run(async () =>
 });
 
 var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-string SessionJson(int profile, GameMode mode, int world) => JsonSerializer.Serialize(
+string SessionJson(int profile, GameMode mode, int world, string? client) => JsonSerializer.Serialize(
     new SessionData("127.0.0.1:5055", profile, world, mode, "en_US", false, profile.ToString(),
-        "http://127.0.0.1:8080/ping", "http://127.0.0.1:8080/disconnect"),
+        "http://127.0.0.1:8080/ping", "http://127.0.0.1:8080/disconnect", client),
     jsonOptions);
 
 StreamingAssetCatalog streaming = StreamingAssets.For("2015");
@@ -59,8 +61,9 @@ var assets = new AssetCache(streaming.Root);
 var legacyAssets = new AssetCache(StreamingAssets.For("3.x").Root, "cache/streaming-3x");
 _ = Task.Run(() => assets.PrefetchAsync(streaming.Assets.Select(asset => asset.Path)));
 
-_ = new SocketPolicyServer().RunAsync();
-Console.WriteLine("policy 843");
+foreach (int port in new[] { 843, 844, 845 })
+    _ = new SocketPolicyServer(port).RunAsync();
+Console.WriteLine("policy 843-845");
 
 _ = new NullProxy(8081).RunAsync();
 Console.WriteLine("proxy 8081");

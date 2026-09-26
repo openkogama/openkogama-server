@@ -50,6 +50,8 @@ public sealed class LegacyTranslator(ProtocolTable client, ProtocolTable server)
 
     public string Version => client.Version;
 
+    public ProtocolTable.ContentRule Content => client.Content;
+
     public string ClientOperation(byte code) => _operationsIn.Name(code);
 
     public byte Key(string name) => (byte)client.ParameterKeys[name];
@@ -78,7 +80,16 @@ public sealed class LegacyTranslator(ProtocolTable client, ProtocolTable server)
             return null;
         }
 
-        return new OperationRequest { OperationCode = (byte)code, Parameters = RotationIn(Keys(Values(Nested(request.Parameters, _nestedIn, false), _valuesIn), _keysIn, "in")) };
+        return new OperationRequest { OperationCode = (byte)code, Parameters = TokenIn(code, RotationIn(Keys(Values(Nested(request.Parameters, _nestedIn, false), _valuesIn), _keysIn, "in"))) };
+    }
+
+    Dictionary<byte, object?> TokenIn(int code, Dictionary<byte, object?> parameters)
+    {
+        if (client.ParameterKeys.ContainsKey("ProfileToken") || code != server.OperationCodes["Join"]) return parameters;
+
+        if (parameters.GetValueOrDefault((byte)server.ParameterKeys["ProfileID"]) is int profile)
+            parameters[(byte)server.ParameterKeys["ProfileToken"]] = profile.ToString();
+        return parameters;
     }
 
     public OperationResponse? Outgoing(OperationResponse response)
@@ -92,13 +103,20 @@ public sealed class LegacyTranslator(ProtocolTable client, ProtocolTable server)
             return null;
         }
 
-        return new OperationResponse
+        string name = _operationsOut.Name(response.OperationCode);
+        var translated = new OperationResponse
         {
             OperationCode = (byte)code,
             ReturnCode = response.ReturnCode,
             DebugMessage = response.DebugMessage,
-            Parameters = Overrides(Defaults(Keys(Values(Nested(response.Parameters, _nested, true), _valuesOut), _keysOut, "out"), client.Responses, _operationsOut.Name(response.OperationCode)), _operationsOut.Name(response.OperationCode)),
+            Parameters = Overrides(Defaults(Keys(Values(Nested(response.Parameters, _nested, true), _valuesOut), _keysOut, "out"), client.Responses, name), name),
         };
+        if (_hidden > 0)
+        {
+            Console.WriteLine($"{client.Version}: {name} hid {_hidden} unsupported items");
+            _hidden = 0;
+        }
+        return translated;
     }
 
     public EventData? Outgoing(EventData data)
@@ -205,7 +223,7 @@ public sealed class LegacyTranslator(ProtocolTable client, ProtocolTable server)
             if (nested.TryGetValue(key, out var rules))
                 foreach (Nesting rule in rules)
                     converted = Rekey(outgoing ? converted : Hashtables(converted), rule, 0, outgoing);
-            result[key] = converted;
+            if (converted != Unsupported) result[key] = converted;
         }
         return result;
     }
@@ -230,6 +248,7 @@ public sealed class LegacyTranslator(ProtocolTable client, ProtocolTable server)
             foreach (var (key, raw) in table)
             {
                 object? item = outgoing && key is byte world && _nestedWorlds.Contains(world) && raw is byte[] bytes ? ItemWorld(bytes) : raw;
+                if (item is null) return Unsupported;
                 if (key is not byte code)
                     result[key] = item;
                 else if (keys.Map(code) is int mapped)
@@ -243,15 +262,26 @@ public sealed class LegacyTranslator(ProtocolTable client, ProtocolTable server)
         }
 
         string segment = path[depth];
-        return table.ToDictionary(entry => entry.Key,
-            entry => segment == "*" || segment == entry.Key.ToString() ? Rekey(entry.Value, rule, depth + 1, outgoing) : entry.Value);
+        var children = new Dictionary<object, object?>();
+        foreach (var (key, child) in table)
+        {
+            object? converted = segment == "*" || segment == key.ToString() ? Rekey(child, rule, depth + 1, outgoing) : child;
+            if (converted != Unsupported) children[key] = converted;
+        }
+        return children;
     }
 
-    byte[] ItemWorld(byte[] data)
+    static readonly object Unsupported = new();
+    int _hidden;
+
+    byte[]? ItemWorld(byte[] data)
     {
         try
         {
-            return LegacyWorld.Convert(data, client, runtime: false);
+            byte[] converted = LegacyWorld.Convert(data, client, runtime: false, out int dropped);
+            if (dropped == 0) return converted;
+            _hidden++;
+            return null;
         }
         catch (Exception e)
         {

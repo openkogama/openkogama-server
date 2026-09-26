@@ -6,10 +6,13 @@ namespace OpenKogama.Game;
 
 public static class ModelInventory
 {
-    const int ModelCategory = 1;
-    const string ModelName = "CubeModel";
+    public const int ModelCategory = 1;
+    public const string ModelName = "CubeModel";
 
-    public static Item Add(Player player, WorldObject obj, Prototype prototype, int objectId)
+    public static Item Add(Player player, WorldObject obj, Prototype prototype, int objectId) =>
+        Give(player, ModelName, ModelCategory, Pack(prototype, obj.Scale), prototype.AuthorId, objectId);
+
+    public static byte[] Pack(Prototype prototype, float[] scale)
     {
         var itemPrototype = new Prototype(1, prototype.Scale, prototype.AuthorId, prototype.Cubes.Clone());
         var itemObject = new WorldObject
@@ -17,11 +20,24 @@ public static class ModelInventory
             Id = 1,
             ParentId = -1,
             Type = WorldObjectType.CubeModel,
-            Scale = [.. obj.Scale],
+            Scale = [.. scale],
             Data = [("protoTypeID", PackedType.Int32, itemPrototype.Id)],
         };
-        byte[] data = WorldSerializer.Write(new Snapshot([itemPrototype], [itemObject], [], []), runtime: false);
-        return Give(player, ModelName, ModelCategory, data, prototype.AuthorId, objectId);
+        return WorldSerializer.Write(new Snapshot([itemPrototype], [itemObject], [], []), runtime: false);
+    }
+
+    public static Prototype? SinglePrototype(Item item)
+    {
+        if (item.Category != ModelCategory) return null;
+        try
+        {
+            Snapshot snapshot = WorldSerializer.Read(item.Bytes, runtime: false);
+            return snapshot.Prototypes.Count == 1 ? snapshot.Prototypes[0] : null;
+        }
+        catch (Exception error) when (error is FormatException or EndOfStreamException or ArgumentException or InvalidDataException)
+        {
+            return null;
+        }
     }
 
     public static Item Give(Player player, string name, int category, byte[] data, int author, int objectId)

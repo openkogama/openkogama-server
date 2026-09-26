@@ -12,7 +12,7 @@ public sealed class RequestStreamingAssetList : IOperationHandler
     {
         PhotonDictionary list = PhotonDictionary.Untyped();
         request.Parameters.TryGetValue((byte)ParameterKey.StreamingAssetTypeIDs, out object? types);
-        foreach (StreamingAsset asset in StreamingAssets.For("2015").OfTypes(types))
+        foreach (StreamingAsset asset in ClientContent.Streaming(peer).OfTypes(types))
         {
             list.Add(asset.Id, asset.Describe());
         }

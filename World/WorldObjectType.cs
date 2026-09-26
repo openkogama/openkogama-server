@@ -19,6 +19,8 @@ public enum WorldObjectType
     CubeModelPrototypeTerrain = 8,
     Group = 9,
     Flag = 17,
+    PickupItemHealthPack = 30,
+    PickupItemCenterGun = 31,
     CubeModelTerrainFineGrained = 32,
     PressurePlate = 33,
     PickupItemSpawner = 37,

@@ -13,6 +13,7 @@ public sealed class OperationRouter
     {
         _log = log;
         Register(new Join(session));
+        Register(new Leave());
         Register(new GetCreditStatus());
         Register(new GetBuiltInItemBusinessData());
         Register(new GetDBTimeTicks());

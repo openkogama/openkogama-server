@@ -1,4 +1,485 @@
 {
   "root": "https://cdn.openkogama.org/eu/kogama_assets_backup/",
-  "assets": []
+  "assets": [
+    {
+      "id": 1,
+      "type": 1,
+      "category": 5,
+      "name": "Beeps Classic",
+      "description": "Beeps Classic",
+      "path": "AmbientAudio/Alarms/kgm_amb_alarms_beepsClassic.unity3d"
+    },
+    {
+      "id": 2,
+      "type": 1,
+      "category": 5,
+      "name": "Beeps Fast",
+      "description": "Beeps Fast",
+      "path": "AmbientAudio/Alarms/kgm_amb_alarms_beepsFast.unity3d"
+    },
+    {
+      "id": 3,
+      "type": 1,
+      "category": 5,
+      "name": "Beeps Slow",
+      "description": "Beeps Slow",
+      "path": "AmbientAudio/Alarms/kgm_amb_alarms_beepsSlow.unity3d"
+    },
+    {
+      "id": 4,
+      "type": 1,
+      "category": 5,
+      "name": "Siren Fast",
+      "description": "Siren Fast",
+      "path": "AmbientAudio/Alarms/kgm_amb_alarms_sirenFast.unity3d"
+    },
+    {
+      "id": 5,
+      "type": 1,
+      "category": 5,
+      "name": "Siren Slow",
+      "description": "Siren Slow",
+      "path": "AmbientAudio/Alarms/kgm_amb_alarms_sirenSlow.unity3d"
+    },
+    {
+      "id": 6,
+      "type": 1,
+      "category": 7,
+      "name": "Magnificence A",
+      "description": "Magnificence A",
+      "path": "AmbientAudio/Delight/kgm_amb_delight_magnificenceA.unity3d"
+    },
+    {
+      "id": 7,
+      "type": 1,
+      "category": 7,
+      "name": "Magnificence B",
+      "description": "Magnificence B",
+      "path": "AmbientAudio/Delight/kgm_amb_delight_magnificenceB.unity3d"
+    },
+    {
+      "id": 8,
+      "type": 1,
+      "category": 6,
+      "name": "Creepy Wind A",
+      "description": "Creepy Wind A",
+      "path": "AmbientAudio/Horror/kgm_amb_horror_creepyWindA.unity3d"
+    },
+    {
+      "id": 9,
+      "type": 1,
+      "category": 6,
+      "name": "Creepy Wind B",
+      "description": "Creepy Wind B",
+      "path": "AmbientAudio/Horror/kgm_amb_horror_creepyWindB.unity3d"
+    },
+    {
+      "id": 10,
+      "type": 1,
+      "category": 6,
+      "name": "Creepy Wind C",
+      "description": "Creepy Wind C",
+      "path": "AmbientAudio/Horror/kgm_amb_horror_creepyWindC.unity3d"
+    },
+    {
+      "id": 11,
+      "type": 1,
+      "category": 6,
+      "name": "Danger",
+      "description": "Danger",
+      "path": "AmbientAudio/Horror/kgm_amb_horror_danger.unity3d"
+    },
+    {
+      "id": 12,
+      "type": 1,
+      "category": 6,
+      "name": "Rumble",
+      "description": "Rumble",
+      "path": "AmbientAudio/Horror/kgm_amb_horror_rumble.unity3d"
+    },
+    {
+      "id": 13,
+      "type": 1,
+      "category": 6,
+      "name": "Rusty chain",
+      "description": "Rusty chain",
+      "path": "AmbientAudio/Horror/kgm_amb_rusty_chain.unity3d"
+    },
+    {
+      "id": 14,
+      "type": 1,
+      "category": 2,
+      "name": "Electrocute",
+      "description": "Electrocute",
+      "path": "AmbientAudio/Machinery/kgm_amb_electrocute.unity3d"
+    },
+    {
+      "id": 15,
+      "type": 1,
+      "category": 2,
+      "name": "Machine A",
+      "description": "Machine A",
+      "path": "AmbientAudio/Machinery/kgm_amb_machinery_machineA.unity3d"
+    },
+    {
+      "id": 16,
+      "type": 1,
+      "category": 2,
+      "name": "Machine B",
+      "description": "Machine B",
+      "path": "AmbientAudio/Machinery/kgm_amb_machinery_machineB.unity3d"
+    },
+    {
+      "id": 17,
+      "type": 1,
+      "category": 2,
+      "name": "Machine C",
+      "description": "Machine C",
+      "path": "AmbientAudio/Machinery/kgm_amb_machinery_machineC.unity3d"
+    },
+    {
+      "id": 18,
+      "type": 1,
+      "category": 2,
+      "name": "Transmitter",
+      "description": "Transmitter",
+      "path": "AmbientAudio/Machinery/kgm_amb_machinery_transmitter.unity3d"
+    },
+    {
+      "id": 19,
+      "type": 1,
+      "category": 4,
+      "name": "Drippy",
+      "description": "Drippy",
+      "path": "AmbientAudio/MusicLoop/kgm_amb_drippy.unity3d"
+    },
+    {
+      "id": 20,
+      "type": 1,
+      "category": 4,
+      "name": "Music",
+      "description": "Music",
+      "path": "AmbientAudio/MusicLoop/kgm_amb_horror_music.unity3d"
+    },
+    {
+      "id": 21,
+      "type": 1,
+      "category": 1,
+      "name": "Forest",
+      "description": "Forest",
+      "path": "AmbientAudio/Nature/kgm_amb_forest.unity3d"
+    },
+    {
+      "id": 22,
+      "type": 1,
+      "category": 1,
+      "name": "Forest Evening",
+      "description": "Forest Evening",
+      "path": "AmbientAudio/Nature/kgm_amb_forestEvening.unity3d"
+    },
+    {
+      "id": 23,
+      "type": 1,
+      "category": 1,
+      "name": "Night Camp",
+      "description": "Night Camp",
+      "path": "AmbientAudio/Nature/kgm_amb_nightCamp.unity3d"
+    },
+    {
+      "id": 24,
+      "type": 1,
+      "category": 1,
+      "name": "Rain Heavy Thunder",
+      "description": "Rain Heavy Thunder",
+      "path": "AmbientAudio/Nature/kgm_amb_rainHeavyThunder.unity3d"
+    },
+    {
+      "id": 25,
+      "type": 1,
+      "category": 1,
+      "name": "Streaming water",
+      "description": "Streaming water",
+      "path": "AmbientAudio/Nature/kgm_amb_streaming_water.unity3d"
+    },
+    {
+      "id": 26,
+      "type": 1,
+      "category": 1,
+      "name": "Under Water",
+      "description": "Under Water",
+      "path": "AmbientAudio/Nature/kgm_amb_underWater.unity3d"
+    },
+    {
+      "id": 27,
+      "type": 1,
+      "category": 9,
+      "name": "Crazy Fast",
+      "description": "Crazy Fast",
+      "path": "AmbientAudio/Robotic/kgm_amb_robotic_crazyFast.unity3d"
+    },
+    {
+      "id": 28,
+      "type": 1,
+      "category": 9,
+      "name": "Crazy Slow",
+      "description": "Crazy Slow",
+      "path": "AmbientAudio/Robotic/kgm_amb_robotic_crazySlow.unity3d"
+    },
+    {
+      "id": 29,
+      "type": 1,
+      "category": 9,
+      "name": "Electro Fire",
+      "description": "Electro Fire",
+      "path": "AmbientAudio/Robotic/kgm_amb_robotic_electroFire.unity3d"
+    },
+    {
+      "id": 30,
+      "type": 1,
+      "category": 9,
+      "name": "Spaceship A",
+      "description": "Spaceship A",
+      "path": "AmbientAudio/Robotic/kgm_amb_robotic_spaceshipA.unity3d"
+    },
+    {
+      "id": 31,
+      "type": 1,
+      "category": 9,
+      "name": "Spaceship B",
+      "description": "Spaceship B",
+      "path": "AmbientAudio/Robotic/kgm_amb_robotic_spaceshipB.unity3d"
+    },
+    {
+      "id": 32,
+      "type": 1,
+      "category": 9,
+      "name": "Spaceship C",
+      "description": "Spaceship C",
+      "path": "AmbientAudio/Robotic/kgm_amb_robotic_spaceshipC.unity3d"
+    },
+    {
+      "id": 33,
+      "type": 1,
+      "category": 8,
+      "name": "Suspense A",
+      "description": "Suspense A",
+      "path": "AmbientAudio/Suspense/kgm_amb_suspence_suspenseA.unity3d"
+    },
+    {
+      "id": 34,
+      "type": 1,
+      "category": 8,
+      "name": "Suspense B",
+      "description": "Suspense B",
+      "path": "AmbientAudio/Suspense/kgm_amb_suspence_suspenseB.unity3d"
+    },
+    {
+      "id": 35,
+      "type": 1,
+      "category": 8,
+      "name": "Suspense C",
+      "description": "Suspense C",
+      "path": "AmbientAudio/Suspense/kgm_amb_suspence_suspenseC.unity3d"
+    },
+    {
+      "id": 36,
+      "type": 1,
+      "category": 8,
+      "name": "Suspense D",
+      "description": "Suspense D",
+      "path": "AmbientAudio/Suspense/kgm_amb_suspence_suspenseD.unity3d"
+    },
+    {
+      "id": 37,
+      "type": 1,
+      "category": 3,
+      "name": "Amusement park",
+      "description": "Amusement park",
+      "path": "AmbientAudio/Urban/kgm_amb_amusement_park.unity3d"
+    },
+    {
+      "id": 38,
+      "type": 1,
+      "category": 3,
+      "name": "Cafe",
+      "description": "Cafe",
+      "path": "AmbientAudio/Urban/kgm_amb_cafe.unity3d"
+    },
+    {
+      "id": 39,
+      "type": 1,
+      "category": 3,
+      "name": "City park",
+      "description": "City park",
+      "path": "AmbientAudio/Urban/kgm_amb_city_park.unity3d"
+    },
+    {
+      "id": 40,
+      "type": 1,
+      "category": 3,
+      "name": "Metro station",
+      "description": "Metro station",
+      "path": "AmbientAudio/Urban/kgm_amb_metro_station.unity3d"
+    },
+    {
+      "id": 101,
+      "type": 2,
+      "category": 1,
+      "name": "Batwing",
+      "description": "Batwing",
+      "path": "AvatarAccessory/Hat/HatBatwing00Model.unity3d"
+    },
+    {
+      "id": 103,
+      "type": 2,
+      "category": 1,
+      "name": "Cone",
+      "description": "Cone",
+      "path": "AvatarAccessory/Hat/HatCone.unity3d"
+    },
+    {
+      "id": 104,
+      "type": 2,
+      "category": 1,
+      "name": "Cowboy",
+      "description": "Cowboy",
+      "path": "AvatarAccessory/Hat/HatCowboy.unity3d"
+    },
+    {
+      "id": 105,
+      "type": 2,
+      "category": 1,
+      "name": "Elf",
+      "description": "Elf",
+      "path": "AvatarAccessory/Hat/HatElf_00.unity3d"
+    },
+    {
+      "id": 106,
+      "type": 2,
+      "category": 1,
+      "name": "Helmet",
+      "description": "Helmet",
+      "path": "AvatarAccessory/Hat/HatHelmet.unity3d"
+    },
+    {
+      "id": 107,
+      "type": 2,
+      "category": 1,
+      "name": "Helmet Construction",
+      "description": "Helmet Construction",
+      "path": "AvatarAccessory/Hat/HatHelmetConstruction.unity3d"
+    },
+    {
+      "id": 108,
+      "type": 2,
+      "category": 1,
+      "name": "Helmet Viking",
+      "description": "Helmet Viking",
+      "path": "AvatarAccessory/Hat/HatHelmetViking.unity3d"
+    },
+    {
+      "id": 109,
+      "type": 2,
+      "category": 1,
+      "name": "Mexican",
+      "description": "Mexican",
+      "path": "AvatarAccessory/Hat/HatMexican00Model.unity3d"
+    },
+    {
+      "id": 110,
+      "type": 2,
+      "category": 1,
+      "name": "Pirate",
+      "description": "Pirate",
+      "path": "AvatarAccessory/Hat/HatPirate00Model.unity3d"
+    },
+    {
+      "id": 111,
+      "type": 2,
+      "category": 1,
+      "name": "Santa",
+      "description": "Santa",
+      "path": "AvatarAccessory/Hat/HatSanta_00.unity3d"
+    },
+    {
+      "id": 112,
+      "type": 2,
+      "category": 1,
+      "name": "Star",
+      "description": "Star",
+      "path": "AvatarAccessory/Hat/HatStar.unity3d"
+    },
+    {
+      "id": 113,
+      "type": 2,
+      "category": 1,
+      "name": "Tophat",
+      "description": "Tophat",
+      "path": "AvatarAccessory/Hat/HatTophat.unity3d"
+    },
+    {
+      "id": 114,
+      "type": 2,
+      "category": 1,
+      "name": "Warbonnet",
+      "description": "Warbonnet",
+      "path": "AvatarAccessory/Hat/HatWarbonnet00Model.unity3d"
+    },
+    {
+      "id": 115,
+      "type": 2,
+      "category": 1,
+      "name": "Western Flat",
+      "description": "Western Flat",
+      "path": "AvatarAccessory/Hat/HatWesternFlat.unity3d"
+    },
+    {
+      "id": 116,
+      "type": 2,
+      "category": 1,
+      "name": "Western Tall",
+      "description": "Western Tall",
+      "path": "AvatarAccessory/Hat/HatWesternTall.unity3d"
+    },
+    {
+      "id": 117,
+      "type": 2,
+      "category": 2,
+      "name": "Bats",
+      "description": "Bats",
+      "path": "AvatarAccessory/Particles/ParticlesBodyBats.unity3d"
+    },
+    {
+      "id": 118,
+      "type": 2,
+      "category": 2,
+      "name": "Hearts",
+      "description": "Hearts",
+      "path": "AvatarAccessory/Particles/ParticlesBodyHearts.unity3d"
+    },
+    {
+      "id": 119,
+      "type": 2,
+      "category": 2,
+      "name": "Skulls",
+      "description": "Skulls",
+      "path": "AvatarAccessory/Particles/ParticlesBodySkulls.unity3d"
+    },
+    {
+      "id": 121,
+      "type": 2,
+      "category": 2,
+      "name": "Stars",
+      "description": "Stars",
+      "path": "AvatarAccessory/Particles/ParticlesBodyStars.unity3d"
+    },
+    {
+      "id": 122,
+      "type": 2,
+      "category": 2,
+      "name": "Smoke",
+      "description": "Smoke",
+      "path": "AvatarAccessory/Particles/ParticlesSmoke.unity3d"
+    }
+  ]
 }

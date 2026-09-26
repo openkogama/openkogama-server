@@ -5,12 +5,18 @@ namespace OpenKogama.World;
 
 public static class LegacyWorld
 {
-    public static byte[] Convert(byte[] data, ProtocolTable client, bool runtime = true)
+    public static byte[] Convert(byte[] data, ProtocolTable client, bool runtime = true) => Convert(data, client, runtime, out _);
+
+    public static byte[] Convert(byte[] data, ProtocolTable client, bool runtime, out int dropped)
     {
         Snapshot snapshot = WorldSerializer.Read(data, runtime);
-        var known = client.WorldObjectType.Values.ToHashSet();
-
-        var removed = snapshot.Objects.Where(obj => !known.Contains((int)obj.Type)).Select(obj => obj.Id).ToHashSet();
+        ProtocolTable server = ProtocolTable.For(ClientProtocols.ServerVersion);
+        var types = new CodeMap(server.WorldObjectType, client.WorldObjectType);
+        var items = new CodeMap(server.AvatarItemType, client.AvatarItemType);
+        var removed = snapshot.Objects
+            .Where(obj => types.Map((int)obj.Type) is null || obj.Data.Find(pair => pair.Key == "itemType").Value is int item && items.Map(item) is null)
+            .Select(obj => obj.Id)
+            .ToHashSet();
         bool grew = removed.Count > 0;
         while (grew)
         {
@@ -21,6 +27,7 @@ public static class LegacyWorld
         }
 
         var objects = snapshot.Objects.Where(obj => !removed.Contains(obj.Id)).ToList();
+        dropped = removed.Count;
         foreach (WorldObject obj in objects)
         {
             if (client.Objects.TryGetValue(obj.Type.ToString(), out ProtocolTable.ObjectDefaults? defaults))
@@ -30,6 +37,12 @@ public static class LegacyWorld
                 obj.Data = Retype(obj.Data, client.StateTypes);
                 obj.Runtime = Retype(obj.Runtime, client.StateTypes);
             }
+            if (client.Content.AsciiStrings == true)
+            {
+                obj.Data = Ascii(obj.Data);
+                obj.Runtime = Ascii(obj.Runtime);
+            }
+            obj.Type = (WorldObjectType)types.Map((int)obj.Type)!.Value;
         }
 
         return WorldSerializer.Write(runtime: runtime, snapshot: snapshot with
@@ -38,6 +51,22 @@ public static class LegacyWorld
             Links = [.. snapshot.Links.Where(link => !removed.Contains(link.From) && !removed.Contains(link.To))],
             ObjectLinks = [.. snapshot.ObjectLinks.Where(link => !removed.Contains(link.From) && !removed.Contains(link.To))],
         });
+    }
+
+    static List<(string Key, PackedType Type, object Value)> Ascii(List<(string Key, PackedType Type, object Value)> values) =>
+        [.. values.Select(pair => pair switch
+        {
+            (_, PackedType.String, string text) => (pair.Key, pair.Type, (object)Ascii(text)),
+            (_, PackedType.Hashtable, List<(string Key, PackedType Type, object Value)> nested) => (pair.Key, pair.Type, Ascii(nested)),
+            _ => pair,
+        })];
+
+    static string Ascii(string text)
+    {
+        string plain = text.Replace('ł', 'l').Replace('Ł', 'L').Normalize(System.Text.NormalizationForm.FormD);
+        return new string([.. plain
+            .Where(c => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark)
+            .Select(c => c < 128 ? c : '?')]);
     }
 
     static List<(string Key, PackedType Type, object Value)> Retype(List<(string Key, PackedType Type, object Value)> values, Dictionary<string, ProtocolTable.StateType> types) =>
