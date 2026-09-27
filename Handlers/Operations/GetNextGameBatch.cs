@@ -91,6 +91,7 @@ public sealed class GetNextGameBatch(Session session) : IOperationHandler
                     [(byte)ParameterKey.ActorNr] = me.Actor,
                     [(byte)ParameterKey.Username] = me.Username,
                     [(byte)ParameterKey.RegionCode] = me.Region,
+                    [(byte)ParameterKey.TeamID] = (int)me.Team,
                 },
             });
 

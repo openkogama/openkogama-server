@@ -88,6 +88,7 @@ public sealed class GetNextResultSet(Session session) : IOperationHandler
             entry.Add((byte)DBQueryKey.Deleted, false);
             entry.Add((byte)DBQueryKey.ItemData, item.Bytes);
             entry.Add((byte)DBQueryKey.SlotIndex, slot);
+            entry.Add((byte)DBQueryKey.IsDefaultInvItem, item.Author == 0);
             inventory.Add(item.Id, entry);
         }
 

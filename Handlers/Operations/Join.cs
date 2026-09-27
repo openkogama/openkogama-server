@@ -20,6 +20,9 @@ public sealed class Join(Session session) : IOperationHandler
         if (int.TryParse(request[(byte)ParameterKey.Token] as string, out int profile) && profile > 0)
             player.ProfileId = profile;
 
+        PhotonDictionary prices = PhotonDictionary.Untyped();
+        prices.Add("GameCoinBoost", new[] { 0, 0 });
+
         OperationResponse response = new(request)
         {
             Parameters =
@@ -31,7 +34,7 @@ public sealed class Join(Session session) : IOperationHandler
                 [(byte)ParameterKey.GameType] = (int)GameType.Classic,
                 [(byte)ParameterKey.TeamID] = (int)player.Team,
                 [(byte)ParameterKey.ClientSettingFlags] = 0,
-                [(byte)ParameterKey.Prices] = PhotonDictionary.Untyped(),
+                [(byte)ParameterKey.Prices] = prices,
                 [(byte)ParameterKey.GameCoinBoosterLeft] = 0,
                 [(byte)ParameterKey.MarketPlaceLevel] = 0,
                 [(byte)ParameterKey.PublishLevel] = 0,

@@ -90,6 +90,7 @@ public enum OperationCode : byte
     GameSnapshotData = 89,
     GetItemInventory = 90,
     GetItemShopInventory = 91,
+    SyncronizePing = 92,
     Leave = 254,
     Join = 255,
 }

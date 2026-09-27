@@ -41,6 +41,7 @@ public sealed class OperationRouter
         var batch = new GetNextGameBatch(session);
         Register(batch);
         Register(new Syncronize(session, this, batch));
+        Register(new SyncronizePing());
         Register(new RequestFriends(session));
         Register(new RequestFriendship(session, byName: true));
         Register(new RequestFriendship(session, byName: false));
