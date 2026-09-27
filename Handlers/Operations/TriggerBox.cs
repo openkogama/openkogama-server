@@ -40,6 +40,21 @@ public sealed class TriggerBox(Session session, bool entering) : IOperationHandl
                 else Colossus.Exit(session, obj, ids[1]);
                 break;
 
+            case WorldObjectType.CollectTheItemCollectableInstance when entering && ids.Length > 1:
+                CollectTheItem.Pickup(session, obj, ids[1]);
+                break;
+
+            case WorldObjectType.CollectTheItemDropOff when entering && ids.Length > 1:
+                CollectTheItem.DropOff(session, obj, ids[1]);
+                break;
+
+            case WorldObjectType.CollectTheItemDropOff:
+                CollectTheItem.LeaveDropOff(session, obj);
+                break;
+
+            case WorldObjectType.CollectTheItemCollectableInstance:
+                break;
+
             case WorldObjectType.CollectibleItem:
                 if (entering) session.Round.Collect(player, obj);
                 break;

@@ -47,8 +47,12 @@ public enum WorldObjectType
     OculusKillLimit = 64,
     CountingCube = 65,
     GodzillaTrigger = 147,
+    CollectTheItemCollectableInstance = 164,
     ShootableButton = 165,
     UseLever = 166,
+    CollectTheItemDropOff = 167,
+    CollectTheItemCollectable = 168,
+    CollectTheItem = 169,
 }
 
 // From MV.Common.BlueprintType, picked by Data.BlueprintData.ClientSideType.

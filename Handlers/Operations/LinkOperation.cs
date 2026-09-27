@@ -54,7 +54,7 @@ public sealed class LinkOperation(Session session, bool objectLink, bool adding)
         session.Logic.Evaluate();
 
         foreach (Player player in session.Players)
-            if (player.Peer != peer)
+            if (player.Peer != peer || player.LinkEvents)
                 player.Peer.Send(evt);
 
         peer.Send(response);

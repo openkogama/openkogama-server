@@ -15,6 +15,7 @@ public sealed class ResetTerrain(Session session) : IOperationHandler
         if (prototypeId is not int id || session.World.FindPrototype(id) is not Prototype terrain) return;
 
         terrain.Cubes.Clear();
+        session.World.ClearRuntimeEvents();
         session.World.MarkChanged();
 
         var evt = new EventData((byte)EventCode.ResetTerrain);

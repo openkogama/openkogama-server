@@ -62,6 +62,8 @@ public enum EventCode : byte
     RewardIsReady = 107,
     GodzillaEnter = 108,
     GodzillaExit = 109,
+    CloneTempWorldObjectWithOriginalReferenceEvent = 110,
+    CollectTheItemDropOff = 111,
     Leave = 254,
     Join = 255,
 }

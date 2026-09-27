@@ -9,8 +9,6 @@ public static class RuntimeDefaults
         foreach ((string key, PackedType type, object value) in For(obj))
             if (!obj.Runtime.Exists(pair => pair.Key == key))
                 obj.Runtime.Add((key, type, value));
-        if (!obj.Runtime.Exists(pair => pair.Key == "iH"))
-            obj.Runtime.Add(("iH", PackedType.Bool, false));
     }
 
     public static void Reset(WorldObject obj)
@@ -20,7 +18,9 @@ public static class RuntimeDefaults
         Apply(obj);
     }
 
-    static List<(string, PackedType, object)> For(WorldObject obj) => obj.Type switch
+    static List<(string, PackedType, object)> For(WorldObject obj) => [("iH", PackedType.Bool, false), .. ForType(obj)];
+
+    static List<(string, PackedType, object)> ForType(WorldObject obj) => obj.Type switch
     {
         WorldObjectType.ToggleBox => [("toggled", PackedType.Bool, false)],
         WorldObjectType.TimeTrigger or WorldObjectType.ShootableButton => [("cT", PackedType.Int32, -1)],
@@ -29,6 +29,7 @@ public static class RuntimeDefaults
         WorldObjectType.PulseBox => [("currentStartTime", PackedType.Int32, 0)],
         WorldObjectType.PressurePlate => [("triggerBoxState", PackedType.Bool, false)],
         WorldObjectType.GodzillaTrigger => [("occupantWOID", PackedType.Int32, -1)],
+        WorldObjectType.CollectTheItemDropOff => [("isActive", PackedType.Bool, true)],
         WorldObjectType.SentryGun =>
         [
             ("health", PackedType.Single, 300f),

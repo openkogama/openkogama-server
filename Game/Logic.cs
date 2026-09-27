@@ -196,6 +196,8 @@ public sealed class Logic(Session session)
         if (changed) Evaluate();
     }
 
+    public void ResetAll() => Reset(session.World.ToSnapshot().Objects.Where(obj => Stateful.Contains(obj.Type)).Select(obj => obj.Id));
+
     public void Reset(IEnumerable<int> ids)
     {
         lock (_sync)
@@ -415,7 +417,7 @@ public sealed class Logic(Session session)
 
                 bool output = obj.Type switch
                 {
-                    WorldObjectType.TriggerBox or WorldObjectType.PressurePlate => session.Triggers.IsPressed(obj.Id),
+                    WorldObjectType.TriggerBox or WorldObjectType.PressurePlate or WorldObjectType.CollectTheItemDropOff => session.Triggers.IsPressed(obj.Id),
                     WorldObjectType.Battery => true,
                     WorldObjectType.GodzillaTrigger => Colossus.Occupant(obj) != Colossus.Empty,
                     WorldObjectType.ToggleBox => State(obj),

@@ -76,6 +76,7 @@ public sealed class Player(PhotonPeer peer, int actor, int avatarId)
     public bool LogicFrames => peer.Translator is Kogama.Protocols.OperationRemap remap && remap.Knows(Kogama.EventCode.LogicFrame);
     public bool LogicSteps => LogicFrames && NativeSince(LogicStepsVersion);
     public bool ObjectLinkState => NativeSince(ObjectLinkStateVersion) && !NativeSince(StatelessLinksVersion);
+    public bool LinkEvents => NativeSince(StatelessLinksVersion);
 
     static readonly Version LinkStateVersion = new(1, 30);
     static readonly Version ObjectLinkStateVersion = new(1, 32, 4);

@@ -102,6 +102,7 @@ public enum OperationCode : byte
     ClaimReward = 101,
     GetActorOffer = 102,
     ClaimActorOffer = 103,
+    CloneTempWorldObjectWithOriginalReference = 104,
     Leave = 254,
     Join = 255,
 }

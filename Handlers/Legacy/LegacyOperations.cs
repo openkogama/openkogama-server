@@ -10,6 +10,8 @@ public static class LegacyOperations
     {
         new RequestTeamList(),
         new SendChatMsg(),
+        new LegacyRelay("SetTeamData", "SetTeamData"),
+        new LegacyRelay("RemoveCubesWithinRadiusOperation", "RemoveCubesWithinRadiusEvent"),
     }.ToDictionary(handler => handler.Operation);
 
     public static bool Handles(string name) => Handlers.ContainsKey(name);

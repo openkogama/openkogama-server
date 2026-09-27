@@ -25,7 +25,7 @@ public sealed class Session
             World.Modify(obj.Id, RuntimeDefaults.Reset);
         _avatarPrototypes = Avatar.AddPrototypes(World);
         Logic = new Logic(this);
-        Logic.Reset(World.ToSnapshot().Objects.Where(obj => obj.Type == WorldObjectType.TimeTrigger).Select(obj => obj.Id));
+        Logic.ResetAll();
         Teams = new Teams(this);
         Round = new Round(this);
     }

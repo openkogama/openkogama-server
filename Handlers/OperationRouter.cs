@@ -53,6 +53,7 @@ public sealed class OperationRouter
         Register(new ClaimReward(session));
         Register(new GetActorOffer());
         Register(new ClaimActorOffer());
+        Register(new CloneTempWorldObjectWithOriginalReference(session));
         Register(new RequestFriends(session));
         Register(new RequestFriendship(session, byName: true));
         Register(new RequestFriendship(session, byName: false));

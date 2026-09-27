@@ -18,11 +18,16 @@ public static class Pickup
         if (item is AvatarItemType weapon && weapon is not (AvatarItemType.Health or AvatarItemType.Mutant or AvatarItemType.NinjaRun))
             Equip(session, player, pickup, weapon);
 
-        SendState(session, pickup.Id, player.Actor, PickupItemState.Pickup);
-        SendState(session, pickup.Id, player.Actor, PickupItemState.Counting);
+        Respawn(session, pickup.Id, player.Actor);
+    }
+
+    public static void Respawn(Session session, int pickupId, int actor)
+    {
+        SendState(session, pickupId, actor, PickupItemState.Pickup);
+        SendState(session, pickupId, actor, PickupItemState.Counting);
 
         _ = Task.Delay(RespawnMs).ContinueWith(_ =>
-            SendState(session, pickup.Id, player.Actor, PickupItemState.Listening));
+            SendState(session, pickupId, actor, PickupItemState.Listening));
     }
 
     static void Equip(Session session, Player player, WorldObject pickup, AvatarItemType weapon)
