@@ -107,12 +107,20 @@ public static class Avatar
                 ("currentItem", PackedType.Hashtable, new List<(string, PackedType, object)>()),
                 ("invulnerable", PackedType.Bool, false),
                 ("avatarRuntimeState", PackedType.Byte, (byte)1),
+                ("avatarModeTypes", PackedType.Int32, 1),
                 ("animation", PackedType.Hashtable, new List<(string, PackedType, object)>()),
                 ("seat", PackedType.Int32, -1),
             ],
         };
 
         return [avatar, .. BuildBody(world, actor, avatar.Id, partPrototypes)];
+    }
+
+    public static byte[] DefaultBody(int actor)
+    {
+        var world = new GameWorld();
+        foreach (WorldObject obj in BuildBody(world, actor, -1, AddPrototypes(world))) world.Add(obj);
+        return WorldSerializer.Write(world.ToSnapshot(), runtime: false);
     }
 
     public static List<WorldObject> BuildBody(GameWorld world, int actor, int parentId, int[] partPrototypes)

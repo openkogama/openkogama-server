@@ -114,6 +114,13 @@ public sealed class Database
         """
         ALTER TABLE worlds ADD COLUMN played_at TEXT;
         """,
+        """
+        ALTER TABLE profiles ADD COLUMN coin_boost INTEGER NOT NULL DEFAULT 0;
+        """,
+        """
+        ALTER TABLE profiles ADD COLUMN spins INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE profiles ADD COLUMN next_spin INTEGER NOT NULL DEFAULT 0;
+        """,
     ];
 
     readonly string _connectionString;

@@ -64,9 +64,17 @@ public sealed class Teams
         }
 
         foreach (Team team in added) Broadcast(EventCode.AddTeam, team);
-        foreach (Team team in removed) Broadcast(EventCode.RemoveTeam, team);
 
-        foreach (Player player in _session.Players.Where(player => removed.Contains(player.Team)).ToList())
+        List<Player> moved = [.. _session.Players.Where(player => removed.Contains(player.Team))];
+        foreach (Team team in removed)
+        {
+            PhotonDictionary actors = PhotonDictionary.Untyped();
+            foreach (Player player in moved.Where(player => player.Team == team))
+                actors.Add(player.Actor, (int)Default);
+            Broadcast(EventCode.RemoveTeam, team, actors);
+        }
+
+        foreach (Player player in moved)
             Set(player, Default);
     }
 
@@ -80,12 +88,13 @@ public sealed class Teams
         return teams.Count > 0 ? teams : [Team.Blue];
     }
 
-    void Broadcast(EventCode code, Team team)
+    void Broadcast(EventCode code, Team team, PhotonDictionary? actors = null)
     {
         var evt = new EventData((byte)code)
         {
             Parameters = { [(byte)ParameterKey.TeamID] = (int)team },
         };
+        if (actors is not null) evt.Parameters[(byte)ParameterKey.Data] = actors;
         foreach (Player player in _session.Players)
             player.Peer.Send(evt);
     }

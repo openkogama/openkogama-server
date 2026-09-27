@@ -11,16 +11,14 @@ public sealed class CreateGameSnapshot(Session session) : IOperationHandler
 
     public void Handle(PhotonPeer peer, OperationRequest request)
     {
+        Player? me = session.For(peer);
         PhotonDictionary users = PhotonDictionary.Untyped();
         foreach (Player p in session.Players)
         {
             PhotonDictionary info = PhotonDictionary.ByteKeyed();
-            info.Add((byte)ParameterKey.ProfileID, p.ProfileId);
-            info.Add((byte)ParameterKey.TeamID, (int)p.Team);
-            info.Add((byte)ParameterKey.Username, p.Username);
-            info.Add((byte)ParameterKey.Level, p.Level);
-            info.Add((byte)ParameterKey.RegionCode, p.Region);
+            foreach ((ParameterKey key, object value) in p.Info()) info.Add((byte)key, value);
             users.Add(p.Actor, info);
+            me?.Sees(p.Actor);
         }
 
         List<Team> active = session.Teams.Active;
@@ -46,6 +44,8 @@ public sealed class CreateGameSnapshot(Session session) : IOperationHandler
                 [(byte)ParameterKey.FineGrainedTerrainPrototypeID] =
                     session.World.FindFirst(WorldObjectType.CubeModelTerrainFineGrained)?.PrototypeId ?? -1,
                 [(byte)ParameterKey.GameStatCounterData] = session.Round.Stats.ToBytes(),
+                [(byte)ParameterKey.FrameCount] = session.Logic.Frame,
+                [(byte)ParameterKey.Timestamp] = me?.LogicSteps == true ? session.Logic.StepStamp : session.Logic.Frame * Logic.FrameInterval,
             },
         };
 

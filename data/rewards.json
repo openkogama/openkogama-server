@@ -1,0 +1,13 @@
+{
+  "freeSpinSeconds": 86400,
+  "spinPrice": 0,
+  "rewards": [
+    { "xp": 1, "rarity": "Common", "chance": 35 },
+    { "xp": 3, "rarity": "Common", "chance": 35 },
+    { "xp": 25, "rarity": "UnCommon", "chance": 14 },
+    { "xp": 35, "rarity": "UnCommon", "chance": 14 },
+    { "xp": 500, "rarity": "Rare", "chance": 1.5 },
+    { "xp": 3500, "rarity": "Epic", "chance": 0.4 },
+    { "xp": 15000, "rarity": "Legendary", "chance": 0.1 }
+  ]
+}

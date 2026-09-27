@@ -8,6 +8,10 @@ public interface IProfileStore
 {
     int Xp(int profile);
     int AddXp(int profile, int amount);
+    int CoinBoost(int profile);
+    int AddCoinBoost(int profile, int milliseconds);
+    (int Spins, long Next) Spins(int profile);
+    void SetSpins(int profile, int spins, long next);
 
     List<Item> Items(int profile);
     Item AddItem(int profile, string name, int category, byte[] data, int author);

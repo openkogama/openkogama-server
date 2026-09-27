@@ -42,6 +42,17 @@ public sealed class OperationRouter
         Register(batch);
         Register(new Syncronize(session, this, batch));
         Register(new SyncronizePing());
+        Register(new Notification(session));
+        Register(new UploadBytes(session));
+        Register(new LogicActivateRequest(session));
+        Register(new GetResetAvatar(session));
+        Register(new PostChatMsg(session));
+        Register(new JoinNotification());
+        Register(new GetRewardList());
+        Register(new GetRewardIndex(session));
+        Register(new ClaimReward(session));
+        Register(new GetActorOffer());
+        Register(new ClaimActorOffer());
         Register(new RequestFriends(session));
         Register(new RequestFriendship(session, byName: true));
         Register(new RequestFriendship(session, byName: false));
@@ -63,7 +74,7 @@ public sealed class OperationRouter
         Register(new ClientLog());
         Register(new UpdateNetworkInput(session));
         Register(new XPRewarded(session));
-        Register(new GameCoinBooster());
+        Register(new GameCoinBooster(session));
         Register(new TransferWorldObjectsToGroup(session));
         Register(new RequestBuiltInItem(session));
         Register(new AddItemToWorld(session));

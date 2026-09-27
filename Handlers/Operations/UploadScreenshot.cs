@@ -15,7 +15,11 @@ public sealed class UploadScreenshot(Session session) : IOperationHandler
     {
         int type = Convert.ToInt32(request[(byte)ParameterKey.ImageType]);
         int id = type == Planet && session.WorldId is int world ? world : Convert.ToInt32(request[(byte)ParameterKey.ImageID]);
-        byte[] data = (byte[])request[(byte)ParameterKey.ImageData]!;
+        if ((request[(byte)ParameterKey.ImageData] as byte[] ?? session.For(peer)?.TakeUpload()) is not byte[] data)
+        {
+            peer.Send(new OperationResponse(request) { ReturnCode = -1 });
+            return;
+        }
 
         Stores.Images.SaveImage(type, id, data);
         peer.Send(new OperationResponse(request));

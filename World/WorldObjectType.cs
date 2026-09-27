@@ -46,6 +46,7 @@ public enum WorldObjectType
     KillLimit = 63,
     OculusKillLimit = 64,
     CountingCube = 65,
+    GodzillaTrigger = 147,
     ShootableButton = 165,
     UseLever = 166,
 }

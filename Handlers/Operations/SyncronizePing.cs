@@ -7,7 +7,6 @@ public sealed class SyncronizePing : IOperationHandler
 {
     public byte Code => (byte)OperationCode.SyncronizePing;
 
-    public void Handle(PhotonPeer peer, OperationRequest request)
-    {
-    }
+    public void Handle(PhotonPeer peer, OperationRequest request) =>
+        Console.WriteLine($"peer {peer.Id}: synchronize finished on client");
 }

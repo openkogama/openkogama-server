@@ -28,6 +28,8 @@ public sealed class ResetAvatar(Session session) : IOperationHandler
                 [(byte)ParameterKey.ActorNr] = player.Actor,
                 [(byte)ParameterKey.Data] = player.WorldData(body),
                 [(byte)ParameterKey.QueryType] = (byte)QueryType.AddToGameWorld,
+                [(byte)ParameterKey.QueryId] = GetNextGameBatch.NextQueryId(),
+                [(byte)ParameterKey.QueryDataLeft] = false,
             },
         });
         peer.Send(new EventData((byte)EventCode.UnregisterWorldObject)

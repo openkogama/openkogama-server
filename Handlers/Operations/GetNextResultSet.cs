@@ -70,8 +70,9 @@ public sealed class GetNextResultSet(Session session) : IOperationHandler
     public static PhotonDictionary Inventory(int profileId, string version)
     {
         PhotonDictionary inventory = PhotonDictionary.Untyped();
+        int? defaultKey = Kogama.Protocols.ProtocolTable.For(version).DBQueryKeys.TryGetValue(nameof(DBQueryKey.IsDefaultInvItem), out int key) ? key : null;
 
-        foreach ((Item item, int slot) in Inventories.WithSlots(profileId, version))
+        foreach ((Item item, int slot, bool builtIn) in Inventories.WithSlots(profileId, version))
         {
             PhotonDictionary entry = PhotonDictionary.Untyped();
             entry.Add((byte)DBQueryKey.ItemID, item.Id);
@@ -88,7 +89,7 @@ public sealed class GetNextResultSet(Session session) : IOperationHandler
             entry.Add((byte)DBQueryKey.Deleted, false);
             entry.Add((byte)DBQueryKey.ItemData, item.Bytes);
             entry.Add((byte)DBQueryKey.SlotIndex, slot);
-            entry.Add((byte)DBQueryKey.IsDefaultInvItem, item.Author == 0);
+            if (defaultKey is int flag) entry.Add((byte)flag, builtIn);
             inventory.Add(item.Id, entry);
         }
 

@@ -11,6 +11,8 @@ public sealed class PurchaseProduct(Session session) : IOperationHandler
     const int StreamingAssetProduct = 2;
     const int ItemProduct = 3;
     const int AvatarProduct = 4;
+    const int GameCoinBoosterProduct = 6;
+    const int MysteryBoxSpinsProduct = 7;
 
     public byte Code => (byte)OperationCode.PurchaseProduct;
 
@@ -30,6 +32,13 @@ public sealed class PurchaseProduct(Session session) : IOperationHandler
             case ItemProduct when Value(product, 9) is { } item:
                 BuyItem(peer, request, Convert.ToInt32(item));
                 break;
+            case GameCoinBoosterProduct when session.For(peer) is Player buyer:
+                BuyCoinBoost(peer, request, buyer);
+                break;
+            case MysteryBoxSpinsProduct when session.For(peer) is Player buyer && product.Values.OfType<int>().FirstOrDefault() is > 0 and int count:
+                peer.Send(new OperationResponse(request));
+                Console.WriteLine($"profile {buyer.ProfileId}: bought {count} spins, {Spins.Buy(buyer, count)} left");
+                break;
             default:
                 Console.WriteLine($"peer {peer.Id}: unknown purchase type {type}: {string.Join(", ", product.Select(entry => $"{entry.Key} ({entry.Key.GetType().Name})={entry.Value}"))}");
                 peer.Send(new OperationResponse(request) { ReturnCode = -1 });
@@ -48,6 +57,21 @@ public sealed class PurchaseProduct(Session session) : IOperationHandler
         Item item = ModelInventory.Give(player, listing.Name, listing.Category, listing.Data, listing.Owner, 0);
         peer.Send(new OperationResponse(request));
         Console.WriteLine($"profile {player.ProfileId}: bought listing {listingId} as item {item.Id}");
+    }
+
+    static void BuyCoinBoost(PhotonPeer peer, OperationRequest request, Player player)
+    {
+        int left = CoinBoost.Buy(player);
+        int key = Kogama.Protocols.ProtocolTable.For(player.ClientVersion).ParameterKeys
+            .GetValueOrDefault(nameof(ParameterKey.GameCoinBoosterLeft), (int)ParameterKey.GameCoinBoosterLeft);
+        PhotonDictionary result = PhotonDictionary.Untyped();
+        result.Add((byte)key, left);
+
+        peer.Send(new OperationResponse(request)
+        {
+            Parameters = { [(byte)ParameterKey.PurchaseProductData] = result },
+        });
+        Console.WriteLine($"profile {player.ProfileId}: bought coin boost, {left / 60000} minutes left");
     }
 
     static object? Value(Dictionary<object, object?> product, int key) =>
@@ -94,6 +118,8 @@ public sealed class PurchaseProduct(Session session) : IOperationHandler
                 [(byte)ParameterKey.ActorNr] = player.Actor,
                 [(byte)ParameterKey.Data] = player.WorldData(session.World.SubtreeSnapshot(bodyId)),
                 [(byte)ParameterKey.QueryType] = (byte)QueryType.AddToGameWorld,
+                [(byte)ParameterKey.QueryId] = GetNextGameBatch.NextQueryId(),
+                [(byte)ParameterKey.QueryDataLeft] = false,
             },
         });
         Console.WriteLine($"profile {player.ProfileId}: bought avatar {shopId} as body {bodyId}");

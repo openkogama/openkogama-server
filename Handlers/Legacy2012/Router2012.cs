@@ -609,7 +609,7 @@ public sealed class Router2012
         var items = new Dictionary<object, object?>();
         if (player is null) return items;
 
-        foreach ((Item item, int slot) in Inventories.WithSlots(player.ProfileId))
+        foreach ((Item item, int slot, _) in Inventories.WithSlots(player.ProfileId))
         {
             if (ModelInventory.SinglePrototype(item) is not Prototype prototype) continue;
             items[item.Id] = new Dictionary<object, object?>

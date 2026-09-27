@@ -43,7 +43,7 @@ public static class ModelInventory
     public static Item Give(Player player, string name, int category, byte[] data, int author, int objectId)
     {
         Item item = Inventories.Add(player.ProfileId, name, category, data, author);
-        int slot = Inventories.WithSlots(player.ProfileId).First(entry => entry.Item.Id == item.Id).Slot;
+        int slot = Inventories.WithSlots(player.ProfileId, player.ClientVersion).First(entry => entry.Item.Id == item.Id).Slot;
 
         player.Peer.Send(new EventData((byte)EventCode.AddItemToInventory)
         {

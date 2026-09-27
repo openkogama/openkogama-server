@@ -57,6 +57,9 @@ public sealed class Syncronize(Session session, OperationRouter router, GetNextG
 
         if (player.Mode == GameMode.CharacterEditor)
             Run(peer, OperationCode.GetActiveAvatar);
+
+        if (peer.Translator is Kogama.Protocols.OperationRemap)
+            peer.Send(new EventData((byte)EventCode.SyncronizePing));
     }
 
     void Run(PhotonPeer peer, OperationCode code, params (ParameterKey Key, object Value)[] parameters)

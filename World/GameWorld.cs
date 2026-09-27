@@ -239,7 +239,7 @@ public sealed class GameWorld
                     Position = [.. original.Position],
                     Rotation = [.. original.Rotation],
                     Scale = [.. original.Scale],
-                    Data = [.. original.Data],
+                    Data = BlueprintMaps.Remap(original.Data, newIds),
                     Owner = original.Owner,
                     PreviewOwner = original.PreviewOwner,
                     Runtime = [.. original.Runtime],
@@ -458,6 +458,13 @@ public sealed class GameWorld
         var used = world.UsedPrototypes(world._objects).Select(prototype => prototype.Id).ToHashSet();
         foreach (int id in world._prototypes.Keys.Where(id => !used.Contains(id)).ToList())
             world._prototypes.Remove(id);
+
+        int repaired = BlueprintMaps.Repair(world._objects);
+        if (repaired > 0)
+        {
+            world.MarkChanged();
+            Console.WriteLine($"repaired {repaired} cloned blueprints");
+        }
 
         return world;
     }

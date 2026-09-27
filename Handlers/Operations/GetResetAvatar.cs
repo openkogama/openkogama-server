@@ -5,22 +5,22 @@ using OpenKogama.Storage;
 
 namespace OpenKogama.Handlers.Operations;
 
-public sealed class GetMarketPlaceItem(Session session) : IOperationHandler
+public sealed class GetResetAvatar(Session session) : IOperationHandler
 {
-    public byte Code => (byte)OperationCode.GetMarketPlaceItem;
+    public byte Code => (byte)OperationCode.GetResetAvatar;
 
     public void Handle(PhotonPeer peer, OperationRequest request)
     {
-        int itemId = Convert.ToInt32(request[(byte)ParameterKey.ItemID]);
-        Player? player = session.For(peer);
-        Item? item = player is null ? null : Inventories.Find(player.ProfileId, itemId);
-        byte[]? data = Stores.Market.FindBySource(ListingKind.Item, itemId)?.Data ?? item?.Bytes;
-
-        if (player is null || data is null)
+        int bodyId = Convert.ToInt32(request[(byte)ParameterKey.WorldObjectID]);
+        if (session.For(peer) is not Player player || !session.BodyAvatars.TryGetValue(bodyId, out int avatar))
         {
             peer.Send(new OperationResponse(request) { ReturnCode = -1 });
             return;
         }
+
+        byte[] data = Stores.Profiles.AvatarSource(avatar) is int source && AvatarShop.Find(source) is { } original
+            ? original.Bytes
+            : Avatar.DefaultBody(player.Actor);
 
         peer.Send(new OperationResponse(request));
         peer.Send(new EventData((byte)EventCode.GetGameBatch)

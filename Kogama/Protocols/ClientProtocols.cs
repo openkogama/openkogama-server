@@ -10,20 +10,30 @@ public static class ClientProtocols
 
     public static string? Hint(OperationRequest join) => join[GameId] as string;
 
-    public static string NativeVersion(OperationRequest join) => Native(join[GameId] as string) ?? ServerVersion;
+    public static string NativeVersion(OperationRequest join) => Native(join) ?? ServerVersion;
 
-    public static OperationRemap? Remap(OperationRequest join) => Native(join[GameId] as string) is string version ? OperationRemap.For(version) : null;
+    public static OperationRemap? Remap(OperationRequest join) => Native(join) is string version ? OperationRemap.For(version) : null;
 
-    public static string? Native(string? hint) =>
-        hint is not null && ProtocolTable.Resolve(hint) is string table && !ProtocolTable.IsLegacy(table) ? table : null;
+    public static string? Native(string? hint) => hint is null ? null : Native(hint, _ => true);
+
+    static string? Native(OperationRequest join) => join[GameId] is string hint ? Native(hint, table => SentBy(join, table)) : null;
+
+    static string? Native(string hint, Func<string, bool> matches)
+    {
+        List<string> tables = [.. ProtocolTable.Candidates(hint).Where(table => !ProtocolTable.IsLegacy(table))];
+        return tables.FirstOrDefault(matches) ?? tables.FirstOrDefault();
+    }
+
+    static bool SentBy(OperationRequest join, string table) =>
+        !ProtocolTable.For(table).ParameterKeys.TryGetValue("ProfileToken", out int key) || join[(byte)key] is string;
 
     public static LegacyTranslator? Detect(OperationRequest join)
     {
         ProtocolTable server = ProtocolTable.For(ServerVersion);
-        if (join[(byte)server.ParameterKeys["ProfileToken"]] is string) return null;
+        if (join[GameId] is string hint && ProtocolTable.Resolve(hint) is string table)
+            return ProtocolTable.IsLegacy(table) ? new LegacyTranslator(ProtocolTable.For(table), server) : null;
 
-        if (join[GameId] is string hint && ProtocolTable.Resolve(hint) is string table && ProtocolTable.IsLegacy(table))
-            return new LegacyTranslator(ProtocolTable.For(table), server);
+        if (join[(byte)server.ParameterKeys["ProfileToken"]] is string) return null;
 
         foreach (string version in Legacy)
         {

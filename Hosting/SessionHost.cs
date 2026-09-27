@@ -136,6 +136,7 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
         Session session = entry.Session;
         Player? gone = session.For(peer);
         if (gone is null) return;
+        CoinBoost.Stop(gone);
 
         if (entry.Editor)
         {
@@ -152,6 +153,7 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
         }
 
         ReleaseEverything(session, gone);
+        Colossus.Release(session, gone.AvatarId);
         session.Remove(gone);
         session.Round.Stats.RemoveActor(gone.Actor);
 
@@ -167,7 +169,7 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
         {
             Parameters = { [(byte)ParameterKey.ActorNr] = gone.Actor },
         };
-        foreach (Player other in session.Players)
+        foreach (Player other in session.Players.Where(other => other.Saw(gone.Actor)))
         {
             other.Peer.Send(unregister);
             other.Peer.Send(leave);
@@ -251,7 +253,10 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
     public void Tick()
     {
         foreach (Session session in Worlds())
+        {
             session.Logic.Tick();
+            Spins.Tick(session);
+        }
     }
 
     List<Session> Worlds()

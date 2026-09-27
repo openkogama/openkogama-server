@@ -64,6 +64,8 @@ public sealed class RequestBuiltInItem(Session session) : IOperationHandler
                 [(byte)ParameterKey.ActorNr] = (int)peer.Id,
                 [(byte)ParameterKey.Data] = WorldSerializer.Write(prototypes, [obj]),
                 [(byte)ParameterKey.QueryType] = (byte)QueryType.AddToGameWorld,
+                [(byte)ParameterKey.QueryId] = GetNextGameBatch.NextQueryId(),
+                [(byte)ParameterKey.QueryDataLeft] = false,
             },
         };
         foreach (Player player in session.Players)

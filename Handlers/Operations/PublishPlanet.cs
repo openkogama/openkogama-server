@@ -21,8 +21,13 @@ public sealed class PublishPlanet(Session session) : IOperationHandler
             return;
         }
 
-        if (request.Parameters.TryGetValue((byte)ParameterKey.PlanetTextureData, out object? image) && image is byte[] { Length: > 0 } png
-            && Stores.Images.Image(PlanetImage, world) is null)
+        byte[]? png = request[(byte)ParameterKey.PlanetTextureData] switch
+        {
+            byte[] data => data,
+            true => player.TakeUpload(),
+            _ => null,
+        };
+        if (png is { Length: > 0 } && Stores.Images.Image(PlanetImage, world) is null)
             Stores.Images.SaveImage(PlanetImage, world, png);
 
         session.Publish();

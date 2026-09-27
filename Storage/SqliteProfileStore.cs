@@ -23,6 +23,42 @@ public sealed class SqliteProfileStore(Database database) : IProfileStore
         return (int)(long)command.ExecuteScalar()!;
     }
 
+    public int CoinBoost(int profile)
+    {
+        using SqliteConnection connection = database.Open();
+        using SqliteCommand command = Command(connection, "SELECT coin_boost FROM profiles WHERE id = $profile", ("$profile", profile));
+        return command.ExecuteScalar() is long left ? (int)left : 0;
+    }
+
+    public int AddCoinBoost(int profile, int milliseconds)
+    {
+        using SqliteConnection connection = database.Open();
+        using SqliteCommand command = Command(connection, """
+            INSERT INTO profiles (id, coin_boost) VALUES ($profile, MAX(0, $milliseconds))
+            ON CONFLICT (id) DO UPDATE SET coin_boost = MAX(0, coin_boost + $milliseconds)
+            RETURNING coin_boost
+            """, ("$profile", profile), ("$milliseconds", milliseconds));
+        return (int)(long)command.ExecuteScalar()!;
+    }
+
+    public (int Spins, long Next) Spins(int profile)
+    {
+        using SqliteConnection connection = database.Open();
+        using SqliteCommand command = Command(connection, "SELECT spins, next_spin FROM profiles WHERE id = $profile", ("$profile", profile));
+        using SqliteDataReader reader = command.ExecuteReader();
+        return reader.Read() ? (reader.GetInt32(0), reader.GetInt64(1)) : (0, 0);
+    }
+
+    public void SetSpins(int profile, int spins, long next)
+    {
+        using SqliteConnection connection = database.Open();
+        using SqliteCommand command = Command(connection, """
+            INSERT INTO profiles (id, spins, next_spin) VALUES ($profile, $spins, $next)
+            ON CONFLICT (id) DO UPDATE SET spins = $spins, next_spin = $next
+            """, ("$profile", profile), ("$spins", spins), ("$next", next));
+        command.ExecuteNonQuery();
+    }
+
     public List<Item> Items(int profile)
     {
         using SqliteConnection connection = database.Open();

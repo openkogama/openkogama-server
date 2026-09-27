@@ -35,6 +35,11 @@ public sealed class TriggerBox(Session session, bool entering) : IOperationHandl
                 session.Logic.Evaluate();
                 break;
 
+            case WorldObjectType.GodzillaTrigger when ids.Length > 1:
+                if (entering) Colossus.Enter(session, obj, ids[1]);
+                else Colossus.Exit(session, obj, ids[1]);
+                break;
+
             case WorldObjectType.CollectibleItem:
                 if (entering) session.Round.Collect(player, obj);
                 break;
@@ -49,17 +54,5 @@ public sealed class TriggerBox(Session session, bool entering) : IOperationHandl
         }
     }
 
-    public static void Send(Session session, int objectId, int actor, bool pressed)
-    {
-        var evt = new EventData((byte)(pressed ? EventCode.TriggerBoxStayBegin : EventCode.TriggerBoxStayEnd))
-        {
-            Parameters =
-            {
-                [(byte)ParameterKey.WorldObjectID] = objectId,
-                [(byte)ParameterKey.ActorNr] = actor,
-            },
-        };
-        foreach (Player player in session.Players)
-            player.Peer.Send(evt);
-    }
+    public static void Send(Session session, int objectId, int actor, bool pressed) => session.Logic.Signal(objectId, actor, pressed);
 }

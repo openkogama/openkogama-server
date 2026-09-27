@@ -14,24 +14,26 @@ public static class Inventories
 
     public static void SetSlots(int profile, Dictionary<int, int> slots) => Stores.Profiles.SetSlots(profile, slots);
 
-    public static List<(Item Item, int Slot)> WithSlots(int profile, string version = Kogama.Protocols.ClientProtocols.ServerVersion)
+    public static List<(Item Item, int Slot, bool BuiltIn)> WithSlots(int profile, string version = Kogama.Protocols.ClientProtocols.ServerVersion)
     {
         Dictionary<int, int> slots = Stores.Profiles.Slots(profile);
-        List<Item> all = [.. Items.ForClient(version).Items, .. Stores.Profiles.Items(profile)];
+        List<Item> builtIn = Items.ForClient(version).Items;
+        List<Item> all = [.. builtIn, .. Stores.Profiles.Items(profile)];
         var taken = all.GroupBy(item => item.Category).ToDictionary(
             group => group.Key,
             group => group.Where(item => slots.ContainsKey(item.Id)).Select(item => slots[item.Id]).ToHashSet());
 
-        var result = new List<(Item, int)>();
-        foreach (Item item in all)
+        var result = new List<(Item, int, bool)>();
+        for (int index = 0; index < all.Count; index++)
         {
+            Item item = all[index];
             if (!slots.TryGetValue(item.Id, out int slot))
             {
                 HashSet<int> used = taken[item.Category];
                 slot = 0;
                 while (!used.Add(slot)) slot++;
             }
-            result.Add((item, slot));
+            result.Add((item, slot, index < builtIn.Count));
         }
         return result;
     }

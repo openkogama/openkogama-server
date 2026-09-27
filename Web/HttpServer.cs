@@ -1,6 +1,8 @@
+using System.Collections.Specialized;
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Web;
 using OpenKogama.Game;
 using OpenKogama.Storage;
@@ -174,7 +176,7 @@ public sealed class HttpServer
                     Json(response, Leveling.Limits(int.TryParse(request.QueryString["level"], out int level) ? level : 1).ToJsonString());
                     return;
                 case "xp":
-                    var form = HttpUtility.ParseQueryString(new StreamReader(request.InputStream).ReadToEnd());
+                    NameValueCollection form = Form(request);
                     int formProfile = int.TryParse(form["profile_id"], out int p) ? p : 0;
                     int type = int.TryParse(form["xp_type_id"], out int t) ? t : 0;
                     Json(response, $$"""{"XP":{{Leveling.Add(formProfile, type)}},"XPTypeID":{{type}}}""");
@@ -218,6 +220,24 @@ public sealed class HttpServer
 
         response.StatusCode = 404;
         response.Close();
+    }
+
+    static NameValueCollection Form(HttpListenerRequest request)
+    {
+        string body = new StreamReader(request.InputStream, Encoding.Latin1).ReadToEnd();
+        if (request.ContentType is not string type || !type.StartsWith("multipart/form-data")
+            || Regex.Match(type, "boundary=\"?([^\";]+)") is not { Success: true } boundary)
+            return HttpUtility.ParseQueryString(body);
+
+        var form = new NameValueCollection();
+        foreach (string part in body.Split("--" + boundary.Groups[1].Value))
+        {
+            int split = part.IndexOf("\r\n\r\n");
+            if (split < 0 || Regex.Match(part[..split], "name=\"([^\"]*)\"") is not { Success: true } name) continue;
+            string value = part[(split + 4)..];
+            form[name.Groups[1].Value] = value.EndsWith("\r\n") ? value[..^2] : value;
+        }
+        return form;
     }
 
     static void Json(HttpListenerResponse response, string body)

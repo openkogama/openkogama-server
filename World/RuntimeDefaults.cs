@@ -6,20 +6,29 @@ public static class RuntimeDefaults
 
     public static void Apply(WorldObject obj)
     {
-        foreach ((string key, PackedType type, object value) in For(obj.Type))
+        foreach ((string key, PackedType type, object value) in For(obj))
             if (!obj.Runtime.Exists(pair => pair.Key == key))
                 obj.Runtime.Add((key, type, value));
+        if (!obj.Runtime.Exists(pair => pair.Key == "iH"))
+            obj.Runtime.Add(("iH", PackedType.Bool, false));
     }
 
     public static void Reset(WorldObject obj)
     {
-        var keys = For(obj.Type).Select(pair => pair.Item1).ToHashSet();
+        var keys = For(obj).Select(pair => pair.Item1).ToHashSet();
         obj.Runtime.RemoveAll(pair => keys.Contains(pair.Key));
         Apply(obj);
     }
 
-    static List<(string, PackedType, object)> For(WorldObjectType type) => type switch
+    static List<(string, PackedType, object)> For(WorldObject obj) => obj.Type switch
     {
+        WorldObjectType.ToggleBox => [("toggled", PackedType.Bool, false)],
+        WorldObjectType.TimeTrigger or WorldObjectType.ShootableButton => [("cT", PackedType.Int32, -1)],
+        WorldObjectType.UseLever => [("a", PackedType.Bool, obj.Data.Find(pair => pair.Key == "beginActivated").Value as bool? ?? false)],
+        WorldObjectType.CountingCube => [("currentValue", PackedType.Int32, obj.Data.Find(pair => pair.Key == "startingValue").Value as int? ?? 0)],
+        WorldObjectType.PulseBox => [("currentStartTime", PackedType.Int32, 0)],
+        WorldObjectType.PressurePlate => [("triggerBoxState", PackedType.Bool, false)],
+        WorldObjectType.GodzillaTrigger => [("occupantWOID", PackedType.Int32, -1)],
         WorldObjectType.SentryGun =>
         [
             ("health", PackedType.Single, 300f),
@@ -34,6 +43,11 @@ public static class RuntimeDefaults
         WorldObjectType.WorldObjectSpawnerVehicle =>
         [
             ("UseTime", PackedType.Int32, LongAgo),
+        ],
+        WorldObjectType.RandomBox =>
+        [
+            ("currentValue", PackedType.Int32, 0),
+            ("currentRandomValues", PackedType.Int32Array, new[] { Random.Shared.Next(1, int.MaxValue), 1, 1 }),
         ],
         WorldObjectType.HoverCraft or WorldObjectType.MonoPlane => Vehicle(),
         WorldObjectType.JetPack => [.. Vehicle(), ("jetMode", PackedType.Byte, (byte)0)],

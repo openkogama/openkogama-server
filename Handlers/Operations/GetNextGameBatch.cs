@@ -23,10 +23,16 @@ public sealed class GetNextGameBatch(Session session) : IOperationHandler
                     [(byte)ParameterKey.ActorNr] = actor,
                     [(byte)ParameterKey.Data] = data,
                     [(byte)ParameterKey.QueryType] = (byte)QueryType.AddToGameWorld,
+                    [(byte)ParameterKey.QueryId] = GetNextGameBatch.NextQueryId(),
+                    [(byte)ParameterKey.QueryDataLeft] = false,
                 },
             });
         }
     }
+
+    static int _queryIds = 1_000_000;
+
+    public static int NextQueryId() => Interlocked.Increment(ref _queryIds);
 
     readonly HashSet<short> _worldSent = [];
 
@@ -83,17 +89,15 @@ public sealed class GetNextGameBatch(Session session) : IOperationHandler
         {
             if (other.Peer == peer) continue;
 
-            other.Peer.Send(new EventData((byte)EventCode.Join)
+            var join = new EventData((byte)EventCode.Join)
             {
-                Parameters =
-                {
-                    [(byte)ParameterKey.ProfileID] = me.ProfileId,
-                    [(byte)ParameterKey.ActorNr] = me.Actor,
-                    [(byte)ParameterKey.Username] = me.Username,
-                    [(byte)ParameterKey.RegionCode] = me.Region,
-                    [(byte)ParameterKey.TeamID] = (int)me.Team,
-                },
-            });
+                Parameters = { [(byte)ParameterKey.ActorNr] = me.Actor },
+            };
+            foreach ((ParameterKey key, object value) in me.Info()) join.Parameters[(byte)key] = value;
+            other.Peer.Send(join);
+            other.Sees(me.Actor);
+            if (other.Peer.Translator is Kogama.Protocols.OperationRemap)
+                other.Peer.Send(new EventData((byte)EventCode.JoinNotification) { Parameters = { [(byte)ParameterKey.ActorNr] = me.Actor } });
 
             other.Peer.Send(new EventData((byte)EventCode.GetGameBatch)
             {
@@ -102,6 +106,8 @@ public sealed class GetNextGameBatch(Session session) : IOperationHandler
                     [(byte)ParameterKey.ActorNr] = me.Actor,
                     [(byte)ParameterKey.Data] = other.WorldData(avatar),
                     [(byte)ParameterKey.QueryType] = (byte)QueryType.AddToGameWorld,
+                    [(byte)ParameterKey.QueryId] = GetNextGameBatch.NextQueryId(),
+                    [(byte)ParameterKey.QueryDataLeft] = false,
                 },
             });
         }

@@ -114,14 +114,15 @@ public sealed class ProtocolTable
         }
     }
 
-    public static string? Resolve(string version)
+    public static string? Resolve(string version) => Candidates(version).FirstOrDefault();
+
+    public static IEnumerable<string> Candidates(string version)
     {
-        if (version.Length == 0 || !version.All(c => char.IsDigit(c) || c == '.')) return null;
-        if (File.Exists(Path.Combine(AppContext.BaseDirectory, "data", "protocols", version + ".json"))) return version;
+        if (version.Length == 0 || !version.All(c => char.IsDigit(c) || c == '.')) yield break;
+        if (File.Exists(Path.Combine(AppContext.BaseDirectory, "data", "protocols", version + ".json"))) yield return version;
 
         string aliases = Path.Combine(AppContext.BaseDirectory, "data", "protocols", "aliases.json");
-        return File.Exists(aliases) && JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(aliases))?.GetValueOrDefault(version) is string table
-            ? table
-            : null;
+        if (File.Exists(aliases) && JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(aliases))?.GetValueOrDefault(version) is string table)
+            yield return table;
     }
 }

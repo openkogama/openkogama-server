@@ -9,6 +9,8 @@ public sealed class Logic(Session session)
     const int MaxPasses = 64;
     const int MaxCyclePasses = 256;
     const int NoOutput = -1;
+    public const int FrameInterval = 100;
+    const int StepInterval = 1000;
 
     sealed record Graph(
         int Version,
@@ -32,10 +34,25 @@ public sealed class Logic(Session session)
     readonly Dictionary<int, (int Start, int Value)> _counts = [];
     readonly Dictionary<int, bool> _pulses = [];
     readonly object _sync = new();
+    readonly System.Diagnostics.Stopwatch _clock = System.Diagnostics.Stopwatch.StartNew();
+    int _frame;
+    int _step;
     Graph? _graph;
     bool _dirty;
 
     public Action<int>? DataChanged { get; set; }
+
+    public int Frame
+    {
+        get { lock (_sync) return _frame; }
+    }
+
+    public int StepStamp
+    {
+        get { lock (_sync) return _step * StepInterval; }
+    }
+
+    public int Stamp() => Math.Max(0, (int)((_clock.ElapsedMilliseconds - StepInterval) / FrameInterval) + 2) * FrameInterval;
 
     public void Evaluate(bool react = true)
     {
@@ -71,6 +88,11 @@ public sealed class Logic(Session session)
     public void Resync(Player player)
     {
         if (DataChanged is not null) return;
+        if (player.LogicFrames)
+        {
+            ResyncFrames(player);
+            return;
+        }
 
         foreach (WorldObject obj in session.World.LogicGraph().Objects)
         {
@@ -103,11 +125,54 @@ public sealed class Logic(Session session)
         }
     }
 
+    void ResyncFrames(Player player)
+    {
+        Graph graph;
+        lock (_sync) graph = GraphFor();
+
+        for (int index = 0; index < graph.Nodes.Length; index++)
+        {
+            WorldObject obj = graph.Nodes[index];
+            switch (obj.Type)
+            {
+                case WorldObjectType.ShootableButton or WorldObjectType.UseLever when session.Triggers.IsOn(obj.Id, StartsOn(obj)) != StartsOn(obj):
+                    player.Peer.Send(FiringEvent(obj.Id, !StartsOn(obj)));
+                    break;
+                case WorldObjectType.PressurePlate when session.Triggers.IsPressed(obj.Id):
+                    player.Peer.Send(FiringEvent(obj.Id, true));
+                    break;
+                case WorldObjectType.RandomBox when graph.OutputCounts[index] > 0:
+                    player.Peer.Send(RandomEvent(obj.Id, Random.Shared.Next(graph.OutputCounts[index])));
+                    break;
+            }
+        }
+    }
+
+    public void Signal(int id, int actor, bool on)
+    {
+        WorldObjectType? type = session.World.Find(id)?.Type;
+        bool sensor = type is WorldObjectType.PressurePlate or WorldObjectType.ShootableButton or WorldObjectType.UseLever;
+        bool timesItself = type == WorldObjectType.ShootableButton && !on;
+        EventData stay = StayEvent(id, actor, on);
+        EventData firing = FiringEvent(id, on);
+        foreach (Player player in session.Players)
+        {
+            if (sensor && player.LogicFrames && timesItself) continue;
+            player.Peer.Send(sensor && player.LogicFrames ? firing : stay);
+        }
+    }
+
     public void Tick()
     {
         bool changed;
+        int frames, steps;
         lock (_sync)
         {
+            long elapsed = _clock.ElapsedMilliseconds;
+            frames = (int)(elapsed / FrameInterval) - _frame;
+            _frame += frames;
+            steps = (int)(elapsed / StepInterval) - _step;
+            _step += steps;
             changed = _dirty;
             _dirty = false;
             Graph graph = GraphFor();
@@ -119,6 +184,15 @@ public sealed class Logic(Session session)
                 changed = true;
             }
         }
+
+        if (frames > 0 || steps > 0)
+        {
+            var frame = new EventData((byte)EventCode.LogicFrame);
+            foreach (Player player in session.Players.Where(player => player.InWorld && player.LogicFrames))
+                for (int i = 0; i < (player.LogicSteps ? steps : frames); i++)
+                    player.Peer.Send(frame);
+        }
+
         if (changed) Evaluate();
     }
 
@@ -174,6 +248,7 @@ public sealed class Logic(Session session)
 
             case WorldObjectType.RandomBox:
                 int pick = rising && outputCount > 0 ? Random.Shared.Next(outputCount) : NoOutput;
+                if (rising && outputCount > 0) Broadcast(RandomEvent(obj.Id, Random.Shared.Next(outputCount)), frames: true);
                 if (pick == CurrentOutput(obj)) return false;
                 SetData(obj.Id, "currentOutput", pick);
                 return true;
@@ -212,7 +287,7 @@ public sealed class Logic(Session session)
         After(button.Id, Seconds(button, "duration"), id =>
         {
             if (session.Triggers.Switch(id, false, false))
-                Broadcast(StayEvent(id, 0, false));
+                Signal(id, 0, false);
         });
     }
 
@@ -342,6 +417,7 @@ public sealed class Logic(Session session)
                 {
                     WorldObjectType.TriggerBox or WorldObjectType.PressurePlate => session.Triggers.IsPressed(obj.Id),
                     WorldObjectType.Battery => true,
+                    WorldObjectType.GodzillaTrigger => Colossus.Occupant(obj) != Colossus.Empty,
                     WorldObjectType.ToggleBox => State(obj),
                     WorldObjectType.Negate => !input,
                     WorldObjectType.PulseBox => (!hasInputs || input) && PulseOn(obj),
@@ -417,7 +493,17 @@ public sealed class Logic(Session session)
         Parameters = { [(byte)ParameterKey.WorldObjectID] = id, [(byte)ParameterKey.ActorNr] = actor },
     };
 
-    static EventData CountEvent(int id, int value) => new((byte)EventCode.CountingCubeUpdate)
+    EventData FiringEvent(int id, bool on) => new((byte)EventCode.LogicObjectFiringStateChange)
+    {
+        Parameters = { [(byte)ParameterKey.WorldObjectID] = id, [(byte)ParameterKey.IsFiring] = on, [(byte)ParameterKey.Timestamp] = Stamp() },
+    };
+
+    EventData RandomEvent(int id, int index) => new((byte)EventCode.RandomBoxIndex)
+    {
+        Parameters = { [(byte)ParameterKey.WorldObjectID] = id, [(byte)ParameterKey.RandomBoxIndex] = index, [(byte)ParameterKey.Timestamp] = Stamp() },
+    };
+
+    static EventData CountEvent(int id, int value) => new((byte)EventCode.CountingCubeUpdateEvent)
     {
         Parameters =
         {
@@ -426,10 +512,10 @@ public sealed class Logic(Session session)
         },
     };
 
-    void Broadcast(EventData evt)
+    void Broadcast(EventData evt, bool frames = false)
     {
         foreach (Player player in session.Players)
-            if (player.InWorld)
+            if (player.InWorld && player.LogicFrames == frames)
                 player.Peer.Send(evt);
     }
 
