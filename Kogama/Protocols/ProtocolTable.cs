@@ -16,6 +16,7 @@ public sealed class ProtocolTable
     public Dictionary<string, int> DBQueryKeys { get; init; } = [];
     public Dictionary<string, int> WorldObjectType { get; init; } = [];
     public Dictionary<string, int> AvatarItemType { get; init; } = [];
+    public List<string>? CreatableObjects { get; init; }
     public Dictionary<string, Dictionary<string, JsonElement>> Responses { get; private set; } = [];
     public Dictionary<string, Dictionary<string, JsonElement>> Events { get; private set; } = [];
     public Dictionary<string, Dictionary<string, JsonElement>> Overrides { get; private set; } = [];

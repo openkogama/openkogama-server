@@ -17,6 +17,12 @@ public sealed class GameWorld
     int _nextLinkId = 1;
     int _nextObjectLinkId = 1;
     int _changed;
+    int _logicVersion;
+
+    public int LogicVersion
+    {
+        get { lock (_sync) return _logicVersion; }
+    }
 
     public string Name { get; private set; } = "";
     public float[] Spawn { get; private set; } = [0f, 2f, 0f];
@@ -71,6 +77,7 @@ public sealed class GameWorld
 
     void Store(WorldObject obj)
     {
+        _logicVersion++;
         _objects.Add(obj);
         _byId[obj.Id] = obj;
     }
@@ -82,6 +89,7 @@ public sealed class GameWorld
         lock (_sync)
         {
             var ids = Subtree(id).Select(obj => obj.Id).ToHashSet();
+            _logicVersion++;
             _objects.RemoveAll(obj => ids.Contains(obj.Id));
             foreach (int removed in ids) _byId.Remove(removed);
             _links.RemoveAll(link => ids.Contains(link.From) || ids.Contains(link.To));
@@ -93,6 +101,7 @@ public sealed class GameWorld
     {
         lock (_sync)
         {
+            _logicVersion++;
             var link = new Link(objectLink ? _nextObjectLinkId++ : _nextLinkId++, from, to);
             (objectLink ? _objectLinks : _links).Add(link);
             return link;
@@ -115,7 +124,11 @@ public sealed class GameWorld
 
     public bool RemoveLink(int id, bool objectLink)
     {
-        lock (_sync) return (objectLink ? _objectLinks : _links).RemoveAll(link => link.Id == id) > 0;
+        lock (_sync)
+        {
+            _logicVersion++;
+            return (objectLink ? _objectLinks : _links).RemoveAll(link => link.Id == id) > 0;
+        }
     }
 
     public List<int> RemoveTree(int id)

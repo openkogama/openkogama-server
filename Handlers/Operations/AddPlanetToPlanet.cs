@@ -28,17 +28,7 @@ public sealed class AddPlanetToPlanet(Session session) : IOperationHandler
 
         peer.Send(new OperationResponse(request));
 
-        var evt = new EventData((byte)EventCode.GetGameBatch)
-        {
-            Parameters =
-            {
-                [(byte)ParameterKey.ActorNr] = player.Actor,
-                [(byte)ParameterKey.Data] = WorldSerializer.Write(added),
-                [(byte)ParameterKey.QueryType] = (byte)QueryType.AddToGameWorld,
-            },
-        };
-        foreach (Player other in session.Players)
-            other.Peer.Send(evt);
+        GetNextGameBatch.SendAdded(session, player.Actor, added);
 
         Console.WriteLine($"peer {peer.Id}: copied object {objectId} from world {planetId} as {added.Objects[0].Id}");
     }

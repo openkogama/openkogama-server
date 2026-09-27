@@ -7,17 +7,33 @@ namespace OpenKogama.Game;
 public sealed class Logic(Session session)
 {
     const int MaxPasses = 64;
+    const int MaxCyclePasses = 256;
     const int NoOutput = -1;
+
+    sealed record Graph(
+        int Version,
+        WorldObject[] Nodes,
+        Dictionary<int, int> Index,
+        int[][] Sources,
+        int[][] Slots,
+        int[] OutputCounts,
+        int[] Stateful,
+        int[] Pulses,
+        bool Cyclic);
 
     enum TimerState { Listening, Counting, Firing, Resetting, Done }
 
     static readonly HashSet<WorldObjectType> Stateful =
-        [WorldObjectType.ToggleBox, WorldObjectType.RandomBox, WorldObjectType.TimeTrigger];
+        [WorldObjectType.ToggleBox, WorldObjectType.RandomBox, WorldObjectType.TimeTrigger, WorldObjectType.CountingCube];
 
     readonly Dictionary<int, bool> _inputs = [];
     readonly Dictionary<int, bool> _timerOutputs = [];
     readonly Dictionary<int, int> _timerVersions = [];
+    readonly Dictionary<int, (int Start, int Value)> _counts = [];
+    readonly Dictionary<int, bool> _pulses = [];
     readonly object _sync = new();
+    Graph? _graph;
+    bool _dirty;
 
     public Action<int>? DataChanged { get; set; }
 
@@ -27,21 +43,24 @@ public sealed class Logic(Session session)
         {
             for (int round = 0; round < MaxPasses; round++)
             {
-                Snapshot world = session.World.LogicGraph();
-                Dictionary<int, bool> inputs = Propagate(world);
+                Graph graph = GraphFor();
+                bool[] inputs = Propagate(graph);
                 bool changed = false;
 
-                var linked = world.Objects.Select(obj => obj.Id).ToHashSet();
-                IEnumerable<WorldObject> unlinked = _inputs.Where(entry => entry.Value && !linked.Contains(entry.Key))
-                    .Select(entry => session.World.Find(entry.Key)).OfType<WorldObject>();
-                foreach (WorldObject obj in world.Objects.Concat(unlinked.ToList()).Where(obj => Stateful.Contains(obj.Type)))
+                foreach (int index in graph.Stateful)
                 {
-                    bool input = inputs.GetValueOrDefault(obj.Id);
+                    WorldObject obj = graph.Nodes[index];
                     bool before = _inputs.GetValueOrDefault(obj.Id);
-                    _inputs[obj.Id] = input;
+                    _inputs[obj.Id] = inputs[index];
+                    if (react && inputs[index] != before)
+                        changed |= OnEdge(obj, inputs[index], graph.OutputCounts[index]);
+                }
 
-                    if (react && input != before)
-                        changed |= OnEdge(obj, input, OutputCount(world, obj.Id));
+                foreach (int id in _inputs.Where(entry => entry.Value && !graph.Index.ContainsKey(entry.Key)).Select(entry => entry.Key).ToList())
+                {
+                    _inputs[id] = false;
+                    if (react && session.World.Find(id) is { } obj)
+                        changed |= OnEdge(obj, false, 0);
                 }
 
                 if (!changed) return;
@@ -53,8 +72,23 @@ public sealed class Logic(Session session)
     {
         if (DataChanged is not null) return;
 
-        foreach (WorldObject obj in session.World.LogicGraph().Objects.Where(obj => Stateful.Contains(obj.Type)))
+        foreach (WorldObject obj in session.World.LogicGraph().Objects)
         {
+            if (obj.Type == WorldObjectType.CountingCube)
+            {
+                player.Peer.Send(CountEvent(obj.Id, Count(obj)));
+                continue;
+            }
+
+            if (obj.Type is WorldObjectType.ShootableButton or WorldObjectType.UseLever)
+            {
+                bool on = session.Triggers.IsOn(obj.Id, StartsOn(obj));
+                if (on == StartsOn(obj)) continue;
+                player.Peer.Send(StayEvent(obj.Id, player.Actor, on));
+                continue;
+            }
+
+            if (!Stateful.Contains(obj.Type)) continue;
             string key = obj.Type == WorldObjectType.RandomBox ? "currentOutput" : "state";
             if (obj.Data.Find(pair => pair.Key == key).Value is not { } value) continue;
 
@@ -71,8 +105,21 @@ public sealed class Logic(Session session)
 
     public void Tick()
     {
-        if (session.World.FindFirst(WorldObjectType.PulseBox) is not null)
-            Evaluate();
+        bool changed;
+        lock (_sync)
+        {
+            changed = _dirty;
+            _dirty = false;
+            Graph graph = GraphFor();
+            foreach (int index in graph.Pulses)
+            {
+                bool on = PulseOn(graph.Nodes[index]);
+                if (_pulses.TryGetValue(graph.Nodes[index].Id, out bool before) && before == on) continue;
+                _pulses[graph.Nodes[index].Id] = on;
+                changed = true;
+            }
+        }
+        if (changed) Evaluate();
     }
 
     public void Reset(IEnumerable<int> ids)
@@ -87,6 +134,9 @@ public sealed class Logic(Session session)
                     case WorldObjectType.TimeTrigger when Classic(obj):
                         _timerVersions[id] = _timerVersions.GetValueOrDefault(id) + 1;
                         if (Seconds(obj, "currentTime") != Seconds(obj, "time")) SetData(id, "currentTime", Seconds(obj, "time"));
+                        break;
+                    case WorldObjectType.CountingCube:
+                        _counts[id] = (StartingValue(obj), StartingValue(obj));
                         break;
                     case WorldObjectType.ToggleBox when State(obj):
                         SetData(id, "state", false);
@@ -112,6 +162,14 @@ public sealed class Logic(Session session)
             case WorldObjectType.ToggleBox when rising:
                 if (Once(obj) && State(obj)) return false;
                 SetData(obj.Id, "state", !State(obj));
+                return true;
+
+            case WorldObjectType.CountingCube when rising:
+                int count = Count(obj);
+                int next = count == 0 && Flag(obj, "reset") ? StartingValue(obj) : Math.Max(count - 1, 0);
+                if (next == count) return false;
+                _counts[obj.Id] = (StartingValue(obj), next);
+                Broadcast(CountEvent(obj.Id, next));
                 return true;
 
             case WorldObjectType.RandomBox:
@@ -146,6 +204,16 @@ public sealed class Logic(Session session)
             default:
                 return false;
         }
+    }
+
+    public void ReleaseLater(WorldObject button)
+    {
+        lock (_sync) _timerVersions[button.Id] = _timerVersions.GetValueOrDefault(button.Id) + 1;
+        After(button.Id, Seconds(button, "duration"), id =>
+        {
+            if (session.Triggers.Switch(id, false, false))
+                Broadcast(StayEvent(id, 0, false));
+        });
     }
 
     void OnClassicCounted(int id)
@@ -187,38 +255,88 @@ public sealed class Logic(Session session)
             {
                 if (_timerVersions.GetValueOrDefault(id) != version) return;
                 action(id);
+                _dirty = true;
             }
-            Evaluate();
         });
     }
 
-    Dictionary<int, bool> Propagate(Snapshot world)
+    Graph GraphFor()
     {
+        int version = session.World.LogicVersion;
+        if (_graph?.Version == version) return _graph;
+
+        Snapshot world = session.World.LogicGraph();
         var byId = world.Objects.ToDictionary(obj => obj.Id);
+        var successors = world.Links.GroupBy(link => link.From)
+            .ToDictionary(group => group.Key, group => group.Select(link => link.To).Distinct().ToList());
+        var pending = world.Objects.ToDictionary(obj => obj.Id, obj => 0);
+        foreach (Link link in world.Links.DistinctBy(link => (link.From, link.To))) pending[link.To]++;
+
+        var order = new List<WorldObject>();
+        var ready = new Queue<int>(world.Objects.Where(obj => pending[obj.Id] == 0).Select(obj => obj.Id));
+        while (ready.TryDequeue(out int id))
+        {
+            order.Add(byId[id]);
+            foreach (int next in successors.GetValueOrDefault(id, []))
+                if (--pending[next] == 0) ready.Enqueue(next);
+        }
+        bool cyclic = order.Count < world.Objects.Count;
+        if (cyclic)
+        {
+            var placed = order.Select(obj => obj.Id).ToHashSet();
+            order.AddRange(world.Objects.Where(obj => !placed.Contains(obj.Id)));
+        }
+
+        var position = new Dictionary<int, int>();
+        foreach (WorldObject obj in order) position[obj.Id] = position.Count;
+        var slot = world.Links.GroupBy(link => link.From)
+            .SelectMany(group => group.Select((link, number) => (link.Id, number)))
+            .ToDictionary(entry => entry.Id, entry => entry.number);
         var incoming = world.Links.GroupBy(link => link.To).ToDictionary(group => group.Key, group => group.ToList());
-        var outputIndex = world.Links.GroupBy(link => link.From)
-            .SelectMany(group => group.Select((link, index) => (link.Id, index)))
-            .ToDictionary(entry => entry.Id, entry => entry.index);
+        var outgoing = world.Links.GroupBy(link => link.From).ToDictionary(group => group.Key, group => group.Count());
 
-        var outputs = new Dictionary<int, bool>();
-        var inputs = new Dictionary<int, bool>();
+        WorldObject[] nodes = [.. order];
+        int[] Sources(WorldObject obj) => incoming.TryGetValue(obj.Id, out List<Link>? links) ? [.. links.Select(link => position[link.From])] : [];
+        int[] Slots(WorldObject obj) => incoming.TryGetValue(obj.Id, out List<Link>? links) ? [.. links.Select(link => slot[link.Id])] : [];
+        return _graph = new Graph(
+            version,
+            nodes,
+            position,
+            [.. nodes.Select(Sources)],
+            [.. nodes.Select(Slots)],
+            [.. nodes.Select(obj => outgoing.GetValueOrDefault(obj.Id))],
+            [.. Enumerable.Range(0, nodes.Length).Where(i => Stateful.Contains(nodes[i].Type))],
+            [.. Enumerable.Range(0, nodes.Length).Where(i => nodes[i].Type == WorldObjectType.PulseBox)],
+            cyclic);
+    }
 
-        bool LinkValue(Link link) =>
-            byId.TryGetValue(link.From, out WorldObject? from) && from.Type == WorldObjectType.RandomBox
-                ? outputIndex[link.Id] == CurrentOutput(from)
-                : outputs.GetValueOrDefault(link.From);
+    bool[] Propagate(Graph graph)
+    {
+        WorldObject[] nodes = graph.Nodes;
+        var outputs = new bool[nodes.Length];
+        var inputs = new bool[nodes.Length];
+        int passes = graph.Cyclic ? MaxCyclePasses : 1;
 
-        for (int pass = 0; pass < MaxPasses; pass++)
+        for (int pass = 0; pass < passes; pass++)
         {
             bool changed = false;
-            foreach (WorldObject obj in world.Objects)
+            for (int i = 0; i < nodes.Length; i++)
             {
-                bool hasInputs = incoming.TryGetValue(obj.Id, out List<Link>? links);
-                List<bool> values = hasInputs ? [.. links!.Select(LinkValue)] : [];
-                bool input = obj.Type == WorldObjectType.And
-                    ? values.Count > 0 && values.All(value => value)
-                    : values.Any(value => value);
-                inputs[obj.Id] = input;
+                WorldObject obj = nodes[i];
+                int[] sources = graph.Sources[i];
+                bool hasInputs = sources.Length > 0;
+                bool all = hasInputs, any = false;
+                for (int k = 0; k < sources.Length; k++)
+                {
+                    WorldObject from = nodes[sources[k]];
+                    bool value = from.Type == WorldObjectType.RandomBox
+                        ? graph.Slots[i][k] == CurrentOutput(from)
+                        : outputs[sources[k]];
+                    all &= value;
+                    any |= value;
+                }
+                bool input = obj.Type == WorldObjectType.And ? all : any;
+                inputs[i] = input;
 
                 bool output = obj.Type switch
                 {
@@ -228,12 +346,14 @@ public sealed class Logic(Session session)
                     WorldObjectType.Negate => !input,
                     WorldObjectType.PulseBox => (!hasInputs || input) && PulseOn(obj),
                     WorldObjectType.TimeTrigger => TimerOutput(obj),
+                    WorldObjectType.CountingCube => Count(obj) == 0,
+                    WorldObjectType.ShootableButton or WorldObjectType.UseLever => session.Triggers.IsOn(obj.Id, StartsOn(obj)),
                     _ => input,
                 };
 
-                if (!outputs.TryGetValue(obj.Id, out bool old) || old != output)
+                if (outputs[i] != output)
                 {
-                    outputs[obj.Id] = output;
+                    outputs[i] = output;
                     changed = true;
                 }
             }
@@ -271,11 +391,47 @@ public sealed class Logic(Session session)
         return output;
     }
 
-    static int OutputCount(Snapshot world, int id) => world.Links.Count(link => link.From == id);
-
     static bool Classic(WorldObject obj) => obj.Data.Exists(pair => pair.Key == "currentTime");
 
-    static bool Once(WorldObject obj) => obj.Data.Find(pair => pair.Key == "once").Value as bool? ?? false;
+    static bool Once(WorldObject obj) => Flag(obj, "once");
+
+    static bool Flag(WorldObject obj, string key) => obj.Data.Find(pair => pair.Key == key).Value as bool? ?? false;
+
+    public static bool StartsOn(WorldObject obj) => obj.Type == WorldObjectType.UseLever && Flag(obj, "beginActivated");
+
+    static int StartingValue(WorldObject obj) => obj.Data.Find(pair => pair.Key == "startingValue").Value as int? ?? 0;
+
+    int Count(WorldObject obj)
+    {
+        lock (_sync)
+        {
+            int start = StartingValue(obj);
+            if (_counts.TryGetValue(obj.Id, out var count) && count.Start == start) return count.Value;
+            _counts[obj.Id] = (start, start);
+            return start;
+        }
+    }
+
+    static EventData StayEvent(int id, int actor, bool on) => new((byte)(on ? EventCode.TriggerBoxStayBegin : EventCode.TriggerBoxStayEnd))
+    {
+        Parameters = { [(byte)ParameterKey.WorldObjectID] = id, [(byte)ParameterKey.ActorNr] = actor },
+    };
+
+    static EventData CountEvent(int id, int value) => new((byte)EventCode.CountingCubeUpdate)
+    {
+        Parameters =
+        {
+            [(byte)ParameterKey.WorldObjectID] = id,
+            [(byte)ParameterKey.CountingCubeCurrentValue] = value,
+        },
+    };
+
+    void Broadcast(EventData evt)
+    {
+        foreach (Player player in session.Players)
+            if (player.InWorld)
+                player.Peer.Send(evt);
+    }
 
     static bool State(WorldObject obj) => obj.Data.Find(pair => pair.Key == "state").Value as bool? ?? false;
 
@@ -303,16 +459,13 @@ public sealed class Logic(Session session)
             return;
         }
 
-        var evt = new EventData((byte)EventCode.UpdateWorldObjectDataPartial)
+        Broadcast(new EventData((byte)EventCode.UpdateWorldObjectDataPartial)
         {
             Parameters =
             {
                 [(byte)ParameterKey.WorldObjectID] = id,
                 [(byte)ParameterKey.WorldObjectData] = change,
             },
-        };
-        foreach (Player player in session.Players)
-            if (player.InWorld)
-                player.Peer.Send(evt);
+        });
     }
 }

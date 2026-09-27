@@ -16,6 +16,7 @@ public enum WorldObjectType
     ToggleBox = 20,
     Negate = 21,
     And = 22,
+    TextMsg = 24,
     TimeTrigger = 27,
     CubeModelPrototypeTerrain = 8,
     Group = 9,
@@ -44,6 +45,9 @@ public enum WorldObjectType
     HamsterWheel = 62,
     KillLimit = 63,
     OculusKillLimit = 64,
+    CountingCube = 65,
+    ShootableButton = 165,
+    UseLever = 166,
 }
 
 // From MV.Common.BlueprintType, picked by Data.BlueprintData.ClientSideType.

@@ -7,6 +7,27 @@ namespace OpenKogama.Handlers.Operations;
 
 public sealed class GetNextGameBatch(Session session) : IOperationHandler
 {
+    public static void SendAdded(Session session, int actor, Snapshot added)
+    {
+        byte[]? plain = null, withState = null;
+        foreach (Player player in session.Players)
+        {
+            if (!player.Knows(added)) continue;
+            byte[] data = player.LinkState
+                ? withState ??= WorldSerializer.Write(added, linkState: true)
+                : plain ??= WorldSerializer.Write(added);
+            player.Peer.Send(new EventData((byte)EventCode.GetGameBatch)
+            {
+                Parameters =
+                {
+                    [(byte)ParameterKey.ActorNr] = actor,
+                    [(byte)ParameterKey.Data] = data,
+                    [(byte)ParameterKey.QueryType] = (byte)QueryType.AddToGameWorld,
+                },
+            });
+        }
+    }
+
     readonly HashSet<short> _worldSent = [];
 
     public byte Code => (byte)OperationCode.GetNextGameBatch;
@@ -30,7 +51,7 @@ public sealed class GetNextGameBatch(Session session) : IOperationHandler
             snapshot = LegacyWorld.KnownItems(snapshot, Kogama.Protocols.ProtocolTable.For(me.ClientVersion), out int dropped);
             if (dropped > 0) Console.WriteLine($"peer {peer.Id}: hid {dropped} unsupported or broken objects");
         }
-        byte[] world = WorldSerializer.Write(snapshot);
+        byte[] world = WorldSerializer.Write(snapshot, linkState: me.LinkState);
 
         peer.Send(new EventData((byte)EventCode.GetGameBatch)
         {

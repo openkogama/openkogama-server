@@ -69,12 +69,17 @@ public static class Items
             return false;
         }
 
+        return snapshot.Objects.All(obj => KnownBy(obj, client));
+    }
+
+    public static bool KnownBy(WorldObject obj, ProtocolTable client)
+    {
         ProtocolTable server = ProtocolTable.For(ClientProtocols.ServerVersion);
         ProtocolTable reference = ProtocolTable.For(ReferenceVersion);
-        return snapshot.Objects.All(obj =>
-            Known((int)obj.Type, client.WorldObjectType, server.WorldObjectType, reference.WorldObjectType)
+        return Known((int)obj.Type, client.WorldObjectType, server.WorldObjectType, reference.WorldObjectType)
+            && (client.CreatableObjects is null || client.CreatableObjects.Contains(client.WorldObjectType.First(pair => pair.Value == (int)obj.Type).Key))
             && (obj.Data.Find(pair => pair.Key == "itemType").Value is not int itemType
-                || Known(itemType, client.AvatarItemType, server.AvatarItemType, reference.AvatarItemType)));
+                || Known(itemType, client.AvatarItemType, server.AvatarItemType, reference.AvatarItemType));
     }
 
     static bool Known(int code, Dictionary<string, int> client, Dictionary<string, int> server, Dictionary<string, int> reference)

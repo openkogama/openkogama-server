@@ -38,17 +38,7 @@ public sealed class RegisterWorldObject(Session session) : IOperationHandler
 
         peer.Send(new OperationResponse(request));
 
-        var evt = new EventData((byte)EventCode.GetGameBatch)
-        {
-            Parameters =
-            {
-                [(byte)ParameterKey.ActorNr] = player.Actor,
-                [(byte)ParameterKey.Data] = WorldSerializer.Write(session.World.SubtreeSnapshot(obj.Id)),
-                [(byte)ParameterKey.QueryType] = (byte)QueryType.AddToGameWorld,
-            },
-        };
-        foreach (Player other in session.Players)
-            other.Peer.Send(evt);
+        GetNextGameBatch.SendAdded(session, player.Actor, session.World.SubtreeSnapshot(obj.Id));
 
         Console.WriteLine($"peer {peer.Id}: registered {obj.Type} as {obj.Id}");
     }

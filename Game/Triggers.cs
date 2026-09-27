@@ -3,6 +3,22 @@ namespace OpenKogama.Game;
 public sealed class Triggers
 {
     readonly Dictionary<int, HashSet<int>> _inside = [];
+    readonly Dictionary<int, bool> _switches = [];
+
+    public bool Switch(int objectId, bool on, bool initial)
+    {
+        lock (_inside)
+        {
+            if (_switches.GetValueOrDefault(objectId, initial) == on) return false;
+            _switches[objectId] = on;
+            return true;
+        }
+    }
+
+    public bool IsOn(int objectId, bool initial)
+    {
+        lock (_inside) return _switches.GetValueOrDefault(objectId, initial);
+    }
 
     public bool Enter(int objectId, int actor)
     {

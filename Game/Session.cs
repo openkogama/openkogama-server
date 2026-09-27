@@ -188,13 +188,13 @@ public sealed class Session
     public static int CreateWorld(string name, string? template = null) =>
         Stores.Worlds.Create(name, 0, WorldConverter.Load(Templates.Find(template)?.Path ?? TemplatePath).ToData());
 
-    public static int ImportWorld(string name, byte[] file)
+    public static int ImportWorld(string name, byte[] file, string? client = null)
     {
-        GameWorld world = WorldConverter.Import(file, out Dictionary<int, int> dropped);
+        GameWorld world = WorldConverter.Import(file, client, out Dictionary<int, int> dropped);
         int id = Stores.Worlds.Create(name, 0, world.ToData());
 
         string skipped = string.Join(", ", dropped.Select(pair => $"type {pair.Key} x{pair.Value}"));
-        Console.WriteLine($"world {id} imported: {world.ToSnapshot().Objects.Count} objects" + (skipped.Length > 0 ? $", dropped {skipped}" : ""));
+        Console.WriteLine($"world {id} imported for {client ?? "2015"}: {world.ToSnapshot().Objects.Count} objects" + (skipped.Length > 0 ? $", dropped {skipped}" : ""));
         return id;
     }
 

@@ -82,6 +82,8 @@ public enum OperationCode : byte
     XPRewarded = 81,
     Ban = 82,
     GameCoinBooster = 83,
+    LargeDBQueryInventory = 84,
+    LargeDBQueryAvatarShopInventory = 85,
     Leave = 254,
     Join = 255,
 }

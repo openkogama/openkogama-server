@@ -133,6 +133,7 @@ public enum ParameterKey : byte
     Prices = 183,
     GameCoinBoosterEnabled = 184,
     PublishLevel = 185,
+    CountingCubeCurrentValue = 191,
     Data = 245,
     ActorNr = 254,
 }

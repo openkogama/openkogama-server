@@ -28,6 +28,13 @@ public sealed class TriggerBox(Session session, bool entering) : IOperationHandl
                 session.Logic.Evaluate();
                 break;
 
+            case WorldObjectType.ShootableButton or WorldObjectType.UseLever:
+                if (!session.Triggers.Switch(objectId, entering, Logic.StartsOn(obj))) break;
+                Send(session, objectId, actor, entering);
+                if (entering && obj.Type == WorldObjectType.ShootableButton) session.Logic.ReleaseLater(obj);
+                session.Logic.Evaluate();
+                break;
+
             case WorldObjectType.CollectibleItem:
                 if (entering) session.Round.Collect(player, obj);
                 break;

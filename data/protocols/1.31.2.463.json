@@ -1,5 +1,5 @@
 {
-  "version": "1.25.12.280",
+  "version": "1.31.2.463",
   "operationCodes": {
     "SetActorReady": 0,
     "DBQuery": 1,
@@ -85,6 +85,8 @@
     "XPRewarded": 81,
     "Ban": 82,
     "GameCoinBooster": 83,
+    "LargeDBQueryInventory": 84,
+    "LargeDBQueryAvatarShopInventory": 85,
     "Leave": 254,
     "RaiseEvent": 253,
     "SetProperties": 252,
@@ -156,6 +158,7 @@
     "LevelChanged": 60,
     "XPRewarded": 61,
     "GameBoostEvent": 62,
+    "CountingCubeUpdateEvent": 63,
     "Leave": 254,
     "PropertiesChanged": 253,
     "Join": 255
@@ -349,6 +352,10 @@
     "PublishLevel": 185,
     "Price": 186,
     "AssetBundleRootUrlWebGL": 187,
+    "ClientSentryTags": 188,
+    "ClientBuildTarget": 189,
+    "ItemInventoryOffset": 190,
+    "CountingCubeCurrentValue": 191,
     "ActorNr": 254,
     "TargetActorNr": 253,
     "Actors": 252,
@@ -458,7 +465,9 @@
     "RewardPlanetOwner": 92,
     "TestQuery": 93,
     "RequestGameTypeID": 94,
-    "RequestProtoPlanetID": 95
+    "RequestProtoPlanetID": 95,
+    "RequestDefaultInventory": 96,
+    "CreateDefaultItemInventory": 97
   },
   "dBQueryKeys": {
     "ProfileID": 0,
@@ -599,7 +608,9 @@
     "Prices": 135,
     "GameCoinBoost": 136,
     "GameCoinBoostDelta": 137,
-    "GameCoinBoostDeltas": 138
+    "GameCoinBoostDeltas": 138,
+    "CategorySlotCount": 139,
+    "CategorySlotOffset": 140
   },
   "worldObjectType": {
     "Avatar": 0,
@@ -667,6 +678,7 @@
     "HamsterWheel": 62,
     "KillLimit": 63,
     "OculusKillLimit": 64,
+    "CountingCube": 65,
     "Jakob4": 118,
     "Jakob5": 119,
     "Jakob6": 120,
@@ -708,7 +720,27 @@
     "Caspar12": 156,
     "Caspar13": 157,
     "Caspar14": 158,
-    "Caspar15": 159
+    "Caspar15": 159,
+    "ShrinkGun": 160,
+    "Thomas2": 161,
+    "Thomas3": 162,
+    "Thomas4": 163,
+    "Thomas5": 164,
+    "ShootableButton": 165,
+    "UseLever": 166,
+    "Thomas8": 167,
+    "Thomas9": 168,
+    "Thomas10": 169,
+    "WindTurbine": 170,
+    "Mathias2": 171,
+    "Mathias3": 172,
+    "Mathias4": 173,
+    "Mathias5": 174,
+    "Mathias6": 175,
+    "Mathias7": 176,
+    "Mathias8": 177,
+    "Mathias9": 178,
+    "Mathias10": 179
   },
   "avatarItemType": {
     "LaserPointer": 0,
@@ -770,7 +802,17 @@
     "Caspar12": 56,
     "Caspar13": 57,
     "Caspar14": 58,
-    "Caspar15": 59
+    "Caspar15": 59,
+    "MouseGun": 60,
+    "Thomas3": 61,
+    "GrowthGun": 62,
+    "MousePack": 63,
+    "GrowthPack": 64,
+    "SlapGun": 65,
+    "Thomas8": 66,
+    "Thomas9": 67,
+    "Thomas10": 68,
+    "Thomas11": 69
   },
   "creatableObjects": [
     "AdvancedGhost",
@@ -781,6 +823,7 @@
     "CameraSettings",
     "CheckPoint",
     "CollectibleItem",
+    "CountingCube",
     "CubeModel",
     "CubeModelPrototypeTerrain",
     "CubeModelTerrainFineGrained",
@@ -799,7 +842,6 @@
     "KillLimit",
     "LightPreset",
     "ModelToggle",
-    "MonoPlane",
     "MovingPlatformNode",
     "Negate",
     "OculusKillLimit",
@@ -811,6 +853,7 @@
     "RandomBox",
     "RoundCube",
     "SentryGun",
+    "ShootableButton",
     "Skybox",
     "Smoke",
     "SoundEmitter",
@@ -825,8 +868,10 @@
     "TimeTrigger",
     "ToggleBox",
     "TriggerBox",
+    "UseLever",
     "WaterPlane",
     "WaterPlanePreset",
+    "WindTurbine",
     "WorldObjectSpawnerVehicle"
   ]
 }

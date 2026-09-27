@@ -24,6 +24,7 @@ public sealed class Join(Session session) : IOperationHandler
                 [(byte)ParameterKey.PlanetOwnershipType] = (int)session.OwnershipOf(player),
                 [(byte)ParameterKey.IsGamePublished] = session.Published,
                 [(byte)ParameterKey.GameType] = (int)GameType.Classic,
+                [(byte)ParameterKey.TeamID] = (int)player.Team,
                 [(byte)ParameterKey.ClientSettingFlags] = 0,
                 [(byte)ParameterKey.Prices] = PhotonDictionary.Untyped(),
                 [(byte)ParameterKey.GameCoinBoosterLeft] = 0,

@@ -20,6 +20,8 @@ public sealed class OperationRouter
         Register(new RequestMaterials(session));
         Register(new DBQuery());
         Register(new LargeDBQuery());
+        Register(new LargeDBQuery(Kogama.OperationCode.LargeDBQueryInventory));
+        Register(new LargeDBQuery(Kogama.OperationCode.LargeDBQueryAvatarShopInventory));
         Register(new GetNextResultSet(session));
         Register(new RequestStreamingAssetList());
         Register(new RequestStreamingAssetInventory());

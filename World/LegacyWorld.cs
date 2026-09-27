@@ -9,9 +9,8 @@ public static class LegacyWorld
 
     public static Snapshot KnownItems(Snapshot snapshot, ProtocolTable client, out int dropped)
     {
-        var known = client.AvatarItemType.Values.ToHashSet();
         var removed = WithBrokenBlueprints(snapshot.Objects, snapshot.Objects
-            .Where(obj => obj.Data.Find(pair => pair.Key == "itemType").Value is int item && !known.Contains(item))
+            .Where(obj => !Game.Items.KnownBy(obj, client))
             .Select(obj => obj.Id)
             .ToHashSet());
         dropped = removed.Count;

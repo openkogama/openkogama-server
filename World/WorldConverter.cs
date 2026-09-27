@@ -1,20 +1,31 @@
+using OpenKogama.Kogama.Protocols;
+
 namespace OpenKogama.World;
 
 public static class WorldConverter
 {
     static readonly HashSet<int> Supported2015 = [.. Enumerable.Range(1, 64), 145, 146, 148, 149];
 
-    public static GameWorld Load(string path) => Convert(keep => GameWorld.Load(path, keep), out _);
+    public static GameWorld Load(string path) => Convert(keep => GameWorld.Load(path, keep), Is2015, out _);
 
-    public static GameWorld Import(byte[] file, out Dictionary<int, int> dropped) =>
-        Convert(keep => GameWorld.Read(file, keep), out dropped);
+    public static GameWorld Import(byte[] file, string? client, out Dictionary<int, int> dropped)
+    {
+        ProtocolTable? table = ClientProtocols.Native(client) is string version ? ProtocolTable.For(version) : null;
+        Func<WorldObject, bool> supported = table?.CreatableObjects is null ? Is2015 : obj => obj.Type != WorldObjectType.Avatar && Game.Items.KnownBy(obj, table);
+        GameWorld world = Convert(keep => GameWorld.Read(file, keep), supported, out dropped);
+        foreach (WorldObject obj in world.ToSnapshot().Objects.Where(obj => obj.Type == WorldObjectType.TextMsg))
+            world.Modify(obj.Id, text => TextEras.ForClient(text, client));
+        return world;
+    }
 
-    static GameWorld Convert(Func<Func<WorldObject, bool>, GameWorld> read, out Dictionary<int, int> dropped)
+    static bool Is2015(WorldObject obj) => Supported2015.Contains((int)obj.Type);
+
+    static GameWorld Convert(Func<Func<WorldObject, bool>, GameWorld> read, Func<WorldObject, bool> supported, out Dictionary<int, int> dropped)
     {
         var skipped = new Dictionary<int, int>();
         GameWorld world = read(obj =>
         {
-            if (Supported2015.Contains((int)obj.Type)) return true;
+            if (supported(obj)) return true;
             skipped[(int)obj.Type] = skipped.GetValueOrDefault((int)obj.Type) + 1;
             return false;
         });

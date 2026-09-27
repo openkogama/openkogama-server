@@ -119,7 +119,7 @@ public sealed class HttpServer
             using var body = new MemoryStream();
             request.InputStream.CopyTo(body);
             string name = request.QueryString["name"] is { Length: > 0 } given ? given : "Imported World";
-            Json(response, JsonSerializer.Serialize(new { id = Session.ImportWorld(name, body.ToArray()) }));
+            Json(response, JsonSerializer.Serialize(new { id = Session.ImportWorld(name, body.ToArray(), request.QueryString["client"]) }));
             return;
         }
 

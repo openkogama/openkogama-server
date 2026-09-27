@@ -39,8 +39,10 @@ public sealed class CloneWorldObjectTree(Session session) : IOperationHandler
                 [(byte)ParameterKey.PreviewProfileOwnerID] = asPreview ? session.For(peer)?.ProfileId ?? 0 : 0,
             },
         };
+        Snapshot cloned = session.World.SubtreeSnapshot(clone.Id);
         foreach (Player player in session.Players)
-            player.Peer.Send(evt);
+            if (player.Knows(cloned))
+                player.Peer.Send(evt);
 
         peer.Send(new OperationResponse(request)
         {

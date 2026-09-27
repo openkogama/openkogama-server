@@ -15,4 +15,15 @@ public sealed class Player(PhotonPeer peer, int actor, int avatarId)
     public int Level { get; set; } = 1;
     public string Username => $"Player{actor}";
     public string Region => "en_US";
+
+    public bool LinkState => peer.Translator is null && Version.TryParse(ClientVersion, out Version? version) && version >= LinkStateVersion;
+
+    static readonly Version LinkStateVersion = new(1, 30);
+
+    public bool Knows(World.Snapshot snapshot)
+    {
+        if (peer.Translator is not null) return true;
+        var table = Kogama.Protocols.ProtocolTable.For(ClientVersion);
+        return snapshot.Objects.All(obj => Items.KnownBy(obj, table));
+    }
 }

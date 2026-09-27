@@ -51,6 +51,7 @@ public enum EventCode : byte
     LevelChanged = 60,
     XPRewarded = 61,
     GameBoost = 62,
+    CountingCubeUpdate = 63,
     Leave = 254,
     Join = 255,
 }
