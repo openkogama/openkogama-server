@@ -12,6 +12,8 @@ public static class LegacyOperations
         new SendChatMsg(),
     }.ToDictionary(handler => handler.Operation);
 
+    public static bool Handles(string name) => Handlers.ContainsKey(name);
+
     public static bool Handle(PhotonPeer peer, OperationRequest request, LegacyTranslator protocol, Session session)
     {
         string name = protocol.ClientOperation(request.OperationCode);

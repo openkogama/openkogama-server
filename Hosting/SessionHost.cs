@@ -33,6 +33,23 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
             Console.WriteLine($"peer {peer.Id}: client {detected.Version}");
         }
 
+        if (peer.Translator is null && request.OperationCode == (byte)OperationCode.Join && ClientProtocols.Remap(request) is { } remap)
+        {
+            remap.Peer = peer;
+            peer.Translator = remap;
+            Console.WriteLine($"peer {peer.Id}: client {remap.Version} with renumbered operations");
+        }
+
+        if (peer.Translator is OperationRemap remapped)
+        {
+            if (remapped.Incoming(request) is not { } mapped)
+            {
+                Console.WriteLine($"peer {peer.Id}: client op {remapped.ClientOperation(request.OperationCode)} has no server operation");
+                return;
+            }
+            request = mapped;
+        }
+
         if (peer.Translator is LegacyTranslator legacy)
         {
             if (legacy.Incoming(request) is not { } translated)

@@ -92,7 +92,7 @@ public sealed class PurchaseProduct(Session session) : IOperationHandler
             Parameters =
             {
                 [(byte)ParameterKey.ActorNr] = player.Actor,
-                [(byte)ParameterKey.Data] = WorldSerializer.Write(session.World.SubtreeSnapshot(bodyId)),
+                [(byte)ParameterKey.Data] = player.WorldData(session.World.SubtreeSnapshot(bodyId)),
                 [(byte)ParameterKey.QueryType] = (byte)QueryType.AddToGameWorld,
             },
         });

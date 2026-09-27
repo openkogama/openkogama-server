@@ -19,6 +19,8 @@ public sealed class OperationRouter
         Register(new GetDBTimeTicks());
         Register(new RequestMaterials(session));
         Register(new DBQuery());
+        Register(new DBQuery(Kogama.OperationCode.GetItemCategories, Kogama.DBQueryType.RequestItemCategories));
+        Register(new DBQuery(Kogama.OperationCode.GetPlanetOwnershipTypes, Kogama.DBQueryType.RequestPlanetOwnershipTypes));
         Register(new LargeDBQuery());
         Register(new LargeDBQuery(Kogama.OperationCode.LargeDBQueryInventory));
         Register(new LargeDBQuery(Kogama.OperationCode.LargeDBQueryAvatarShopInventory));
@@ -36,7 +38,9 @@ public sealed class OperationRouter
         Register(new SetActiveAvatar(session));
         Register(new ResetAvatar(session));
         Register(new CreateGameSnapshot(session));
-        Register(new GetNextGameBatch(session));
+        var batch = new GetNextGameBatch(session);
+        Register(batch);
+        Register(new Syncronize(session, this, batch));
         Register(new RequestFriends(session));
         Register(new RequestFriendship(session, byName: true));
         Register(new RequestFriendship(session, byName: false));
@@ -97,6 +101,8 @@ public sealed class OperationRouter
         Register(new UpdateLineOfFire(session));
         Register(new PostGameMsg(session));
     }
+
+    public IEnumerable<byte> Codes => _handlers.Keys;
 
     void Register(IOperationHandler handler) => _handlers[handler.Code] = handler;
 

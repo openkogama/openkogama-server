@@ -4,13 +4,13 @@ using OpenKogama.Photon;
 
 namespace OpenKogama.Handlers.Operations;
 
-public sealed class DBQuery : IOperationHandler
+public sealed class DBQuery(OperationCode code = OperationCode.DBQuery, DBQueryType? query = null) : IOperationHandler
 {
-    public byte Code => (byte)OperationCode.DBQuery;
+    public byte Code => (byte)code;
 
     public void Handle(PhotonPeer peer, OperationRequest request)
     {
-        var type = (DBQueryType)Convert.ToByte(request[(byte)ParameterKey.DBQuery]);
+        var type = query ?? (DBQueryType)Convert.ToByte(request[(byte)ParameterKey.DBQuery]);
         PhotonDictionary outData = PhotonDictionary.Untyped();
 
         switch (type)

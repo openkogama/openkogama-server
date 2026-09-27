@@ -84,6 +84,12 @@ public enum OperationCode : byte
     GameCoinBooster = 83,
     LargeDBQueryInventory = 84,
     LargeDBQueryAvatarShopInventory = 85,
+    Syncronize = 86,
+    GetItemCategories = 87,
+    GetPlanetOwnershipTypes = 88,
+    GameSnapshotData = 89,
+    GetItemInventory = 90,
+    GetItemShopInventory = 91,
     Leave = 254,
     Join = 255,
 }

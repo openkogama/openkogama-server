@@ -59,6 +59,7 @@ string SessionJson(int profile, GameMode mode, int world, string? client) => Jso
 StreamingAssetCatalog streaming = StreamingAssets.For("2015");
 var assets = new AssetCache(streaming.Root);
 var legacyAssets = new AssetCache(StreamingAssets.For("3.x").Root, "cache/streaming-3x");
+var assetSets = BundleSets.Roots.ToDictionary(set => set.Key, set => new AssetCache(set.Value, $"cache/streaming-{set.Key}"));
 _ = Task.Run(() => assets.PrefetchAsync(streaming.Assets.Select(asset => asset.Path)));
 
 foreach (int port in new[] { 843, 844, 845 })
@@ -68,6 +69,6 @@ Console.WriteLine("policy 843-845");
 _ = new NullProxy(8081).RunAsync();
 Console.WriteLine("proxy 8081");
 
-var web = new HttpServer("http://127.0.0.1:8080/") { SessionJson = SessionJson, Assets = assets, LegacyAssets = legacyAssets, DeleteWorld = host.DeleteWorld };
+var web = new HttpServer("http://127.0.0.1:8080/") { SessionJson = SessionJson, Assets = assets, LegacyAssets = legacyAssets, AssetSets = assetSets, DeleteWorld = host.DeleteWorld };
 Console.WriteLine("http 8080");
 web.Run();

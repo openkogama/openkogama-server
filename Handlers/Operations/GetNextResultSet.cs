@@ -32,7 +32,7 @@ public sealed class GetNextResultSet(Session session) : IOperationHandler
         });
     }
 
-    static PhotonDictionary ItemShopInventory()
+    public static PhotonDictionary ItemShopInventory()
     {
         PhotonDictionary shop = PhotonDictionary.Untyped();
         foreach ((Listing listing, int index) in Stores.Market.List(ListingKind.Item).Select((listing, index) => (listing, index)))
@@ -52,7 +52,7 @@ public sealed class GetNextResultSet(Session session) : IOperationHandler
         return shop;
     }
 
-    static PhotonDictionary AvatarShopInventory()
+    public static PhotonDictionary AvatarShopInventory()
     {
         PhotonDictionary shop = PhotonDictionary.Untyped();
         foreach (ShopAvatar avatar in AvatarShop.Avatars)
@@ -67,7 +67,7 @@ public sealed class GetNextResultSet(Session session) : IOperationHandler
         return shop;
     }
 
-    static PhotonDictionary Inventory(int profileId, string version)
+    public static PhotonDictionary Inventory(int profileId, string version)
     {
         PhotonDictionary inventory = PhotonDictionary.Untyped();
 

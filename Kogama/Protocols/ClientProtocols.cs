@@ -8,7 +8,11 @@ public static class ClientProtocols
     const byte GameId = 255;
     static readonly string[] Legacy = ["1.9.0.1", "1.8.15.2", "1.8.8.4"];
 
+    public static string? Hint(OperationRequest join) => join[GameId] as string;
+
     public static string NativeVersion(OperationRequest join) => Native(join[GameId] as string) ?? ServerVersion;
+
+    public static OperationRemap? Remap(OperationRequest join) => Native(join[GameId] as string) is string version ? OperationRemap.For(version) : null;
 
     public static string? Native(string? hint) =>
         hint is not null && ProtocolTable.Resolve(hint) is string table && !ProtocolTable.IsLegacy(table) ? table : null;

@@ -26,7 +26,7 @@ public sealed class ResetAvatar(Session session) : IOperationHandler
             Parameters =
             {
                 [(byte)ParameterKey.ActorNr] = player.Actor,
-                [(byte)ParameterKey.Data] = WorldSerializer.Write(body),
+                [(byte)ParameterKey.Data] = player.WorldData(body),
                 [(byte)ParameterKey.QueryType] = (byte)QueryType.AddToGameWorld,
             },
         });

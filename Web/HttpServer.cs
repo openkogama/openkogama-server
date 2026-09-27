@@ -16,6 +16,7 @@ public sealed class HttpServer
     public Func<int, GameMode, int, string?, string> SessionJson { get; set; } = (_, _, _, _) => "{}";
     public AssetCache? Assets { get; set; }
     public AssetCache? LegacyAssets { get; set; }
+    public Dictionary<string, AssetCache> AssetSets { get; init; } = [];
     public Func<int, bool> DeleteWorld { get; set; } = _ => false;
 
     public HttpServer(string prefix) => _listener.Prefixes.Add(prefix);
@@ -137,8 +138,7 @@ public sealed class HttpServer
             return;
         }
 
-        if ((path.StartsWith("/bundles/") ? Assets?.Get(Uri.UnescapeDataString(path["/bundles/".Length..]))
-            : path.StartsWith("/bundles-3x/") ? LegacyAssets?.Get(Uri.UnescapeDataString(path["/bundles-3x/".Length..])) : null) is byte[] asset)
+        if (Bundle(path) is byte[] asset)
         {
             response.ContentType = "application/octet-stream";
             response.ContentLength64 = asset.Length;
@@ -227,5 +227,17 @@ public sealed class HttpServer
         response.ContentLength64 = bytes.Length;
         response.OutputStream.Write(bytes);
         response.Close();
+    }
+
+    byte[]? Bundle(string path)
+    {
+        if (path.StartsWith("/bundles/")) return Assets?.Get(Uri.UnescapeDataString(path["/bundles/".Length..]));
+        if (!path.StartsWith("/bundles-")) return null;
+
+        int slash = path.IndexOf('/', "/bundles-".Length);
+        if (slash < 0) return null;
+        string set = path["/bundles-".Length..slash];
+        string file = Uri.UnescapeDataString(path[(slash + 1)..]);
+        return set == "3x" ? LegacyAssets?.Get(file) : AssetSets.TryGetValue(set, out AssetCache? cache) ? cache.Get(file) : null;
     }
 }

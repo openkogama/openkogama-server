@@ -11,7 +11,12 @@ public sealed class Join(Session session) : IOperationHandler
     public void Handle(PhotonPeer peer, OperationRequest request)
     {
         Player player = session.For(peer) ?? session.Add(peer);
-        if (peer.Translator is null) player.ClientVersion = Kogama.Protocols.ClientProtocols.NativeVersion(request);
+        if (peer.Translator is not Kogama.Protocols.LegacyTranslator)
+        {
+            player.ClientVersion = Kogama.Protocols.ClientProtocols.NativeVersion(request);
+            player.Build = Kogama.Protocols.ClientProtocols.Hint(request) ?? player.ClientVersion;
+        }
+        if (request[(byte)ParameterKey.GameMode] is { } mode) player.Mode = (GameMode)Convert.ToInt32(mode);
         if (int.TryParse(request[(byte)ParameterKey.Token] as string, out int profile) && profile > 0)
             player.ProfileId = profile;
 
@@ -32,7 +37,7 @@ public sealed class Join(Session session) : IOperationHandler
                 [(byte)ParameterKey.PublishLevel] = 0,
                 [(byte)ParameterKey.Format] = SecurityHelper.Encrypt("openkogama"),
                 [(byte)ParameterKey.APIUrl] = "http://127.0.0.1:8080/api/",
-                [(byte)ParameterKey.AssetBundleRootUrl] = "http://127.0.0.1:8080/bundles/",
+                [(byte)ParameterKey.AssetBundleRootUrl] = peer.Translator is Kogama.Protocols.LegacyTranslator ? "http://127.0.0.1:8080/bundles/" : BundleSets.Url(player.Build),
                 [(byte)ParameterKey.LevelingSilentMode] = false,
             },
         };

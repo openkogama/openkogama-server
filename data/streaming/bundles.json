@@ -1,0 +1,14 @@
+{
+  "sets": {
+    "v2": "https://cdn.openkogama.org/eu/kogama_assets/v2/kogama_assets_u5/",
+    "v3": "https://cdn.openkogama.org/eu/kogama_assets/v3/kogama_assets_u5/"
+  },
+  "ranges": [
+    { "from": "1.25.13.290", "set": "v2" },
+    { "from": "1.32.8.541", "set": "v3" }
+  ],
+  "builds": {
+    "1.32.7.526": "v3",
+    "1.32.8.537": "v3"
+  }
+}

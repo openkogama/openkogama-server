@@ -9,13 +9,13 @@ public sealed class GetNextGameBatch(Session session) : IOperationHandler
 {
     public static void SendAdded(Session session, int actor, Snapshot added)
     {
-        byte[]? plain = null, withState = null;
+        var formats = new Dictionary<(bool, bool), byte[]>();
         foreach (Player player in session.Players)
         {
             if (!player.Knows(added)) continue;
-            byte[] data = player.LinkState
-                ? withState ??= WorldSerializer.Write(added, linkState: true)
-                : plain ??= WorldSerializer.Write(added);
+            (bool, bool) format = (player.LinkState, player.ObjectLinkState);
+            if (!formats.TryGetValue(format, out byte[]? data))
+                formats[format] = data = player.WorldData(added);
             player.Peer.Send(new EventData((byte)EventCode.GetGameBatch)
             {
                 Parameters =
@@ -38,39 +38,46 @@ public sealed class GetNextGameBatch(Session session) : IOperationHandler
 
         peer.Send(new OperationResponse(request));
 
+        SendWorld(peer, world =>
+        {
+            peer.Send(new EventData((byte)EventCode.GetGameBatch)
+            {
+                Parameters =
+                {
+                    [(byte)ParameterKey.ActorNr] = session.For(peer)!.Actor,
+                    [(byte)ParameterKey.Data] = world,
+                    [(byte)ParameterKey.QueryType] = (byte)QueryType.GameWorld,
+                    [(byte)ParameterKey.QueryId] = queryId,
+                    [(byte)ParameterKey.QueryDataLeft] = false,
+                },
+            });
+
+            peer.Send(new EventData((byte)EventCode.GameQueryReady)
+            {
+                Parameters = { [(byte)ParameterKey.QueryId] = queryId },
+            });
+        });
+    }
+
+    public void SendWorld(PhotonPeer peer, Action<byte[]> deliver)
+    {
         if (!_worldSent.Add(peer.Id)) return;
 
         Player? me = session.For(peer);
         if (me is null) return;
 
         me.InWorld = true;
-        if (peer.Translator is null) Console.WriteLine($"peer {peer.Id}: client {me.ClientVersion}");
+        bool native = peer.Translator is not Kogama.Protocols.LegacyTranslator;
+        if (native) Console.WriteLine($"peer {peer.Id}: client {me.ClientVersion}");
         Snapshot snapshot = session.World.ToSnapshot();
-        if (peer.Translator is null)
+        if (native)
         {
             snapshot = LegacyWorld.KnownItems(snapshot, Kogama.Protocols.ProtocolTable.For(me.ClientVersion), out int dropped);
             if (dropped > 0) Console.WriteLine($"peer {peer.Id}: hid {dropped} unsupported or broken objects");
         }
-        byte[] world = WorldSerializer.Write(snapshot, linkState: me.LinkState);
+        deliver(me.WorldData(snapshot));
 
-        peer.Send(new EventData((byte)EventCode.GetGameBatch)
-        {
-            Parameters =
-            {
-                [(byte)ParameterKey.ActorNr] = me.Actor,
-                [(byte)ParameterKey.Data] = world,
-                [(byte)ParameterKey.QueryType] = (byte)QueryType.GameWorld,
-                [(byte)ParameterKey.QueryId] = queryId,
-                [(byte)ParameterKey.QueryDataLeft] = false,
-            },
-        });
-
-        peer.Send(new EventData((byte)EventCode.GameQueryReady)
-        {
-            Parameters = { [(byte)ParameterKey.QueryId] = queryId },
-        });
-
-        byte[] addition = WorldSerializer.Write(session.World.SubtreeSnapshot(me.AvatarId));
+        Snapshot avatar = session.World.SubtreeSnapshot(me.AvatarId);
 
         foreach (Player other in session.Players)
         {
@@ -92,7 +99,7 @@ public sealed class GetNextGameBatch(Session session) : IOperationHandler
                 Parameters =
                 {
                     [(byte)ParameterKey.ActorNr] = me.Actor,
-                    [(byte)ParameterKey.Data] = addition,
+                    [(byte)ParameterKey.Data] = other.WorldData(avatar),
                     [(byte)ParameterKey.QueryType] = (byte)QueryType.AddToGameWorld,
                 },
             });
