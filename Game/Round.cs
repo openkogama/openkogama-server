@@ -170,15 +170,25 @@ public sealed class Round(Session session)
         }
 
         StateChanged?.Invoke(actor);
-        Broadcast(EventCode.GameStateChange, new()
+        foreach (Player player in session.Players)
         {
-            [(byte)ParameterKey.ActorNr] = actor,
-            [(byte)ParameterKey.GameStateType] = (int)State,
-            [(byte)ParameterKey.GameStateReason] = (int)Reason,
-            [(byte)ParameterKey.GameStateStartTime] = StartTime,
-            [(byte)ParameterKey.GameStateDuration] = Duration,
-        });
+            if (player.Peer.Protocol == PhotonProtocol.Protocol15 || (state == GameStateType.PrepareRound && player.ShortRoundStates)) continue;
+            player.Peer.Send(new EventData((byte)EventCode.GameStateChange)
+            {
+                Parameters =
+                {
+                    [(byte)ParameterKey.ActorNr] = actor,
+                    [(byte)ParameterKey.GameStateType] = (int)state,
+                    [(byte)ParameterKey.GameStateReason] = (int)reason,
+                    [(byte)ParameterKey.GameStateStartTime] = StartTime,
+                    [(byte)ParameterKey.GameStateDuration] = DurationFor(player),
+                },
+            });
+        }
     }
+
+    public int DurationFor(Player player) =>
+        State == GameStateType.RoundEnded && player.ShortRoundStates ? Duration + PrepareMs : Duration;
 
     void After(int milliseconds, int version, Action action) =>
         _ = Task.Delay(milliseconds).ContinueWith(_ =>

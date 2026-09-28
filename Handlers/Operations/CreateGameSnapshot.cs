@@ -39,7 +39,7 @@ public sealed class CreateGameSnapshot(Session session) : IOperationHandler
                 [(byte)ParameterKey.QueryId] = 1,
                 [(byte)ParameterKey.GameStateType] = (int)session.Round.State,
                 [(byte)ParameterKey.GameStateStartTime] = session.Round.StartTime,
-                [(byte)ParameterKey.GameStateDuration] = session.Round.Duration,
+                [(byte)ParameterKey.GameStateDuration] = me is null ? session.Round.Duration : session.Round.DurationFor(me),
                 [(byte)ParameterKey.GameStateReason] = (int)session.Round.Reason,
                 [(byte)ParameterKey.FineGrainedTerrainPrototypeID] =
                     session.World.FindFirst(WorldObjectType.CubeModelTerrainFineGrained)?.PrototypeId ?? -1,

@@ -8,7 +8,9 @@ public sealed class OperationRemap(ProtocolTable client) : IMessageTranslator
     static readonly Dictionary<string, int> Server = ServerCodes<OperationCode>(ServerTable.OperationCodes);
     static readonly Dictionary<string, int> ServerEvents = ServerCodes<EventCode>(ServerTable.EventCodes);
     static readonly Dictionary<string, int> ServerKeys = ServerCodes<ParameterKey>(ServerTable.ParameterKeys);
-    static readonly Dictionary<string, string> Synonyms = new() { ["UploadPlanetTextureData"] = "PlanetTextureData" };
+    static readonly Dictionary<string, int> ServerQueries = ServerCodes<DBQueryType>(ServerTable.DBQuery);
+    static readonly Dictionary<string, string> Synonyms = new() { ["UploadPlanetTextureData"] = "PlanetTextureData", ["Message"] = "GameMsgData" };
+    static readonly byte QueryKey = (byte)ParameterKey.DBQuery;
     static readonly HashSet<byte> NestedIn = [(byte)ParameterKey.PurchaseProductData];
     static readonly HashSet<byte> NestedOut = [(byte)ParameterKey.UserList];
     static readonly byte GameState = (byte)ParameterKey.GameStateType;
@@ -19,10 +21,14 @@ public sealed class OperationRemap(ProtocolTable client) : IMessageTranslator
     readonly CodeMap _events = new(ServerEvents, client.EventCodes);
     readonly CodeMap? _keysIn = Renumbered(Named(client.ParameterKeys), ServerKeys) ? new(Named(client.ParameterKeys), ServerKeys) : null;
     readonly CodeMap? _keysOut = Renumbered(Named(client.ParameterKeys), ServerKeys) ? new(ServerKeys, Named(client.ParameterKeys)) : null;
+    readonly CodeMap? _queries = Renumbered(client.DBQuery, ServerQueries) ? new(client.DBQuery, ServerQueries) : null;
+    readonly HashSet<string> _keyNames = [.. Named(client.ParameterKeys).Keys];
     readonly HashSet<EventData> _pushed = [];
     readonly bool _shortStates = System.Version.TryParse(client.Version, out System.Version? version) && version >= ShortStatesVersion;
 
     public string Version => client.Version;
+
+    public bool ShortStates => _shortStates;
 
     public PhotonPeer? Peer { get; set; }
 
@@ -32,7 +38,7 @@ public sealed class OperationRemap(ProtocolTable client) : IMessageTranslator
     {
         ProtocolTable table = ProtocolTable.For(version);
         bool renumbered = Renumbered(table.OperationCodes, Server) || Renumbered(table.EventCodes, ServerEvents)
-            || Renumbered(Named(table.ParameterKeys), ServerKeys);
+            || Renumbered(Named(table.ParameterKeys), ServerKeys) || Renumbered(table.DBQuery, ServerQueries);
         return renumbered ? new OperationRemap(table) : null;
     }
 
@@ -40,10 +46,19 @@ public sealed class OperationRemap(ProtocolTable client) : IMessageTranslator
 
     public bool Knows(EventCode code) => _events.Map((int)code) is not null;
 
+    public bool Knows(ParameterKey key) => _keyNames.Contains(key.ToString());
+
     public OperationRequest? Incoming(OperationRequest request) =>
         _in.Map(request.OperationCode) is int code
-            ? new OperationRequest { OperationCode = (byte)code, Parameters = Keys(request.Parameters, _keysIn, outgoing: false) }
+            ? new OperationRequest { OperationCode = (byte)code, Parameters = Queries(Keys(request.Parameters, _keysIn, outgoing: false)) }
             : null;
+
+    Dictionary<byte, object?> Queries(Dictionary<byte, object?> parameters)
+    {
+        if (_queries is null || parameters.GetValueOrDefault(QueryKey) is not { } value) return parameters;
+        int query = _queries.Map(Convert.ToInt32(value)) ?? byte.MaxValue;
+        return new Dictionary<byte, object?>(parameters) { [QueryKey] = value is byte ? (byte)query : query };
+    }
 
     public OperationResponse? Outgoing(OperationResponse response)
     {

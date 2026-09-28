@@ -2,9 +2,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\openkogama-photon\openkogama-photon.csproj" />
+    <ProjectReference Include="api\openkogama-api.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="api\**;examples\**" />
+    <None Remove="api\**;examples\**" />
     <Content Include="data\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

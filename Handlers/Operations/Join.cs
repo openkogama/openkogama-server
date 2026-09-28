@@ -7,6 +7,8 @@ namespace OpenKogama.Handlers.Operations;
 public sealed class Join(Session session) : IOperationHandler
 {
     const int SpinEnabled = 0x20;
+    const byte Www = 4;
+    const string NoBannedTools = """{"ApplicationDescs":[],"applicationDescFactoryBase":{"ApplicationDescs":[]}}""";
 
     public byte Code => (byte)OperationCode.Join;
 
@@ -16,7 +18,7 @@ public sealed class Join(Session session) : IOperationHandler
         if (peer.Translator is not Kogama.Protocols.LegacyTranslator)
         {
             player.ClientVersion = peer.Translator is Kogama.Protocols.OperationRemap remap ? remap.Version : Kogama.Protocols.ClientProtocols.NativeVersion(request);
-            player.Build = Kogama.Protocols.ClientProtocols.Hint(request) ?? player.ClientVersion;
+            player.Build = Kogama.Protocols.ClientProtocols.Hint(request) ?? request[(byte)ParameterKey.Version] as string ?? player.ClientVersion;
         }
         if (request[(byte)ParameterKey.GameMode] is { } mode) player.Mode = (GameMode)Convert.ToInt32(mode);
         if (request[(byte)ParameterKey.ClientBuildTarget] is byte target) player.BuildTarget = target;
@@ -46,6 +48,10 @@ public sealed class Join(Session session) : IOperationHandler
                 [(byte)ParameterKey.AssetBundleRootUrl] = peer.Translator is Kogama.Protocols.LegacyTranslator ? "http://127.0.0.1:8080/bundles/" : BundleSets.Url(player.Build),
                 [(byte)ParameterKey.LevelingSilentMode] = false,
                 [(byte)ParameterKey.SentryUrl] = "http://openkogama:openkogama@127.0.0.1:8080/sentry/1",
+                [(byte)ParameterKey.AntiCheatData] = NoBannedTools,
+                [(byte)ParameterKey.IsAdmin] = false,
+                [(byte)ParameterKey.Region] = Www,
+                [(byte)ParameterKey.ThemesEnabled] = true,
             },
         };
 

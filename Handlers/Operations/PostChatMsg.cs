@@ -12,12 +12,15 @@ public sealed class PostChatMsg(Session session) : IOperationHandler
 
     public void Handle(PhotonPeer peer, OperationRequest request)
     {
+        Dictionary<object, object?> data = PhotonValues.Table(request[(byte)ParameterKey.GameMsgData]);
+        if (session.For(peer) is Player sender && !Plugins.PluginHost.Chat(sender, data)) return;
+
         var evt = new EventData((byte)EventCode.PostGameMsg)
         {
             Parameters =
             {
                 [(byte)ParameterKey.GameMsgType] = Chat,
-                [(byte)ParameterKey.GameMsgData] = request[(byte)ParameterKey.GameMsgData],
+                [(byte)ParameterKey.GameMsgData] = data,
             },
         };
 

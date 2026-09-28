@@ -121,6 +121,9 @@ public sealed class Database
         ALTER TABLE profiles ADD COLUMN spins INTEGER NOT NULL DEFAULT 0;
         ALTER TABLE profiles ADD COLUMN next_spin INTEGER NOT NULL DEFAULT 0;
         """,
+        """
+        ALTER TABLE profiles ADD COLUMN first_time BLOB;
+        """,
     ];
 
     readonly string _connectionString;

@@ -256,6 +256,7 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
         {
             session.Logic.Tick();
             Spins.Tick(session);
+            Experience.Tick(session);
         }
     }
 

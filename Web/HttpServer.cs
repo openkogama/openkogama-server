@@ -258,6 +258,23 @@ public sealed class HttpServer
         if (slash < 0) return null;
         string set = path["/bundles-".Length..slash];
         string file = Uri.UnescapeDataString(path[(slash + 1)..]);
-        return set == "3x" ? LegacyAssets?.Get(file) : AssetSets.TryGetValue(set, out AssetCache? cache) ? cache.Get(file) : null;
+        if (set == "3x") return LegacyAssets?.Get(file);
+        if (!AssetSets.ContainsKey(set)) return null;
+
+        foreach (string candidate in NearestSets(set))
+            if (AssetSets[candidate].Get(file) is { } data)
+                return data;
+        return null;
+    }
+
+    IEnumerable<string> NearestSets(string set)
+    {
+        const int Neighbours = 6;
+        List<string> ordered = [.. AssetSets.Keys.OrderBy(name => int.TryParse(name.TrimStart('v'), out int number) ? number : 0)];
+        int index = ordered.IndexOf(set);
+        return ordered.Select((name, position) => (name, distance: Math.Abs(position - index)))
+            .OrderBy(entry => entry.distance)
+            .Take(Neighbours + 1)
+            .Select(entry => entry.name);
     }
 }

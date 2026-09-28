@@ -7,6 +7,7 @@ namespace OpenKogama.Handlers.Operations;
 public sealed class PostGameMsg(Session session) : IOperationHandler
 {
     const int AvatarKilled = 0;
+    const int Chat = 7;
     const int Victim = 0;
     const int Killer = 1;
 
@@ -22,6 +23,13 @@ public sealed class PostGameMsg(Session session) : IOperationHandler
             && Actor(data, Victim) == victim.Actor)
         {
             session.Round.ReportKill(killer, victim);
+        }
+
+        if (Convert.ToInt32(request[(byte)ParameterKey.GameMsgType]) == Chat && session.For(peer) is Player sender)
+        {
+            Dictionary<object, object?> chat = PhotonValues.Table(request[(byte)ParameterKey.GameMsgData]);
+            if (!Plugins.PluginHost.Chat(sender, chat)) return;
+            request.Parameters[(byte)ParameterKey.GameMsgData] = chat;
         }
 
         var evt = new EventData((byte)EventCode.PostGameMsg)

@@ -31,9 +31,23 @@ public sealed class AssetCache(string remoteRoot, string folder = "cache/streami
 
         string local = LocalPath(path);
         if (!File.Exists(local))
-            DownloadAsync(path).GetAwaiter().GetResult();
+        {
+            lock (_missing)
+                if (_missing.Contains(path)) return null;
+            try
+            {
+                DownloadAsync(path).GetAwaiter().GetResult();
+            }
+            catch (HttpRequestException error) when (error.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                lock (_missing) _missing.Add(path);
+                return null;
+            }
+        }
         return File.Exists(local) ? File.ReadAllBytes(local) : null;
     }
+
+    readonly HashSet<string> _missing = [];
 
     async Task DownloadAsync(string path)
     {

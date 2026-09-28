@@ -12,6 +12,8 @@ public interface IProfileStore
     int AddCoinBoost(int profile, int milliseconds);
     (int Spins, long Next) Spins(int profile);
     void SetSpins(int profile, int spins, long next);
+    byte[]? FirstTime(int profile);
+    void SetFirstTime(int profile, byte[] state);
 
     List<Item> Items(int profile);
     Item AddItem(int profile, string name, int category, byte[] data, int author);

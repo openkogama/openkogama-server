@@ -8,7 +8,7 @@ public static class ClientProtocols
     const byte GameId = 255;
     static readonly string[] Legacy = ["1.9.0.1", "1.8.15.2", "1.8.8.4"];
 
-    public static string? Hint(OperationRequest join) => join[GameId] as string;
+    public static string? Hint(OperationRequest join) => join[GameId] as string ?? Reported(join);
 
     public static string NativeVersion(OperationRequest join) => Native(join) ?? ServerVersion;
 
@@ -16,7 +16,7 @@ public static class ClientProtocols
 
     public static string? Native(string? hint) => hint is null ? null : Native(hint, _ => true);
 
-    static string? Native(OperationRequest join) => join[GameId] is string hint ? Native(hint, table => SentBy(join, table)) : null;
+    static string? Native(OperationRequest join) => Hint(join) is string hint ? Native(hint, table => SentBy(join, table)) : null;
 
     static string? Native(string hint, Func<string, bool> matches)
     {
@@ -25,12 +25,28 @@ public static class ClientProtocols
     }
 
     static bool SentBy(OperationRequest join, string table) =>
-        !ProtocolTable.For(table).ParameterKeys.TryGetValue("ProfileToken", out int key) || join[(byte)key] is string;
+        Sends(join, ProtocolTable.For(table), "ProfileToken") && Sends(join, ProtocolTable.For(table), "Version");
+
+    static bool Sends(OperationRequest join, ProtocolTable table, string name) =>
+        !table.ParameterKeys.TryGetValue(name, out int key) || join[(byte)key] is string;
+
+    static string? Reported(OperationRequest join)
+    {
+        foreach ((byte key, object? value) in join.Parameters)
+        {
+            if (value is not string text) continue;
+            string[] parts = text.Split('.');
+            foreach (string version in parts.Length == 4 ? [text, string.Join('.', parts[..3])] : new[] { text })
+                if (ProtocolTable.Candidates(version).Any(table => ProtocolTable.For(table).ParameterKeys.GetValueOrDefault("Version", -1) == key))
+                    return version;
+        }
+        return null;
+    }
 
     public static LegacyTranslator? Detect(OperationRequest join)
     {
         ProtocolTable server = ProtocolTable.For(ServerVersion);
-        if (join[GameId] is string hint && ProtocolTable.Resolve(hint) is string table)
+        if (Hint(join) is string hint && ProtocolTable.Resolve(hint) is string table)
             return ProtocolTable.IsLegacy(table) ? new LegacyTranslator(ProtocolTable.For(table), server) : null;
 
         if (join[(byte)server.ParameterKeys["ProfileToken"]] is string) return null;

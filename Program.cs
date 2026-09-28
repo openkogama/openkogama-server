@@ -2,6 +2,7 @@ using System.Text.Json;
 using OpenKogama.Game;
 using OpenKogama.Hosting;
 using OpenKogama.Photon;
+using OpenKogama.Plugins;
 using OpenKogama.Storage;
 using OpenKogama.Web;
 
@@ -14,6 +15,7 @@ Stores.Friends = new SqliteFriendStore(database);
 Stores.Images = new SqliteImageStore(database);
 Stores.Market = new SqliteMarketStore(database);
 Session.EnsureDefaultWorld();
+PluginHost.LoadAll("plugins");
 
 var server = new PhotonServer(5055) { Log = Console.WriteLine };
 bool mixedClients = args.Contains("--mixed-clients");

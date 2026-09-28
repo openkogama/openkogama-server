@@ -25,7 +25,8 @@ public sealed class AddItemToWorld(Session session) : IOperationHandler
         root.ItemId = itemId;
         root.Position = Floats(request, ParameterKey.PosX, ParameterKey.PosY, ParameterKey.PosZ);
         root.Rotation = Floats(request, ParameterKey.RotX, ParameterKey.RotY, ParameterKey.RotZ, ParameterKey.RotW);
-        root.Scale = Floats(request, ParameterKey.ScaleX, ParameterKey.ScaleY, ParameterKey.ScaleZ);
+        if (request.Parameters.ContainsKey((byte)ParameterKey.ScaleX))
+            root.Scale = Floats(request, ParameterKey.ScaleX, ParameterKey.ScaleY, ParameterKey.ScaleZ);
         root.Owner = Convert.ToInt32(request[(byte)ParameterKey.OwnerActorNr]);
 
         int parentId = Convert.ToInt32(request[(byte)ParameterKey.WorldObjectGroupID]);

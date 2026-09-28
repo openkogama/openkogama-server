@@ -13,6 +13,7 @@ public sealed class PurchaseProduct(Session session) : IOperationHandler
     const int AvatarProduct = 4;
     const int GameCoinBoosterProduct = 6;
     const int MysteryBoxSpinsProduct = 7;
+    const int ThemeProduct = 9;
 
     public byte Code => (byte)OperationCode.PurchaseProduct;
 
@@ -39,6 +40,10 @@ public sealed class PurchaseProduct(Session session) : IOperationHandler
                 peer.Send(new OperationResponse(request));
                 Console.WriteLine($"profile {buyer.ProfileId}: bought {count} spins, {Spins.Buy(buyer, count)} left");
                 break;
+            case ThemeProduct when !session.Play && Value(product, (byte)ParameterKey.Id) is { } theme:
+                bool applied = Themes.Apply(session, Convert.ToInt32(theme), PhotonValues.Table(Value(product, (byte)ParameterKey.MetaData)));
+                peer.Send(new OperationResponse(request) { ReturnCode = applied ? (short)0 : (short)-1 });
+                break;
             default:
                 Console.WriteLine($"peer {peer.Id}: unknown purchase type {type}: {string.Join(", ", product.Select(entry => $"{entry.Key} ({entry.Key.GetType().Name})={entry.Value}"))}");
                 peer.Send(new OperationResponse(request) { ReturnCode = -1 });
@@ -54,7 +59,7 @@ public sealed class PurchaseProduct(Session session) : IOperationHandler
             return;
         }
 
-        Item item = ModelInventory.Give(player, listing.Name, listing.Category, listing.Data, listing.Owner, 0);
+        Item item = ModelInventory.Give(player, listing.Name, listing.Category, listing.Data, listing.Owner, 0).Item;
         peer.Send(new OperationResponse(request));
         Console.WriteLine($"profile {player.ProfileId}: bought listing {listingId} as item {item.Id}");
     }

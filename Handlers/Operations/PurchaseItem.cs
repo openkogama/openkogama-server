@@ -22,18 +22,18 @@ public sealed class PurchaseItem(Session session) : IOperationHandler
 
         if (player is null || obj?.Type != WorldObjectType.CubeModel || prototype is null)
         {
-            peer.Send(new OperationResponse(request) { ReturnCode = player is null ? Failed : NotFound });
+            peer.Send(new OperationResponse(request) { ReturnCode = ModelInventory.Failure(player, player is null ? Failed : NotFound) });
             return;
         }
 
         if (prototype.AuthorId == player.ProfileId)
         {
-            peer.Send(new OperationResponse(request) { ReturnCode = YouAreOwner });
+            peer.Send(new OperationResponse(request) { ReturnCode = ModelInventory.Failure(player, YouAreOwner) });
             return;
         }
 
-        Item item = ModelInventory.Add(player, obj, prototype, objectId);
-        peer.Send(new OperationResponse(request));
+        (Item item, Dictionary<byte, object?> fields) = ModelInventory.Add(player, obj, prototype, objectId);
+        peer.Send(new OperationResponse(request) { Parameters = fields });
         Console.WriteLine($"peer {peer.Id}: bought model {objectId} by {prototype.AuthorId} as item {item.Id}");
     }
 }

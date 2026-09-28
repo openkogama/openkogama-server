@@ -510,6 +510,8 @@ public sealed class Router2012
     {
         if (session.For(peer) is not Player player || request[(byte)Key2012.ChatMsg] is not string message) return;
 
+        if (Plugins.PluginHost.Chat(player, message) is not { } allowed) return;
+        message = allowed;
         if (message.Length > 256) message = message[..256];
         Broadcast(null, new EventData((byte)Event2012.ChatMsg)
         {

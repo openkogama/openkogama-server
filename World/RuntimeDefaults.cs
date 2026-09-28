@@ -9,6 +9,10 @@ public static class RuntimeDefaults
         foreach ((string key, PackedType type, object value) in For(obj))
             if (!obj.Runtime.Exists(pair => pair.Key == key))
                 obj.Runtime.Add((key, type, value));
+        if (obj.Type == WorldObjectType.ModelToggle && !obj.Data.Exists(pair => pair.Key == "showOutline"))
+            obj.Data.Add(("showOutline", PackedType.Bool, true));
+        if (obj.Scale.All(axis => axis == 0f))
+            obj.Scale = [1f, 1f, 1f];
     }
 
     public static void Reset(WorldObject obj)
@@ -30,14 +34,17 @@ public static class RuntimeDefaults
         WorldObjectType.PressurePlate => [("triggerBoxState", PackedType.Bool, false)],
         WorldObjectType.GodzillaTrigger => [("occupantWOID", PackedType.Int32, -1)],
         WorldObjectType.CollectTheItemDropOff => [("isActive", PackedType.Bool, true)],
+        WorldObjectType.CollectibleItem => [("takenByList", PackedType.Hashtable, Empty())],
         WorldObjectType.SentryGun =>
         [
             ("health", PackedType.Single, 300f),
+            NoShield,
             ("deathTime", PackedType.Int32, LongAgo),
         ],
         WorldObjectType.AdvancedGhost =>
         [
             ("health", PackedType.Single, 80f),
+            NoShield,
             ("deathTime", PackedType.Int32, LongAgo),
             ("modifiers", PackedType.Hashtable, Empty()),
         ],
@@ -50,11 +57,12 @@ public static class RuntimeDefaults
             ("currentValue", PackedType.Int32, 0),
             ("currentRandomValues", PackedType.Int32Array, new[] { Random.Shared.Next(1, int.MaxValue), 1, 1 }),
         ],
-        WorldObjectType.HoverCraft or WorldObjectType.MonoPlane => Vehicle(),
-        WorldObjectType.JetPack => [.. Vehicle(), ("jetMode", PackedType.Byte, (byte)0)],
+        WorldObjectType.HoverCraft => Vehicle(150f),
+        WorldObjectType.MonoPlane => Vehicle(80f),
+        WorldObjectType.JetPack => [.. Vehicle(20f), ("jetMode", PackedType.Byte, (byte)0)],
         WorldObjectType.HamsterWheel =>
         [
-            .. Vehicle(),
+            .. Vehicle(150f),
             ("isMovingForward", PackedType.Bool, false),
             ("isMovingBackwards", PackedType.Bool, false),
             ("isGrounded", PackedType.Bool, false),
@@ -62,9 +70,12 @@ public static class RuntimeDefaults
         _ => [],
     };
 
-    static List<(string, PackedType, object)> Vehicle() =>
+    static readonly (string, PackedType, object) NoShield = ("shield", PackedType.Single, 0f);
+
+    static List<(string, PackedType, object)> Vehicle(float health) =>
     [
-        ("health", PackedType.Single, 150f),
+        ("health", PackedType.Single, health),
+        NoShield,
         ("isFiring", PackedType.Bool, false),
         ("modifiers", PackedType.Hashtable, Empty()),
         ("currentItem", PackedType.Hashtable, Empty()),

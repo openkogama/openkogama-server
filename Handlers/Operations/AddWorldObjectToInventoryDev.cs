@@ -25,8 +25,9 @@ public sealed class AddWorldObjectToInventoryDev(Session session) : IOperationHa
         int category = Convert.ToInt32(request[(byte)ParameterKey.ItemCategoryID]);
         bool overwrite = request[(byte)ParameterKey.ItemOverwriteExisting] is true;
 
-        Item item = Items.AddBuiltIn(name, category, WorldSerializer.Write(copy, runtime: false), overwrite);
-        Respond(peer, request, 0, objectId, item.Id);
+        byte[] data = WorldSerializer.Write(copy, runtime: false);
+        Item item = Items.AddBuiltIn(name, category, data, overwrite);
+        peer.Send(new OperationResponse(request) { Parameters = ModelInventory.Fields(item, category, data, -1, objectId, resellable: false) });
         Console.WriteLine($"peer {peer.Id}: added object {objectId} to built-in items as {item.Id} ({name})");
     }
 

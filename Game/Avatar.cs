@@ -102,9 +102,10 @@ public static class Avatar
             Runtime =
             [
                 ("health", PackedType.Single, 100f),
+                ("shield", PackedType.Single, 0f),
                 ("isFiring", PackedType.Bool, false),
                 ("modifiers", PackedType.Hashtable, new List<(string, PackedType, object)>()),
-                ("currentItem", PackedType.Hashtable, new List<(string, PackedType, object)>()),
+                ("currentItem", PackedType.Hashtable, new List<(string, PackedType, object)> { ("type", PackedType.Int32, (int)Kogama.AvatarItemType.Hand) }),
                 ("invulnerable", PackedType.Bool, false),
                 ("avatarRuntimeState", PackedType.Byte, (byte)1),
                 ("avatarModeTypes", PackedType.Int32, 1),

@@ -22,18 +22,18 @@ public sealed class AddWorldObjectToInventory(Session session) : IOperationHandl
         if (player is null || obj?.Type != WorldObjectType.CubeModel || prototype is null)
         {
             Console.WriteLine($"peer {peer.Id}: cannot add {objectId} to inventory");
-            Respond(peer, request, Failed, objectId, 0);
+            Respond(peer, request, ModelInventory.Failure(player, Failed), objectId, 0);
             return;
         }
 
         if (prototype.AuthorId != player.ProfileId)
         {
-            Respond(peer, request, NotCreatorCanBuy, objectId, 0);
+            Respond(peer, request, ModelInventory.Failure(player, NotCreatorCanBuy), objectId, 0);
             return;
         }
 
-        Item item = ModelInventory.Add(player, obj, prototype, objectId);
-        Respond(peer, request, 0, objectId, item.Id);
+        (Item item, Dictionary<byte, object?> fields) = ModelInventory.Add(player, obj, prototype, objectId);
+        peer.Send(new OperationResponse(request) { Parameters = fields });
         Console.WriteLine($"peer {peer.Id}: added model {objectId} to inventory of profile {player.ProfileId} as item {item.Id}");
     }
 

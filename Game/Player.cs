@@ -70,6 +70,7 @@ public sealed class Player(PhotonPeer peer, int actor, int avatarId)
         (Kogama.ParameterKey.TeamID, (int)Team),
         (Kogama.ParameterKey.Level, Level),
         (Kogama.ParameterKey.ClientBuildTarget, BuildTarget),
+        (Kogama.ParameterKey.IsActorReady, Ready),
     ];
 
     public bool LinkState => NativeSince(LinkStateVersion) && !NativeSince(StatelessLinksVersion);
@@ -77,6 +78,11 @@ public sealed class Player(PhotonPeer peer, int actor, int avatarId)
     public bool LogicSteps => LogicFrames && NativeSince(LogicStepsVersion);
     public bool ObjectLinkState => NativeSince(ObjectLinkStateVersion) && !NativeSince(StatelessLinksVersion);
     public bool LinkEvents => NativeSince(StatelessLinksVersion);
+    public bool Ready { get; set; }
+    public bool ShortRoundStates => peer.Translator is Kogama.Protocols.OperationRemap remap && remap.ShortStates;
+    public bool ReadyEvents => peer.Translator is Kogama.Protocols.OperationRemap remap && remap.Knows(Kogama.ParameterKey.IsActorReady);
+    public bool ServerExperience => peer.Translator is Kogama.Protocols.OperationRemap remap && remap.Knows(Kogama.EventCode.XPReward);
+    public DateTime? PlayingSince { get; set; }
 
     static readonly Version LinkStateVersion = new(1, 30);
     static readonly Version ObjectLinkStateVersion = new(1, 32, 4);

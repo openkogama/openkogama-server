@@ -24,7 +24,7 @@ public sealed class LevelChanged(Session session) : IOperationHandler
             },
         };
         foreach (Player other in session.Players)
-            if (other != player)
+            if (other != player && other.Saw(player.Actor))
                 other.Peer.Send(evt);
     }
 }

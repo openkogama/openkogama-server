@@ -1,11 +1,46 @@
 {
   "sets": {
     "v2": "https://cdn.openkogama.org/eu/kogama_assets/v2/kogama_assets_u5/",
-    "v3": "https://cdn.openkogama.org/eu/kogama_assets/v3/kogama_assets_u5/"
+    "v3": "https://cdn.openkogama.org/eu/kogama_assets/v3/kogama_assets_u5/",
+    "v5": "https://cdn.openkogama.org/eu/kogama_assets/v5/kogama_assets_u5/",
+    "v6": "https://cdn.openkogama.org/eu/kogama_assets/v6/kogama_assets_u5/",
+    "v7": "https://cdn.openkogama.org/eu/kogama_assets/v7/kogama_assets_u5/",
+    "v10": "https://cdn.openkogama.org/eu/kogama_assets/v10/kogama_assets_u5/",
+    "v13": "https://cdn.openkogama.org/eu/kogama_assets/v13/kogama_assets_u5/",
+    "v14": "https://cdn.openkogama.org/eu/kogama_assets/v14/kogama_assets_u5/",
+    "v18": "https://cdn.openkogama.org/eu/kogama_assets/v18/kogama_assets_u5/",
+    "v19": "https://cdn.openkogama.org/eu/kogama_assets/v19/kogama_assets_u5/",
+    "v20": "https://cdn.openkogama.org/eu/kogama_assets/v20/kogama_assets_u5/",
+    "v21": "https://cdn.openkogama.org/eu/kogama_assets/v21/kogama_assets_u5/",
+    "v22": "https://cdn.openkogama.org/eu/kogama_assets/v22/kogama_assets_u5/",
+    "v23": "https://cdn.openkogama.org/eu/kogama_assets/v23/kogama_assets_u5/",
+    "v24": "https://cdn.openkogama.org/eu/kogama_assets/v24/kogama_assets_u5/",
+    "v25": "https://cdn.openkogama.org/eu/kogama_assets/v25/kogama_assets_u5/",
+    "v28": "https://cdn.openkogama.org/eu/kogama_assets/v28/kogama_assets_u5/"
   },
   "ranges": [
     { "from": "1.25.13.290", "set": "v2" },
-    { "from": "1.32.8.541", "set": "v3" }
+    { "from": "1.32.8.541", "set": "v3" },
+    { "from": "1.49.1", "set": "v5" },
+    { "from": "1.49.4", "set": "v6" },
+    { "from": "1.60.3", "set": "v7" },
+    { "from": "1.71.3", "set": "v10" },
+    { "from": "1.71.8", "set": "v13" },
+    { "from": "1.71.9", "set": "v14" },
+    { "from": "1.76.7", "set": "v18" },
+    { "from": "1.77.2", "set": "v14" },
+    { "from": "1.77.5", "set": "v18" },
+    { "from": "1.77.7", "set": "v19" },
+    { "from": "1.78.3", "set": "v18" },
+    { "from": "1.78.4", "set": "v19" },
+    { "from": "1.78.5", "set": "v20" },
+    { "from": "1.80.2", "set": "v21" },
+    { "from": "1.81.4", "set": "v22" },
+    { "from": "1.82.4", "set": "v23" },
+    { "from": "1.85.16", "set": "v24" },
+    { "from": "1.87.12", "set": "v25" },
+    { "from": "1.88.7", "set": "v28" },
+    { "from": "1.89.0", "set": "v3" }
   ],
   "builds": {
     "1.32.7.526": "v3",
