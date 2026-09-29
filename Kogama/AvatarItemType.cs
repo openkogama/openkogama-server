@@ -2,6 +2,7 @@ namespace OpenKogama.Kogama;
 
 public enum AvatarItemType
 {
+    LaserPointer = 0,
     CenterGun = 1,
     ImpulseGun = 2,
     Health = 3,

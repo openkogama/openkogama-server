@@ -9,10 +9,21 @@ public sealed class OperationRemap(ProtocolTable client) : IMessageTranslator
     static readonly Dictionary<string, int> ServerEvents = ServerCodes<EventCode>(ServerTable.EventCodes);
     static readonly Dictionary<string, int> ServerKeys = ServerCodes<ParameterKey>(ServerTable.ParameterKeys);
     static readonly Dictionary<string, int> ServerQueries = ServerCodes<DBQueryType>(ServerTable.DBQuery);
+    static readonly Dictionary<string, int> ServerRowKeys = ServerCodes<DBQueryKey>(ServerTable.DBQueryKeys);
     static readonly Dictionary<string, string> Synonyms = new() { ["UploadPlanetTextureData"] = "PlanetTextureData", ["Message"] = "GameMsgData" };
     static readonly byte QueryKey = (byte)ParameterKey.DBQuery;
     static readonly HashSet<byte> NestedIn = [(byte)ParameterKey.PurchaseProductData];
     static readonly HashSet<byte> NestedOut = [(byte)ParameterKey.UserList];
+    static readonly HashSet<byte> RowsOut =
+    [
+        (byte)ParameterKey.DBQueryOutData, (byte)ParameterKey.ItemBusinessData, (byte)ParameterKey.RentProductData, (byte)ParameterKey.Friends,
+        (byte)ParameterKey.MaterialList, (byte)ParameterKey.StreamingAssetInventory, (byte)ParameterKey.StreamingAssetInventoryItems,
+    ];
+    static readonly HashSet<byte> RowResponses =
+    [
+        (byte)OperationCode.GetItemInventory, (byte)OperationCode.GetItemShopInventory, (byte)OperationCode.LargeDBQueryAvatarShopInventory,
+    ];
+    static readonly byte DataKey = (byte)ParameterKey.Data;
     static readonly byte GameState = (byte)ParameterKey.GameStateType;
     static readonly System.Version ShortStatesVersion = new(1, 42, 6);
 
@@ -22,6 +33,7 @@ public sealed class OperationRemap(ProtocolTable client) : IMessageTranslator
     readonly CodeMap? _keysIn = Renumbered(Named(client.ParameterKeys), ServerKeys) ? new(Named(client.ParameterKeys), ServerKeys) : null;
     readonly CodeMap? _keysOut = Renumbered(Named(client.ParameterKeys), ServerKeys) ? new(ServerKeys, Named(client.ParameterKeys)) : null;
     readonly CodeMap? _queries = Renumbered(client.DBQuery, ServerQueries) ? new(client.DBQuery, ServerQueries) : null;
+    readonly CodeMap? _rows = Renumbered(client.DBQueryKeys, ServerRowKeys) ? new(ServerRowKeys, client.DBQueryKeys) : null;
     readonly HashSet<string> _keyNames = [.. Named(client.ParameterKeys).Keys];
     readonly HashSet<EventData> _pushed = [];
     readonly bool _shortStates = System.Version.TryParse(client.Version, out System.Version? version) && version >= ShortStatesVersion;
@@ -48,6 +60,8 @@ public sealed class OperationRemap(ProtocolTable client) : IMessageTranslator
 
     public bool Knows(ParameterKey key) => _keyNames.Contains(key.ToString());
 
+    public bool Knows(OperationCode code) => client.OperationCodes.ContainsKey(code.ToString());
+
     public OperationRequest? Incoming(OperationRequest request) =>
         _in.Map(request.OperationCode) is int code
             ? new OperationRequest { OperationCode = (byte)code, Parameters = Queries(Keys(request.Parameters, _keysIn, outgoing: false)) }
@@ -64,13 +78,13 @@ public sealed class OperationRemap(ProtocolTable client) : IMessageTranslator
     {
         if (Pushing && Peer is not null && client.EventCodes.TryGetValue(_out.Name(response.OperationCode), out int pushed))
         {
-            if (response.ReturnCode == 0) Push(new EventData((byte)pushed) { Parameters = Out(response.Parameters) });
+            if (response.ReturnCode == 0) Push(new EventData((byte)pushed) { Parameters = Out(response.Parameters, RowResponses.Contains(response.OperationCode)) });
             else Console.WriteLine($"peer {Peer.Id}: {_out.Name(response.OperationCode)} failed during synchronize, not pushed");
             return null;
         }
 
         return _out.Map(response.OperationCode) is int code
-            ? new OperationResponse((byte)code) { ReturnCode = response.ReturnCode, DebugMessage = response.DebugMessage, Parameters = Out(response.Parameters) }
+            ? new OperationResponse((byte)code) { ReturnCode = response.ReturnCode, DebugMessage = response.DebugMessage, Parameters = Out(response.Parameters, RowResponses.Contains(response.OperationCode)) }
             : null;
     }
 
@@ -84,7 +98,27 @@ public sealed class OperationRemap(ProtocolTable client) : IMessageTranslator
         return code == data.Code && ReferenceEquals(parameters, data.Parameters) ? data : new EventData((byte)code) { Parameters = parameters };
     }
 
-    Dictionary<byte, object?> Out(Dictionary<byte, object?> parameters) => Keys(States(parameters), _keysOut, outgoing: true);
+    Dictionary<byte, object?> Out(Dictionary<byte, object?> parameters, bool rowsInData = false) =>
+        Keys(Rows(States(parameters), rowsInData), _keysOut, outgoing: true);
+
+    Dictionary<byte, object?> Rows(Dictionary<byte, object?> parameters, bool rowsInData)
+    {
+        bool Carries(byte key) => RowsOut.Contains(key) || rowsInData && key == DataKey;
+        if (_rows is null || !parameters.Keys.Any(Carries)) return parameters;
+        var mapped = new Dictionary<byte, object?>(parameters);
+        foreach (byte key in parameters.Keys.Where(Carries))
+            mapped[key] = Row(parameters[key], _rows);
+        return mapped;
+    }
+
+    static object? Row(object? value, CodeMap rows) => value switch
+    {
+        PhotonDictionary list when list.Entries.Count > 0 && list.Entries.Values.All(entry => entry is PhotonDictionary) =>
+            new PhotonDictionary { KeyType = list.KeyType, ValueType = list.ValueType, Entries = list.Entries.ToDictionary(entry => entry.Key, entry => Row(entry.Value, rows)) },
+        PhotonDictionary row when row.Entries.Keys.All(key => key is byte) =>
+            new PhotonDictionary { KeyType = row.KeyType, ValueType = row.ValueType, Entries = Entries(row.Entries, rows) },
+        _ => value,
+    };
 
     Dictionary<byte, object?> States(Dictionary<byte, object?> parameters)
     {

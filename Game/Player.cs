@@ -7,6 +7,10 @@ public sealed class Player(PhotonPeer peer, int actor, int avatarId)
     public PhotonPeer Peer => peer;
     public int Actor => actor;
     public int AvatarId { get; set; } = avatarId;
+    public int BuildAvatarId { get; set; } = -1;
+    public int ActiveSpawnRole { get; set; } = avatarId;
+    public float[]? LastPosition { get; set; }
+    public float[]? LastRotation { get; set; }
     public bool InWorld { get; set; }
     public string ClientVersion { get; set; } = Kogama.Protocols.ClientProtocols.ServerVersion;
     public GameMode Mode { get; set; } = GameMode.Edit;
@@ -71,7 +75,19 @@ public sealed class Player(PhotonPeer peer, int actor, int avatarId)
         (Kogama.ParameterKey.Level, Level),
         (Kogama.ParameterKey.ClientBuildTarget, BuildTarget),
         (Kogama.ParameterKey.IsActorReady, Ready),
+        (Kogama.ParameterKey.UserProfileData, ProfileData()),
+        (Kogama.ParameterKey.PlayerPlanetData, NoPlanetProgress),
     ];
+
+    const string NoPlanetProgress = """{"highScoreGamePoints":0,"gamePassTier":0}""";
+
+    public string ProfileData() => System.Text.Json.JsonSerializer.Serialize(new
+    {
+        IsAdmin = false,
+        UserName = Username,
+        Gold = Storage.Stores.Profiles.Gold(ProfileId),
+        SubscriptionData = new { SubscriptionType = 0 },
+    });
 
     public bool LinkState => NativeSince(LinkStateVersion) && !NativeSince(StatelessLinksVersion);
     public bool LogicFrames => peer.Translator is Kogama.Protocols.OperationRemap remap && remap.Knows(Kogama.EventCode.LogicFrame);
@@ -79,19 +95,95 @@ public sealed class Player(PhotonPeer peer, int actor, int avatarId)
     public bool ObjectLinkState => NativeSince(ObjectLinkStateVersion) && !NativeSince(StatelessLinksVersion);
     public bool LinkEvents => NativeSince(StatelessLinksVersion);
     public bool Ready { get; set; }
+    public bool AdminMessages => NativeSince(AdminMessagesVersion);
+    public bool ChatKinds => NativeSince(ChatKindsVersion);
+    public bool AccessoryQueries => NativeSince(AccessoryQueriesVersion);
+    public bool ModernAccessories => peer.Translator is Kogama.Protocols.OperationRemap remap && remap.Knows(Kogama.OperationCode.RequestAccessoryData);
+    public bool RichText => peer.Protocol != PhotonProtocol.Protocol15 && peer.Translator is not Kogama.Protocols.LegacyTranslator;
     public bool ShortRoundStates => peer.Translator is Kogama.Protocols.OperationRemap remap && remap.ShortStates;
     public bool ReadyEvents => peer.Translator is Kogama.Protocols.OperationRemap remap && remap.Knows(Kogama.ParameterKey.IsActorReady);
     public bool ServerExperience => peer.Translator is Kogama.Protocols.OperationRemap remap && remap.Knows(Kogama.EventCode.XPReward);
+    public bool SpawnRoles => peer.Translator is Kogama.Protocols.OperationRemap remap && remap.Knows(Kogama.EventCode.SetupUserPlayMode);
     public DateTime? PlayingSince { get; set; }
+
+    public string SpawnRoleData() => System.Text.Json.JsonSerializer.Serialize(new
+    {
+        activeSpawnRole = ActiveSpawnRole,
+        spawnRoleAvatarIds = new[] { AvatarId, BuildAvatarId }.Where(id => id >= 0),
+    });
+
+    public string SpawnRoleMetaData() => System.Text.Json.JsonSerializer.Serialize(new
+    {
+        spawnRolesDefaultTypeWoIDMap = new Dictionary<string, int>
+        {
+            ["DefaultPlayModeSpawnRole"] = AvatarId,
+            ["BuildModeSpawnRole"] = BuildAvatarId >= 0 ? BuildAvatarId : AvatarId,
+        },
+    });
 
     static readonly Version LinkStateVersion = new(1, 30);
     static readonly Version ObjectLinkStateVersion = new(1, 32, 4);
     static readonly Version StatelessLinksVersion = new(1, 42, 6);
     static readonly Version LogicStepsVersion = new(1, 42, 10);
+    static readonly Version AdminMessagesVersion = new(1, 33);
+    static readonly Version ChatKindsVersion = new(1, 81, 2);
+    static readonly Version AccessoryQueriesVersion = new(2, 3);
 
     bool NativeSince(Version since) => peer.Translator is not Kogama.Protocols.LegacyTranslator && Version.TryParse(ClientVersion, out Version? version) && version >= since;
 
-    public byte[] WorldData(World.Snapshot snapshot) => World.WorldSerializer.Write(snapshot, linkState: LinkState, objectLinkState: ObjectLinkState);
+    public byte[] WorldData(World.Snapshot snapshot)
+    {
+        if (!SpawnRoles) snapshot = WithoutBuildAvatars(snapshot);
+        else snapshot = snapshot with { Objects = [.. snapshot.Objects.Select(WithoutLaser)] };
+        if (ModernAccessories) snapshot = snapshot with { Objects = [.. snapshot.Objects.Select(Accessories.Modern)] };
+        return World.WorldSerializer.Write(snapshot, linkState: LinkState, objectLinkState: ObjectLinkState);
+    }
+
+    static bool HoldsLaser(IEnumerable<(string Key, World.PackedType Type, object Value)> item) =>
+        item.FirstOrDefault(pair => pair.Key == "type").Value is { } type && Convert.ToInt32(type) == (int)Kogama.AvatarItemType.LaserPointer;
+
+    static World.WorldObject WithoutLaser(World.WorldObject obj)
+    {
+        if (obj.Type != World.WorldObjectType.Avatar
+            || obj.Runtime.Find(pair => pair.Key == "currentItem").Value is not List<(string Key, World.PackedType Type, object Value)> item
+            || !HoldsLaser(item))
+            return obj;
+
+        return new World.WorldObject
+        {
+            Id = obj.Id,
+            ParentId = obj.ParentId,
+            ItemId = obj.ItemId,
+            Type = obj.Type,
+            Position = obj.Position,
+            Rotation = obj.Rotation,
+            Scale = obj.Scale,
+            Data = obj.Data,
+            Owner = obj.Owner,
+            PreviewOwner = obj.PreviewOwner,
+            Runtime =
+            [
+                .. obj.Runtime.Where(pair => pair.Key != "currentItem"),
+                ("currentItem", World.PackedType.Hashtable, new List<(string Key, World.PackedType Type, object Value)> { ("type", World.PackedType.Int32, (int)Kogama.AvatarItemType.Hand) }),
+            ],
+            Transient = obj.Transient,
+        };
+    }
+
+    static World.Snapshot WithoutBuildAvatars(World.Snapshot snapshot)
+    {
+        var hidden = snapshot.Objects.Where(obj => obj.Type == World.WorldObjectType.BuildModeAvatar).Select(obj => obj.Id).ToHashSet();
+        if (hidden.Count == 0) return snapshot;
+        int count;
+        do
+        {
+            count = hidden.Count;
+            foreach (World.WorldObject obj in snapshot.Objects)
+                if (hidden.Contains(obj.ParentId)) hidden.Add(obj.Id);
+        }
+        while (hidden.Count != count);
+        return snapshot with { Objects = [.. snapshot.Objects.Where(obj => !hidden.Contains(obj.Id))] };
+    }
 
     public bool Knows(World.Snapshot snapshot)
     {

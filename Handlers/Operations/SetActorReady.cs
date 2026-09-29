@@ -32,6 +32,10 @@ public sealed class SetActorReady(Session session) : IOperationHandler
                     other.Peer.Send(ready);
         }
         ProfileMeta.Send(player);
+        int xp = Leveling.XpOf(player.ProfileId);
+        Leveling.PayLevelGold(player.ProfileId, xp);
+        Experience.ShowLevelGold(player, xp);
+        Plugins.PluginHost.Joined(session, player);
         Console.WriteLine($"peer {peer.Id}: actor ready");
     }
 }

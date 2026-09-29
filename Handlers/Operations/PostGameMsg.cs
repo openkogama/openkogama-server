@@ -28,8 +28,9 @@ public sealed class PostGameMsg(Session session) : IOperationHandler
         if (Convert.ToInt32(request[(byte)ParameterKey.GameMsgType]) == Chat && session.For(peer) is Player sender)
         {
             Dictionary<object, object?> chat = PhotonValues.Table(request[(byte)ParameterKey.GameMsgData]);
-            if (!Plugins.PluginHost.Chat(sender, chat)) return;
-            request.Parameters[(byte)ParameterKey.GameMsgData] = chat;
+            if (Plugins.PluginHost.Chat(session, sender, chat))
+                ServerChat.Relay(session, sender, ChatKind.Everyone, chat);
+            return;
         }
 
         var evt = new EventData((byte)EventCode.PostGameMsg)

@@ -9,6 +9,7 @@ namespace OpenKogama.Game;
 public static class ProfileMeta
 {
     const int EventCount = 256;
+    const string NoHighlights = "{}";
 
     public static void Send(Player player)
     {
@@ -25,6 +26,7 @@ public static class ProfileMeta
             {
                 [(byte)ParameterKey.Bool] = true,
                 [(byte)ParameterKey.MetaData] = json,
+                [(byte)ParameterKey.Data] = NoHighlights,
             },
         });
     }

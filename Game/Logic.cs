@@ -138,7 +138,7 @@ public sealed class Logic(Session session)
                 case WorldObjectType.ShootableButton or WorldObjectType.UseLever when session.Triggers.IsOn(obj.Id, StartsOn(obj)) != StartsOn(obj):
                     player.Peer.Send(FiringEvent(obj.Id, !StartsOn(obj)));
                     break;
-                case WorldObjectType.PressurePlate when session.Triggers.IsPressed(obj.Id):
+                case WorldObjectType.PressurePlate or WorldObjectType.TriggerCube when session.Triggers.IsPressed(obj.Id):
                     player.Peer.Send(FiringEvent(obj.Id, true));
                     break;
                 case WorldObjectType.RandomBox when graph.OutputCounts[index] > 0:
@@ -151,7 +151,7 @@ public sealed class Logic(Session session)
     public void Signal(int id, int actor, bool on)
     {
         WorldObjectType? type = session.World.Find(id)?.Type;
-        bool sensor = type is WorldObjectType.PressurePlate or WorldObjectType.ShootableButton or WorldObjectType.UseLever;
+        bool sensor = type is WorldObjectType.PressurePlate or WorldObjectType.TriggerCube or WorldObjectType.ShootableButton or WorldObjectType.UseLever;
         bool timesItself = type == WorldObjectType.ShootableButton && !on;
         EventData stay = StayEvent(id, actor, on);
         EventData firing = FiringEvent(id, on);
@@ -417,7 +417,7 @@ public sealed class Logic(Session session)
 
                 bool output = obj.Type switch
                 {
-                    WorldObjectType.TriggerBox or WorldObjectType.PressurePlate or WorldObjectType.CollectTheItemDropOff => session.Triggers.IsPressed(obj.Id),
+                    WorldObjectType.TriggerBox or WorldObjectType.PressurePlate or WorldObjectType.TriggerCube or WorldObjectType.CollectTheItemDropOff => session.Triggers.IsPressed(obj.Id),
                     WorldObjectType.Battery => true,
                     WorldObjectType.GodzillaTrigger => Colossus.Occupant(obj) != Colossus.Empty,
                     WorldObjectType.ToggleBox => State(obj),

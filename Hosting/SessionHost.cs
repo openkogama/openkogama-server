@@ -136,6 +136,7 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
         Session session = entry.Session;
         Player? gone = session.For(peer);
         if (gone is null) return;
+        Plugins.PluginHost.Left(session, gone);
         CoinBoost.Stop(gone);
 
         if (entry.Editor)
@@ -165,6 +166,10 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
         {
             Parameters = { [(byte)ParameterKey.WorldObjectID] = gone.AvatarId },
         };
+        var unregisterBuilder = new EventData((byte)EventCode.UnregisterWorldObject)
+        {
+            Parameters = { [(byte)ParameterKey.WorldObjectID] = gone.BuildAvatarId },
+        };
         var leave = new EventData((byte)EventCode.Leave)
         {
             Parameters = { [(byte)ParameterKey.ActorNr] = gone.Actor },
@@ -172,6 +177,7 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
         foreach (Player other in session.Players.Where(other => other.Saw(gone.Actor)))
         {
             other.Peer.Send(unregister);
+            if (gone.BuildAvatarId >= 0 && other.SpawnRoles) other.Peer.Send(unregisterBuilder);
             other.Peer.Send(leave);
         }
 
@@ -207,6 +213,7 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
         }
 
         var own = session.World.Subtree(gone.AvatarId).Select(obj => obj.Id).ToHashSet();
+        if (gone.BuildAvatarId >= 0) own.UnionWith(session.World.Subtree(gone.BuildAvatarId).Select(obj => obj.Id));
         foreach (WorldObject obj in session.World.ToSnapshot().Objects)
         {
             if (obj.Owner != gone.Actor || own.Contains(obj.Id)) continue;
@@ -257,8 +264,12 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
             session.Logic.Tick();
             Spins.Tick(session);
             Experience.Tick(session);
+            session.GamePasses.Tick();
         }
+        Plugins.PluginHost.Tick();
     }
+
+    public IReadOnlyList<Session> Sessions() => Worlds();
 
     List<Session> Worlds()
     {

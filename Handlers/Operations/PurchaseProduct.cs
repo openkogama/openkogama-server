@@ -13,7 +13,9 @@ public sealed class PurchaseProduct(Session session) : IOperationHandler
     const int AvatarProduct = 4;
     const int GameCoinBoosterProduct = 6;
     const int MysteryBoxSpinsProduct = 7;
+    const int MarketPlaceAvatarProduct = 8;
     const int ThemeProduct = 9;
+    const int AccessoryBundleProduct = 10;
 
     public byte Code => (byte)OperationCode.PurchaseProduct;
 
@@ -21,11 +23,19 @@ public sealed class PurchaseProduct(Session session) : IOperationHandler
     {
         int type = request.Parameters.TryGetValue((byte)ParameterKey.ProductTypeID, out object? value) ? Convert.ToInt32(value) : -1;
         var product = PhotonValues.Table(request.Parameters.GetValueOrDefault((byte)ParameterKey.PurchaseProductData));
+        if (session.For(peer)?.ModernAccessories == true)
+            type = type switch
+            {
+                7 => MarketPlaceAvatarProduct,
+                8 => ThemeProduct,
+                9 => AccessoryBundleProduct,
+                _ => type,
+            };
 
         switch (type)
         {
             case StreamingAssetProduct when Value(product, 105) is { } asset:
-                BuyStreamingAsset(peer, request, asset);
+                BuyStreamingAsset(peer, request, asset, session.For(peer));
                 break;
             case AvatarProduct when Value(product, 126) is { } avatar:
                 BuyAvatar(peer, request, Convert.ToInt32(avatar));
@@ -37,12 +47,12 @@ public sealed class PurchaseProduct(Session session) : IOperationHandler
                 BuyCoinBoost(peer, request, buyer);
                 break;
             case MysteryBoxSpinsProduct when session.For(peer) is Player buyer && product.Values.OfType<int>().FirstOrDefault() is > 0 and int count:
-                peer.Send(new OperationResponse(request));
+                peer.Send(Success(request, buyer));
                 Console.WriteLine($"profile {buyer.ProfileId}: bought {count} spins, {Spins.Buy(buyer, count)} left");
                 break;
             case ThemeProduct when !session.Play && Value(product, (byte)ParameterKey.Id) is { } theme:
                 bool applied = Themes.Apply(session, Convert.ToInt32(theme), PhotonValues.Table(Value(product, (byte)ParameterKey.MetaData)));
-                peer.Send(new OperationResponse(request) { ReturnCode = applied ? (short)0 : (short)-1 });
+                peer.Send(applied ? Success(request, session.For(peer)) : new OperationResponse(request) { ReturnCode = -1 });
                 break;
             default:
                 Console.WriteLine($"peer {peer.Id}: unknown purchase type {type}: {string.Join(", ", product.Select(entry => $"{entry.Key} ({entry.Key.GetType().Name})={entry.Value}"))}");
@@ -60,7 +70,7 @@ public sealed class PurchaseProduct(Session session) : IOperationHandler
         }
 
         Item item = ModelInventory.Give(player, listing.Name, listing.Category, listing.Data, listing.Owner, 0).Item;
-        peer.Send(new OperationResponse(request));
+        peer.Send(Success(request, player));
         Console.WriteLine($"profile {player.ProfileId}: bought listing {listingId} as item {item.Id}");
     }
 
@@ -72,26 +82,28 @@ public sealed class PurchaseProduct(Session session) : IOperationHandler
         PhotonDictionary result = PhotonDictionary.Untyped();
         result.Add((byte)key, left);
 
-        peer.Send(new OperationResponse(request)
-        {
-            Parameters = { [(byte)ParameterKey.PurchaseProductData] = result },
-        });
+        OperationResponse response = Success(request, player);
+        response.Parameters[(byte)ParameterKey.PurchaseProductData] = result;
+        peer.Send(response);
         Console.WriteLine($"profile {player.ProfileId}: bought coin boost, {left / 60000} minutes left");
     }
+
+    static OperationResponse Success(OperationRequest request, Player? player) =>
+        new(request) { Parameters = { [(byte)ParameterKey.GoldAmount] = player is null ? 0 : Stores.Profiles.Gold(player.ProfileId) } };
 
     static object? Value(Dictionary<object, object?> product, int key) =>
         product.FirstOrDefault(entry => entry.Key is byte or short or int && Convert.ToInt32(entry.Key) == key).Value;
 
-    static void BuyStreamingAsset(PhotonPeer peer, OperationRequest request, object asset)
+    static void BuyStreamingAsset(PhotonPeer peer, OperationRequest request, object asset, Player? player)
     {
+        Dictionary<string, int> keys = Kogama.Protocols.ProtocolTable.For(player?.ClientVersion ?? Kogama.Protocols.ClientProtocols.ServerVersion).DBQueryKeys;
         PhotonDictionary result = PhotonDictionary.Untyped();
-        result.Add((byte)DBQueryKey.StreamingAssetInventoryID, asset);
-        result.Add((byte)DBQueryKey.PurchaseTimeTicks, DateTime.Now.Ticks);
+        result.Add((byte)keys.GetValueOrDefault(nameof(DBQueryKey.StreamingAssetInventoryID), (int)DBQueryKey.StreamingAssetInventoryID), asset);
+        result.Add((byte)keys.GetValueOrDefault(nameof(DBQueryKey.PurchaseTimeTicks), (int)DBQueryKey.PurchaseTimeTicks), DateTime.Now.Ticks);
 
-        peer.Send(new OperationResponse(request)
-        {
-            Parameters = { [(byte)ParameterKey.PurchaseProductData] = result },
-        });
+        OperationResponse response = Success(request, player);
+        response.Parameters[(byte)ParameterKey.PurchaseProductData] = result;
+        peer.Send(response);
     }
 
     void BuyAvatar(PhotonPeer peer, OperationRequest request, int shopId)
@@ -107,7 +119,7 @@ public sealed class PurchaseProduct(Session session) : IOperationHandler
         int bodyId = session.AddEditorBody(bought.Snapshot(player.Actor), avatar);
         Stores.Profiles.SaveAvatar(avatar, Avatar.ReadParts(session.World, bodyId));
 
-        peer.Send(new OperationResponse(request));
+        peer.Send(Success(request, player));
         peer.Send(new EventData((byte)EventCode.UpdateAvatarMetaData)
         {
             Parameters =

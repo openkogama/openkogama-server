@@ -155,6 +155,12 @@ public sealed class HttpServer
             return;
         }
 
+        if (path is "/reward")
+        {
+            Json(response, """{"rewardEnabled":false,"timeInSeconds":0,"xp":0}""");
+            return;
+        }
+
         if (path is "/shutdown" && IPAddress.IsLoopback(request.RemoteEndPoint.Address))
         {
             Json(response, "{}");
@@ -270,7 +276,10 @@ public sealed class HttpServer
     IEnumerable<string> NearestSets(string set)
     {
         const int Neighbours = 6;
-        List<string> ordered = [.. AssetSets.Keys.OrderBy(name => int.TryParse(name.TrimStart('v'), out int number) ? number : 0)];
+        string engine = BundleSets.EngineOf(set);
+        List<string> ordered = [.. AssetSets.Keys
+            .Where(name => BundleSets.EngineOf(name) == engine)
+            .OrderBy(name => int.TryParse(name.TrimStart('v'), out int number) ? number : 0)];
         int index = ordered.IndexOf(set);
         return ordered.Select((name, position) => (name, distance: Math.Abs(position - index)))
             .OrderBy(entry => entry.distance)

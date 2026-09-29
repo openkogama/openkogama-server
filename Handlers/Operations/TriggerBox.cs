@@ -21,7 +21,7 @@ public sealed class TriggerBox(Session session, bool entering) : IOperationHandl
 
         switch (obj.Type)
         {
-            case WorldObjectType.TriggerBox or WorldObjectType.PressurePlate:
+            case WorldObjectType.TriggerBox or WorldObjectType.PressurePlate or WorldObjectType.TriggerCube:
                 bool changed = entering ? session.Triggers.Enter(objectId, actor) : session.Triggers.Exit(objectId, actor);
                 if (!changed) break;
                 Send(session, objectId, actor, entering);

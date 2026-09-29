@@ -3,7 +3,7 @@ using OpenKogama.Photon;
 
 namespace OpenKogama.Handlers.Operations;
 
-public sealed class GetCreditStatus : IOperationHandler
+public sealed class GetCreditStatus(Game.Session session) : IOperationHandler
 {
     public byte Code => (byte)OperationCode.GetCreditStatus;
 
@@ -13,7 +13,7 @@ public sealed class GetCreditStatus : IOperationHandler
         {
             Parameters =
             {
-                [(byte)ParameterKey.GoldAmount] = 0,
+                [(byte)ParameterKey.GoldAmount] = UpdateGold.Gold(session, peer),
                 [(byte)ParameterKey.SilverAmount] = 0,
             },
         };

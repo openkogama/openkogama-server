@@ -91,6 +91,14 @@ public sealed class ProtocolTable
 
     public static bool IsLegacy(string version) => LegacyRules(version) is not null;
 
+    public static IEnumerable<ProtocolTable> Native() =>
+        Directory.EnumerateFiles(Path.Combine(AppContext.BaseDirectory, "data", "protocols"), "*.json")
+            .Select(Path.GetFileNameWithoutExtension)
+            .OfType<string>()
+            .Where(version => System.Version.TryParse(version, out _) && version != "2.30.6" && !IsLegacy(version))
+            .Select(For)
+            .Where(table => table.CreatableObjects is not null);
+
     static JsonObject? LegacyRules(string version)
     {
         string path = Path.Combine(AppContext.BaseDirectory, "data", "protocols", version + ".legacy.json");

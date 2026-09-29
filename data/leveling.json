@@ -10,183 +10,228 @@
   "levels": [
     {
       "xp": 0,
-      "friends": 30
+      "friends": 30,
+      "gold": 0
     },
     {
       "xp": 400,
-      "friends": 40
+      "friends": 40,
+      "gold": 5
     },
     {
       "xp": 1200,
-      "friends": 60
+      "friends": 60,
+      "gold": 10
     },
     {
       "xp": 2400,
-      "friends": 80
+      "friends": 80,
+      "gold": 15
     },
     {
       "xp": 4010,
-      "friends": 90
+      "friends": 90,
+      "gold": 20
     },
     {
       "xp": 6030,
-      "friends": 110
+      "friends": 110,
+      "gold": 30
     },
     {
       "xp": 9060,
-      "friends": 120
+      "friends": 120,
+      "gold": 35
     },
     {
       "xp": 12600,
-      "friends": 140
+      "friends": 140,
+      "gold": 40
     },
     {
       "xp": 16660,
-      "friends": 150
+      "friends": 150,
+      "gold": 45
     },
     {
       "xp": 21240,
-      "friends": 170
+      "friends": 170,
+      "gold": 50
     },
     {
       "xp": 26340,
-      "friends": 180
+      "friends": 180,
+      "gold": 100
     },
     {
       "xp": 37460,
-      "friends": 200
+      "friends": 200,
+      "gold": 108
     },
     {
       "xp": 49600,
-      "friends": 220
+      "friends": 220,
+      "gold": 120
     },
     {
       "xp": 62760,
-      "friends": 230
+      "friends": 230,
+      "gold": 132
     },
     {
       "xp": 76950,
-      "friends": 250
+      "friends": 250,
+      "gold": 150
     },
     {
       "xp": 92170,
-      "friends": 270
+      "friends": 270,
+      "gold": 150
     },
     {
       "xp": 108420,
-      "friends": 280
+      "friends": 280,
+      "gold": 175
     },
     {
       "xp": 125700,
-      "friends": 290
+      "friends": 290,
+      "gold": 200
     },
     {
       "xp": 144020,
-      "friends": 290
+      "friends": 290,
+      "gold": 200
     },
     {
       "xp": 163380,
-      "friends": 300
+      "friends": 300,
+      "gold": 200
     },
     {
       "xp": 183780,
-      "friends": 320
+      "friends": 320,
+      "gold": 300
     },
     {
       "xp": 218010,
-      "friends": 320
+      "friends": 320,
+      "gold": 300
     },
     {
       "xp": 254530,
-      "friends": 330
+      "friends": 330,
+      "gold": 350
     },
     {
       "xp": 293400,
-      "friends": 350
+      "friends": 350,
+      "gold": 350
     },
     {
       "xp": 334680,
-      "friends": 350
+      "friends": 350,
+      "gold": 400
     },
     {
       "xp": 378430,
-      "friends": 360
+      "friends": 360,
+      "gold": 450
     },
     {
       "xp": 424710,
-      "friends": 360
+      "friends": 360,
+      "gold": 500
     },
     {
       "xp": 473580,
-      "friends": 370
+      "friends": 370,
+      "gold": 500
     },
     {
       "xp": 525100,
-      "friends": 380
+      "friends": 380,
+      "gold": 500
     },
     {
       "xp": 579330,
-      "friends": 400
+      "friends": 400,
+      "gold": 500
     },
     {
       "xp": 636330,
-      "friends": 405
+      "friends": 405,
+      "gold": 500
     },
     {
       "xp": 1014530,
-      "friends": 405
+      "friends": 405,
+      "gold": 500
     },
     {
       "xp": 1411330,
-      "friends": 405
+      "friends": 405,
+      "gold": 500
     },
     {
       "xp": 1827130,
-      "friends": 410
+      "friends": 410,
+      "gold": 500
     },
     {
       "xp": 2262330,
-      "friends": 410
+      "friends": 410,
+      "gold": 500
     },
     {
       "xp": 2717330,
-      "friends": 410
+      "friends": 410,
+      "gold": 500
     },
     {
       "xp": 3192530,
-      "friends": 415
+      "friends": 415,
+      "gold": 500
     },
     {
       "xp": 3688330,
-      "friends": 415
+      "friends": 415,
+      "gold": 500
     },
     {
       "xp": 4205130,
-      "friends": 415
+      "friends": 415,
+      "gold": 500
     },
     {
       "xp": 4743330,
-      "friends": 420
+      "friends": 420,
+      "gold": 500
     },
     {
       "xp": 5303330,
-      "friends": 420
+      "friends": 420,
+      "gold": 500
     },
     {
       "xp": 5885530,
-      "friends": 420
+      "friends": 420,
+      "gold": 500
     },
     {
       "xp": 6490330,
-      "friends": 425
+      "friends": 425,
+      "gold": 500
     },
     {
       "xp": 7118130,
-      "friends": 425
+      "friends": 425,
+      "gold": 500
     },
     {
       "xp": 7769330,
-      "friends": 430
+      "friends": 430,
+      "gold": 500
     }
   ]
 }

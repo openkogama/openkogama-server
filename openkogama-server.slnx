@@ -2,5 +2,6 @@
   <Project Path="../openkogama-photon/openkogama-photon.csproj" />
   <Project Path="openkogama-server.csproj" />
   <Project Path="api/openkogama-api.csproj" />
+  <Project Path="examples/welcome/welcome.csproj" />
   <Project Path="examples/xp/xp.csproj" />
 </Solution>

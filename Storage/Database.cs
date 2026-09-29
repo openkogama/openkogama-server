@@ -124,6 +124,16 @@ public sealed class Database
         """
         ALTER TABLE profiles ADD COLUMN first_time BLOB;
         """,
+        """
+        ALTER TABLE avatar_accessories ADD COLUMN scale REAL NOT NULL DEFAULT 1;
+        """,
+        """
+        ALTER TABLE profiles ADD COLUMN gold INTEGER NOT NULL DEFAULT 0;
+        """,
+        """
+        ALTER TABLE profiles ADD COLUMN gold_level INTEGER NOT NULL DEFAULT 1;
+        ALTER TABLE profiles ADD COLUMN unseen_gold TEXT;
+        """,
     ];
 
     readonly string _connectionString;

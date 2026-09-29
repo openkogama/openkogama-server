@@ -31,7 +31,7 @@ public static class RuntimeDefaults
         WorldObjectType.UseLever => [("a", PackedType.Bool, obj.Data.Find(pair => pair.Key == "beginActivated").Value as bool? ?? false)],
         WorldObjectType.CountingCube => [("currentValue", PackedType.Int32, obj.Data.Find(pair => pair.Key == "startingValue").Value as int? ?? 0)],
         WorldObjectType.PulseBox => [("currentStartTime", PackedType.Int32, 0)],
-        WorldObjectType.PressurePlate => [("triggerBoxState", PackedType.Bool, false)],
+        WorldObjectType.PressurePlate or WorldObjectType.TriggerCube => [("triggerBoxState", PackedType.Bool, false)],
         WorldObjectType.GodzillaTrigger => [("occupantWOID", PackedType.Int32, -1)],
         WorldObjectType.CollectTheItemDropOff => [("isActive", PackedType.Bool, true)],
         WorldObjectType.CollectibleItem => [("takenByList", PackedType.Hashtable, Empty())],

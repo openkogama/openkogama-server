@@ -1,5 +1,7 @@
 using System.IO.Compression;
+using System.Net;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 
 namespace OpenKogama.World;
@@ -34,6 +36,25 @@ public static class KgmapFile
             batches.Add(reader.ReadBytes(reader.ReadInt32()));
 
         return (meta, batches);
+    }
+
+    public static string? Title(byte[] file)
+    {
+        if (!IsKgmap(file)) return null;
+        try
+        {
+            string? title = Read(file).Meta["GameTitle"]?.GetValue<string>();
+            for (string? previous = null; title is not null && title != previous;)
+            {
+                previous = title;
+                title = WebUtility.HtmlDecode(title);
+            }
+            return string.IsNullOrWhiteSpace(title) ? null : title.Trim();
+        }
+        catch (Exception error) when (error is InvalidDataException or EndOfStreamException or JsonException or InvalidOperationException)
+        {
+            return null;
+        }
     }
 
     public static void Write(string path, JsonObject meta, byte[] batch)

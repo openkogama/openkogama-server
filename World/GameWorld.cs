@@ -372,7 +372,7 @@ public sealed class GameWorld
             List<WorldObject> all = Ordered();
             var skipped = new HashSet<int>();
             foreach (WorldObject obj in all)
-                if (obj.Type == WorldObjectType.Avatar || obj.Transient || skipped.Contains(obj.ParentId))
+                if (obj.Type is WorldObjectType.Avatar or WorldObjectType.BuildModeAvatar || obj.Transient || skipped.Contains(obj.ParentId))
                     skipped.Add(obj.Id);
 
             List<WorldObject> objects = [.. all.Where(obj => !skipped.Contains(obj.Id))];

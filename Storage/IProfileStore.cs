@@ -8,6 +8,10 @@ public interface IProfileStore
 {
     int Xp(int profile);
     int AddXp(int profile, int amount);
+    int Gold(int profile);
+    int AddGold(int profile, int amount);
+    (int Level, Dictionary<int, int> Unseen) LevelRewards(int profile);
+    void SetLevelRewards(int profile, int level, Dictionary<int, int> unseen);
     int CoinBoost(int profile);
     int AddCoinBoost(int profile, int milliseconds);
     (int Spins, long Next) Spins(int profile);
@@ -31,6 +35,8 @@ public interface IProfileStore
     void SetActiveAvatar(int profile, int avatar);
 
     List<WornAccessory> Accessories(int avatar);
-    void SetAccessory(int avatar, int item, int slot, float offset);
+    void SetAccessory(int avatar, int item, int slot, float offset, float scale = 1f);
     void SetAccessoryOffset(int avatar, int slot, float offset);
+    void SetAccessoryScale(int avatar, int slot, float scale);
+    void ClearAccessorySlot(int avatar, int slot);
 }

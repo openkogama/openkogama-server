@@ -5,13 +5,15 @@ namespace OpenKogama.Game;
 public static class BundleSets
 {
     sealed record Range(string From, string Set);
-    sealed record Config(Dictionary<string, string> Sets, List<Range> Ranges, Dictionary<string, string> Builds);
+    sealed record Config(Dictionary<string, string> Sets, List<Range> Ranges, Dictionary<string, string> Builds, Dictionary<string, string>? Engines);
 
     static readonly Config Loaded = JsonSerializer.Deserialize<Config>(
         File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "data", "streaming", "bundles.json")),
         new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
 
     public static IReadOnlyDictionary<string, string> Roots => Loaded.Sets;
+
+    public static string EngineOf(string set) => Loaded.Engines?.GetValueOrDefault(set) ?? "5";
 
     public static string? For(string build)
     {

@@ -83,7 +83,7 @@ public sealed class GetNextGameBatch(Session session) : IOperationHandler
         }
         deliver(me.WorldData(snapshot));
 
-        Snapshot avatar = session.World.SubtreeSnapshot(me.AvatarId);
+        Snapshot avatar = session.AvatarSnapshot(me);
 
         foreach (Player other in session.Players)
         {
@@ -98,6 +98,11 @@ public sealed class GetNextGameBatch(Session session) : IOperationHandler
             other.Sees(me.Actor);
             if (other.Peer.Translator is Kogama.Protocols.OperationRemap)
                 other.Peer.Send(new EventData((byte)EventCode.JoinNotification) { Parameters = { [(byte)ParameterKey.ActorNr] = me.Actor } });
+            if (other.SpawnRoles)
+                other.Peer.Send(new EventData((byte)EventCode.ReplicateSpawnRoleData)
+                {
+                    Parameters = { [(byte)ParameterKey.ActorNr] = me.Actor, [(byte)ParameterKey.Data] = me.SpawnRoleData() },
+                });
 
             other.Peer.Send(new EventData((byte)EventCode.GetGameBatch)
             {

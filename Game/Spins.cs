@@ -33,7 +33,7 @@ public static class Spins
     static long Now => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
     public static bool Supported(Player player) =>
-        player.Peer.Translator is Kogama.Protocols.OperationRemap remap && remap.Knows(EventCode.RewardIsReady);
+        player.Peer.Translator is Kogama.Protocols.OperationRemap remap && remap.Knows(EventCode.RewardIsReady) && remap.Knows(OperationCode.ClaimReward);
 
     public static void Join(Session session, Player player)
     {
@@ -96,7 +96,8 @@ public static class Spins
             SpinReward reward = Config.Rewards[index];
             player.PendingReward = null;
             Stores.Profiles.SetSpins(player.ProfileId, spins - 1, next);
-            Stores.Profiles.AddXp(player.ProfileId, reward.Xp);
+            int total = Leveling.Grant(player.ProfileId, reward.Xp);
+            Experience.ShowLevelGold(player, total);
             Pending(player, spins - 1);
             return reward;
         }

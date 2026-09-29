@@ -15,6 +15,7 @@ public sealed class LevelInfo
 {
     public int Xp { get; set; }
     public int Friends { get; set; }
+    public int Gold { get; set; }
 }
 
 public sealed class LevelingData
@@ -28,6 +29,7 @@ public static class Leveling
 {
     static readonly JsonSerializerOptions Options = new() { PropertyNameCaseInsensitive = true };
     static LevelingData? _data;
+    static readonly object GoldSync = new();
 
     public static LevelingData Data => _data ??= JsonSerializer.Deserialize<LevelingData>(
         File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "data", "leveling.json")), Options) ?? new();
@@ -51,7 +53,51 @@ public static class Leveling
     public static int Add(int profile, int typeId)
     {
         XpType? type = Data.Xp.Find(xp => xp.Id == typeId);
-        return Stores.Profiles.AddXp(profile, type?.Amount ?? 0);
+        return Grant(profile, type?.Amount ?? 0);
+    }
+
+    public static int Grant(int profile, int amount)
+    {
+        int total = Stores.Profiles.AddXp(profile, amount);
+        PayLevelGold(profile, total);
+        return total;
+    }
+
+    public static void PayLevelGold(int profile, int xp)
+    {
+        lock (GoldSync)
+        {
+            (int paid, Dictionary<int, int> unseen) = Stores.Profiles.LevelRewards(profile);
+            int level = LevelFor(xp);
+            if (level <= paid) return;
+
+            int total = 0;
+            for (int reached = paid + 1; reached <= level; reached++)
+            {
+                int gold = Data.Levels[reached - 1].Gold;
+                if (gold <= 0) continue;
+                unseen[reached] = gold;
+                total += gold;
+            }
+            if (total > 0) Stores.Profiles.AddGold(profile, total);
+            Stores.Profiles.SetLevelRewards(profile, level, unseen);
+        }
+    }
+
+    public static Dictionary<int, int> TakeUnseenGold(int profile)
+    {
+        lock (GoldSync)
+        {
+            (int paid, Dictionary<int, int> unseen) = Stores.Profiles.LevelRewards(profile);
+            if (unseen.Count > 0) Stores.Profiles.SetLevelRewards(profile, paid, []);
+            return unseen;
+        }
+    }
+
+    public static (int Level, int Gold)? NextReward(int xp)
+    {
+        int next = LevelFor(xp) + 1;
+        return next <= MaxLevel ? (next, Data.Levels[next - 1].Gold) : null;
     }
 
     public static JsonObject InitData(int profile, string badgeRoot)

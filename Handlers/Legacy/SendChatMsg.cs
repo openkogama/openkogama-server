@@ -16,7 +16,7 @@ public sealed class SendChatMsg : ILegacyHandler
     public void Handle(PhotonPeer peer, OperationRequest request, LegacyTranslator protocol, Session session)
     {
         if (session.For(peer) is not Player sender || request[protocol.Key("ChatMsg")] is not string message) return;
-        if (Plugins.PluginHost.Chat(sender, message) is not { } text) return;
+        if (Plugins.PluginHost.Chat(session, sender, message) is not { } text) return;
 
         var evt = new EventData((byte)EventCode.PostGameMsg)
         {

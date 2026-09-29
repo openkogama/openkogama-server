@@ -6,25 +6,16 @@ namespace OpenKogama.Handlers.Operations;
 
 public sealed class PostChatMsg(Session session) : IOperationHandler
 {
-    const int Chat = 7;
-
     public byte Code => (byte)OperationCode.PostChatMsg;
 
     public void Handle(PhotonPeer peer, OperationRequest request)
     {
+        if (session.For(peer) is not Player sender) return;
+
         Dictionary<object, object?> data = PhotonValues.Table(request[(byte)ParameterKey.GameMsgData]);
-        if (session.For(peer) is Player sender && !Plugins.PluginHost.Chat(sender, data)) return;
+        if (!Plugins.PluginHost.Chat(session, sender, data)) return;
 
-        var evt = new EventData((byte)EventCode.PostGameMsg)
-        {
-            Parameters =
-            {
-                [(byte)ParameterKey.GameMsgType] = Chat,
-                [(byte)ParameterKey.GameMsgData] = data,
-            },
-        };
-
-        foreach (Player player in session.Players)
-            player.Peer.Send(evt);
+        int type = request[(byte)ParameterKey.GameMsgType] is { } value ? Convert.ToInt32(value) : 0;
+        ServerChat.Relay(session, sender, ServerChat.KindOf(sender, type), data);
     }
 }

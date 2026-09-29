@@ -10,9 +10,17 @@ public static class WorldConverter
 
     public static GameWorld Import(byte[] file, string? client, out Dictionary<int, int> dropped)
     {
-        ProtocolTable? table = ClientProtocols.Native(client) is string version ? ProtocolTable.For(version) : null;
-        Func<WorldObject, bool> supported = table?.CreatableObjects is null ? Is2015 : obj => obj.Type != WorldObjectType.Avatar && Game.Items.KnownBy(obj, table);
-        GameWorld world = Convert(keep => GameWorld.Read(file, keep), supported, out dropped);
+        List<ProtocolTable> tables = [.. ProtocolTable.Native()];
+        var known = new Dictionary<(WorldObjectType, object?), bool>();
+        bool Supported(WorldObject obj)
+        {
+            if (obj.Type is WorldObjectType.Avatar or WorldObjectType.BuildModeAvatar) return false;
+            var key = (obj.Type, obj.Data.Find(pair => pair.Key == "itemType").Value);
+            if (!known.TryGetValue(key, out bool result))
+                known[key] = result = tables.Any(table => Game.Items.KnownBy(obj, table));
+            return result;
+        }
+        GameWorld world = Convert(keep => GameWorld.Read(file, keep), Supported, out dropped);
         foreach (WorldObject obj in world.ToSnapshot().Objects.Where(obj => obj.Type == WorldObjectType.TextMsg))
             world.Modify(obj.Id, text => TextEras.ForClient(text, client));
         return world;

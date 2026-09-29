@@ -1,3 +1,4 @@
+using System.Text.Json;
 using OpenKogama.Kogama;
 using OpenKogama.Photon;
 using OpenKogama.Storage;
@@ -7,13 +8,15 @@ namespace OpenKogama.Game;
 public static class Experience
 {
     public const byte NoReason = 0;
+    const int NoMembers = 0;
     const byte PlayModeRepeatPlayTime = 1;
     const string PlayMinute = "1MinXpRewardPlayMode";
     static readonly TimeSpan Minute = TimeSpan.FromMinutes(1);
 
     public static int Award(Player player, int amount, byte reason)
     {
-        int total = Stores.Profiles.AddXp(player.ProfileId, amount);
+        int total = Leveling.Grant(player.ProfileId, amount);
+        ShowLevelGold(player, total);
         if (!player.ServerExperience) return total;
 
         player.Peer.Send(new EventData((byte)EventCode.XPReward)
@@ -23,6 +26,7 @@ public static class Experience
                 [(byte)ParameterKey.CurrentPlayerXP] = total,
                 [(byte)ParameterKey.XPRewardType] = reason,
                 [(byte)ParameterKey.AmountXP] = amount,
+                [(byte)ParameterKey.Count] = NoMembers,
             },
         });
 
@@ -39,6 +43,31 @@ public static class Experience
             });
         }
         return total;
+    }
+
+    public static void ShowLevelGold(Player player, int xp)
+    {
+        if (player.Peer.Translator is not Kogama.Protocols.OperationRemap remap || !remap.Knows(EventCode.GoldRewardedForLevel)) return;
+
+        Dictionary<int, int> rewards = Leveling.TakeUnseenGold(player.ProfileId);
+        if (rewards.Count > 0)
+            player.Peer.Send(new EventData((byte)EventCode.GoldRewardedForLevel)
+            {
+                Parameters = { [(byte)ParameterKey.Data] = JsonSerializer.Serialize(new { levelGoldRewards = rewards }) },
+            });
+        NextGoldReward(player, xp);
+    }
+
+    static void NextGoldReward(Player player, int xp)
+    {
+        if (player.Peer.Translator is not Kogama.Protocols.OperationRemap remap || !remap.Knows(EventCode.NextLevelGoldReward)
+            || Leveling.NextReward(xp) is not var (level, gold))
+            return;
+
+        player.Peer.Send(new EventData((byte)EventCode.NextLevelGoldReward)
+        {
+            Parameters = { [(byte)ParameterKey.Data] = JsonSerializer.Serialize(new { level, goldReward = gold }) },
+        });
     }
 
     public static void Tick(Session session)

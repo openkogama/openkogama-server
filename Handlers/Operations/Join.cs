@@ -24,6 +24,7 @@ public sealed class Join(Session session) : IOperationHandler
         if (request[(byte)ParameterKey.ClientBuildTarget] is byte target) player.BuildTarget = target;
         if (int.TryParse(request[(byte)ParameterKey.Token] as string, out int profile) && profile > 0)
             player.ProfileId = profile;
+        if (player.SpawnRoles && player.Mode == GameMode.Edit) session.AddBuildAvatar(player);
 
         PhotonDictionary prices = PhotonDictionary.Untyped();
         prices.Add("GameCoinBoost", new[] { 0, 0 });
@@ -52,6 +53,11 @@ public sealed class Join(Session session) : IOperationHandler
                 [(byte)ParameterKey.IsAdmin] = false,
                 [(byte)ParameterKey.Region] = Www,
                 [(byte)ParameterKey.ThemesEnabled] = true,
+                [(byte)ParameterKey.GoldAmount] = Storage.Stores.Profiles.Gold(player.ProfileId),
+                [(byte)ParameterKey.EnableInterstitialAds] = false,
+                [(byte)ParameterKey.EnableRewardedAds] = false,
+                [(byte)ParameterKey.PostGameInterstitialIntervalInSeconds] = 0,
+                [(byte)ParameterKey.UserProfileData] = player.ProfileData(),
             },
         };
 

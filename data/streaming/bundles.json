@@ -16,7 +16,26 @@
     "v23": "https://cdn.openkogama.org/eu/kogama_assets/v23/kogama_assets_u5/",
     "v24": "https://cdn.openkogama.org/eu/kogama_assets/v24/kogama_assets_u5/",
     "v25": "https://cdn.openkogama.org/eu/kogama_assets/v25/kogama_assets_u5/",
-    "v28": "https://cdn.openkogama.org/eu/kogama_assets/v28/kogama_assets_u5/"
+    "v28": "https://cdn.openkogama.org/eu/kogama_assets/v28/kogama_assets_u5/",
+    "v34": "https://cdn.openkogama.org/eu/kogama_assets/v34/kogama_assets_u5/",
+    "v35": "https://cdn.openkogama.org/eu/kogama_assets/v35/kogama_assets_u5/",
+    "v37": "https://cdn.openkogama.org/eu/kogama_assets/v37/kogama_assets_u5/",
+    "v39": "https://cdn.openkogama.org/eu/kogama_assets/v39/kogama_assets_u5/",
+    "v45": "https://cdn.openkogama.org/eu/kogama_assets/v45/kogama_assets_u5/",
+    "v53": "https://cdn.openkogama.org/eu/kogama_assets/v53/kogama_assets_u5/",
+    "v59": "https://cdn.openkogama.org/eu/kogama_assets/v59/kogama_assets_u5/",
+    "v61": "https://cdn.openkogama.org/eu/kogama_assets/v61/kogama_assets_u5/",
+    "v72": "https://cdn.openkogama.org/eu/kogama_assets/v72/kogama_assets_u5/",
+    "v74": "https://cdn.openkogama.org/eu/kogama_assets/v74/kogama_assets_u5/"
+  },
+  "engines": {
+    "v39": "2018.2",
+    "v45": "2018.2",
+    "v53": "2018.2",
+    "v59": "2018.2",
+    "v61": "2018.2",
+    "v72": "2018.2",
+    "v74": "2018.2"
   },
   "ranges": [
     { "from": "1.25.13.290", "set": "v2" },
@@ -40,7 +59,17 @@
     { "from": "1.85.16", "set": "v24" },
     { "from": "1.87.12", "set": "v25" },
     { "from": "1.88.7", "set": "v28" },
-    { "from": "1.89.0", "set": "v3" }
+    { "from": "1.89.12", "set": "v34" },
+    { "from": "1.89.15", "set": "v35" },
+    { "from": "1.90.0", "set": "v37" },
+    { "from": "1.91.0", "set": "v39" },
+    { "from": "1.98.0", "set": "v45" },
+    { "from": "1.99.7", "set": "v53" },
+    { "from": "1.99.17", "set": "v59" },
+    { "from": "1.99.21", "set": "v61" },
+    { "from": "2.2.0", "set": "v72" },
+    { "from": "2.6.0", "set": "v74" },
+    { "from": "2.7.0", "set": "v3" }
   ],
   "builds": {
     "1.32.7.526": "v3",

@@ -23,6 +23,45 @@ public sealed class SqliteProfileStore(Database database) : IProfileStore
         return (int)(long)command.ExecuteScalar()!;
     }
 
+    public int Gold(int profile)
+    {
+        using SqliteConnection connection = database.Open();
+        using SqliteCommand command = Command(connection, "SELECT gold FROM profiles WHERE id = $profile", ("$profile", profile));
+        return command.ExecuteScalar() is long gold ? (int)gold : 0;
+    }
+
+    public int AddGold(int profile, int amount)
+    {
+        using SqliteConnection connection = database.Open();
+        using SqliteCommand command = Command(connection, """
+            INSERT INTO profiles (id, gold) VALUES ($profile, MAX(0, $amount))
+            ON CONFLICT (id) DO UPDATE SET gold = MAX(0, gold + $amount)
+            RETURNING gold
+            """, ("$profile", profile), ("$amount", amount));
+        return (int)(long)command.ExecuteScalar()!;
+    }
+
+    public (int Level, Dictionary<int, int> Unseen) LevelRewards(int profile)
+    {
+        using SqliteConnection connection = database.Open();
+        using SqliteCommand command = Command(connection, "SELECT gold_level, unseen_gold FROM profiles WHERE id = $profile", ("$profile", profile));
+        using SqliteDataReader reader = command.ExecuteReader();
+        if (!reader.Read()) return (1, []);
+        Dictionary<int, int> unseen = reader.IsDBNull(1) ? [] : System.Text.Json.JsonSerializer.Deserialize<Dictionary<int, int>>(reader.GetString(1)) ?? [];
+        return (reader.GetInt32(0), unseen);
+    }
+
+    public void SetLevelRewards(int profile, int level, Dictionary<int, int> unseen)
+    {
+        using SqliteConnection connection = database.Open();
+        object stored = unseen.Count > 0 ? System.Text.Json.JsonSerializer.Serialize(unseen) : DBNull.Value;
+        using SqliteCommand command = Command(connection, """
+            INSERT INTO profiles (id, gold_level, unseen_gold) VALUES ($profile, $level, $unseen)
+            ON CONFLICT (id) DO UPDATE SET gold_level = $level, unseen_gold = $unseen
+            """, ("$profile", profile), ("$level", level), ("$unseen", stored));
+        command.ExecuteNonQuery();
+    }
+
     public int CoinBoost(int profile)
     {
         using SqliteConnection connection = database.Open();
@@ -257,24 +296,41 @@ public sealed class SqliteProfileStore(Database database) : IProfileStore
     public List<WornAccessory> Accessories(int avatar)
     {
         using SqliteConnection connection = database.Open();
-        using SqliteCommand command = Command(connection, "SELECT item, slot, offset FROM avatar_accessories WHERE avatar = $avatar", ("$avatar", avatar));
+        using SqliteCommand command = Command(connection, "SELECT item, slot, offset, scale FROM avatar_accessories WHERE avatar = $avatar", ("$avatar", avatar));
         using SqliteDataReader reader = command.ExecuteReader();
 
         var accessories = new List<WornAccessory>();
         while (reader.Read())
-            accessories.Add(new WornAccessory(reader.GetInt32(0), reader.GetInt32(1), reader.GetFloat(2)));
+            accessories.Add(new WornAccessory(reader.GetInt32(0), reader.GetInt32(1), reader.GetFloat(2), reader.GetFloat(3)));
         return accessories;
     }
 
-    public void SetAccessory(int avatar, int item, int slot, float offset)
+    public void SetAccessory(int avatar, int item, int slot, float offset, float scale = 1f)
     {
         using SqliteConnection connection = database.Open();
         using SqliteCommand command = slot == 0
             ? Command(connection, "DELETE FROM avatar_accessories WHERE avatar = $avatar AND item = $item", ("$avatar", avatar), ("$item", item))
             : Command(connection, """
-                INSERT INTO avatar_accessories (avatar, item, slot, offset) VALUES ($avatar, $item, $slot, $offset)
-                ON CONFLICT (avatar, item) DO UPDATE SET slot = excluded.slot, offset = excluded.offset
-                """, ("$avatar", avatar), ("$item", item), ("$slot", slot), ("$offset", offset));
+                INSERT INTO avatar_accessories (avatar, item, slot, offset, scale) VALUES ($avatar, $item, $slot, $offset, $scale)
+                ON CONFLICT (avatar, item) DO UPDATE SET slot = excluded.slot, offset = excluded.offset, scale = excluded.scale
+                """, ("$avatar", avatar), ("$item", item), ("$slot", slot), ("$offset", offset), ("$scale", scale));
+        command.ExecuteNonQuery();
+    }
+
+    public void SetAccessoryScale(int avatar, int slot, float scale)
+    {
+        using SqliteConnection connection = database.Open();
+        using SqliteCommand command = Command(connection,
+            "UPDATE avatar_accessories SET scale = $scale WHERE avatar = $avatar AND slot = $slot",
+            ("$avatar", avatar), ("$slot", slot), ("$scale", scale));
+        command.ExecuteNonQuery();
+    }
+
+    public void ClearAccessorySlot(int avatar, int slot)
+    {
+        using SqliteConnection connection = database.Open();
+        using SqliteCommand command = Command(connection,
+            "DELETE FROM avatar_accessories WHERE avatar = $avatar AND slot = $slot", ("$avatar", avatar), ("$slot", slot));
         command.ExecuteNonQuery();
     }
 

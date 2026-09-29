@@ -28,6 +28,7 @@ public sealed class Session
         Logic.ResetAll();
         Teams = new Teams(this);
         Round = new Round(this);
+        GamePasses = new GamePasses(this, worldId is not null);
     }
 
     public string Name { get; }
@@ -38,6 +39,7 @@ public sealed class Session
     public Logic Logic { get; }
     public Teams Teams { get; }
     public Round Round { get; }
+    public GamePasses GamePasses { get; }
 
     public GameWorld World { get; }
     public Triggers Triggers { get; } = new();
@@ -63,6 +65,35 @@ public sealed class Session
         _players.Add(player);
         return player;
     }
+
+    public void AddBuildAvatar(Player player)
+    {
+        if (Play || player.AvatarId < 0 || player.BuildAvatarId >= 0) return;
+
+        List<WorldObject> avatar = Avatar.Build(World, player.Actor, World.RootId, _avatarPrototypes, WorldObjectType.BuildModeAvatar);
+        foreach (WorldObject obj in avatar) World.Add(obj);
+        player.BuildAvatarId = avatar[0].Id;
+        player.ActiveSpawnRole = player.BuildAvatarId;
+        World.Modify(player.AvatarId, obj => obj.SetRuntime("spawnRoleModeType", PackedType.Int32, Avatar.Hidden));
+    }
+
+    public Snapshot AvatarSnapshot(Player player)
+    {
+        Snapshot avatar = World.SubtreeSnapshot(player.AvatarId);
+        if (player.BuildAvatarId >= 0)
+        {
+            Snapshot builder = World.SubtreeSnapshot(player.BuildAvatarId);
+            avatar = avatar with
+            {
+                Prototypes = [.. avatar.Prototypes.Concat(builder.Prototypes).DistinctBy(prototype => prototype.Id)],
+                Objects = [.. avatar.Objects, .. builder.Objects],
+            };
+        }
+        return avatar with { Prototypes = [.. avatar.Prototypes.Where(prototype => !_avatarPrototypes.Contains(prototype.Id))] };
+    }
+
+    public int BodyOf(int avatarId) =>
+        World.Subtree(avatarId).Find(obj => obj.Type == WorldObjectType.Blueprint && obj.ParentId == avatarId)?.Id ?? -1;
 
     public void LoadAvatar(Player player)
     {
@@ -137,6 +168,7 @@ public sealed class Session
     {
         _players.Remove(player);
         World.Remove(player.AvatarId);
+        if (player.BuildAvatarId >= 0) World.Remove(player.BuildAvatarId);
     }
 
     public static Session CharacterEditor(int actor, int profile)
@@ -191,7 +223,7 @@ public sealed class Session
     public static int ImportWorld(string name, byte[] file, string? client = null)
     {
         GameWorld world = WorldConverter.Import(file, client, out Dictionary<int, int> dropped);
-        int id = Stores.Worlds.Create(name, 0, world.ToData());
+        int id = Stores.Worlds.Create(KgmapFile.Title(file) ?? name, 0, world.ToData());
 
         string skipped = string.Join(", ", dropped.Select(pair => $"type {pair.Key} x{pair.Value}"));
         Console.WriteLine($"world {id} imported for {client ?? "2015"}: {world.ToSnapshot().Objects.Count} objects" + (skipped.Length > 0 ? $", dropped {skipped}" : ""));

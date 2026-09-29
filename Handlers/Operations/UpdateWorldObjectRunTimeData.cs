@@ -12,8 +12,26 @@ public sealed class UpdateWorldObjectRunTimeData(Session session) : IOperationHa
     public void Handle(PhotonPeer peer, OperationRequest request)
     {
         int objectId = Convert.ToInt32(request[(byte)ParameterKey.WorldObjectID]);
+        EventData? withHand = null;
         if (PhotonValues.Normalize(request[(byte)ParameterKey.WorldObjectRunTimeData]) is Dictionary<object, object?> changes)
         {
+            if (changes.GetValueOrDefault("currentItem") is Dictionary<object, object?> item
+                && item.GetValueOrDefault("type") is { } type && Convert.ToInt32(type) == (int)AvatarItemType.LaserPointer
+                && session.World.Find(objectId) is { Type: WorldObjectType.Avatar })
+            {
+                withHand = new EventData((byte)EventCode.UpdateWorldObjectRunTimeData)
+                {
+                    Parameters = new Dictionary<byte, object?>(request.Parameters)
+                    {
+                        [(byte)ParameterKey.WorldObjectRunTimeData] = new Dictionary<object, object?>(changes)
+                        {
+                            ["currentItem"] = new Dictionary<object, object?> { ["type"] = (int)AvatarItemType.Hand },
+                        },
+                        [(byte)ParameterKey.ActorNr] = (int)peer.Id,
+                    },
+                };
+            }
+
             try
             {
                 session.World.Modify(objectId, obj => PackedData.Merge(obj.Runtime, changes));
@@ -30,8 +48,9 @@ public sealed class UpdateWorldObjectRunTimeData(Session session) : IOperationHa
         };
         evt.Parameters[(byte)ParameterKey.ActorNr] = (int)peer.Id;
 
+        bool builder = session.Players.Any(player => player.BuildAvatarId == objectId);
         foreach (Player player in session.Players)
-            if (player.Peer != peer)
-                player.Peer.Send(evt);
+            if (player.Peer != peer && (!builder || player.SpawnRoles))
+                player.Peer.Send(withHand is not null && player.SpawnRoles ? withHand : evt);
     }
 }

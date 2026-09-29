@@ -74,6 +74,7 @@ public sealed class Router2012
             case Op2012.SetActorReady:
                 if (session.For(peer) is Player ready) ready.InWorld = true;
                 Reply(peer, request);
+                if (session.For(peer) is Player joined) Plugins.PluginHost.Joined(session, joined);
                 break;
             case Op2012.RaiseEvent: RaiseEvent(peer, request); break;
             case Op2012.SetProperties: SetProperties(peer, request); break;
@@ -510,7 +511,7 @@ public sealed class Router2012
     {
         if (session.For(peer) is not Player player || request[(byte)Key2012.ChatMsg] is not string message) return;
 
-        if (Plugins.PluginHost.Chat(player, message) is not { } allowed) return;
+        if (Plugins.PluginHost.Chat(session, player, message) is not { } allowed) return;
         message = allowed;
         if (message.Length > 256) message = message[..256];
         Broadcast(null, new EventData((byte)Event2012.ChatMsg)

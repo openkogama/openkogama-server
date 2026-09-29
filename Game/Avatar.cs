@@ -61,6 +61,7 @@ public static class Avatar
                 ("4", PackedType.String, asset.Path),
                 ("5", PackedType.Int64, DateTime.Now.Ticks),
                 ("6", PackedType.Int32, 0),
+                ("7", PackedType.Single, accessory.Scale),
             }));
         }
 
@@ -90,13 +91,16 @@ public static class Avatar
             ? blueprint.Find(pair => pair.Key == "ChildrenMap").Value as List<(string Key, PackedType Type, object Value)>
             : null;
 
-    public static List<WorldObject> Build(GameWorld world, int actor, int parentId, int[] partPrototypes)
+    public const int Playing = 1;
+    public const int Hidden = 4;
+
+    public static List<WorldObject> Build(GameWorld world, int actor, int parentId, int[] partPrototypes, WorldObjectType type = WorldObjectType.Avatar)
     {
         var avatar = new WorldObject
         {
             Id = world.NewObjectId(),
             ParentId = parentId,
-            Type = WorldObjectType.Avatar,
+            Type = type,
             Position = [.. world.Spawn],
             Owner = actor,
             Runtime =
@@ -111,6 +115,13 @@ public static class Avatar
                 ("avatarModeTypes", PackedType.Int32, 1),
                 ("animation", PackedType.Hashtable, new List<(string, PackedType, object)>()),
                 ("seat", PackedType.Int32, -1),
+                ("maxHealth", PackedType.Single, 100f),
+                ("spawnRoleModeType", PackedType.Int32, Playing),
+                ("headRotationYaw", PackedType.Single, 0f),
+                ("headRotationPitch", PackedType.Single, 0f),
+                ("pointRotationYaw", PackedType.Single, 0f),
+                ("pointRotationPitch", PackedType.Single, 0f),
+                ("emote", PackedType.Int32, 0),
             ],
         };
 

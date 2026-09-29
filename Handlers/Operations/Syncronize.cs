@@ -49,7 +49,8 @@ public sealed class Syncronize(Session session, OperationRouter router, GetNextG
             Run(peer, OperationCode.InitializeAvatarEdit);
         }
 
-        Run(peer, OperationCode.CreateGameSnapshot);
+        if (player.SpawnRoles) peer.Send(CreateGameSnapshot.Setup(session, player));
+        else Run(peer, OperationCode.CreateGameSnapshot);
         batch.SendWorld(peer, world => Send(peer, OperationCode.GameSnapshotData,
             (ParameterKey.Data, world), (ParameterKey.QueryType, (byte)QueryType.GameWorld), (ParameterKey.QueryDataLeft, false)));
         Run(peer, OperationCode.RequestFriends);
