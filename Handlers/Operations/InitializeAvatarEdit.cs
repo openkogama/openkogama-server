@@ -11,12 +11,13 @@ public sealed class InitializeAvatarEdit(Session session) : IOperationHandler
 
     public void Handle(PhotonPeer peer, OperationRequest request)
     {
+        bool silver = session.For(peer)?.Silver ?? true;
         var writer = new BytePackerWriter();
         writer.WriteInt32(session.Bodies.Count);
         foreach (int body in session.Bodies)
         {
             writer.WriteInt32(body);
-            AvatarMetaData.Write(writer, body);
+            AvatarMetaData.Write(writer, body, silver);
         }
 
         peer.Send(new OperationResponse(request)

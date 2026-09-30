@@ -25,8 +25,8 @@ public sealed class OperationRouter
         Register(new LargeDBQuery(Kogama.OperationCode.LargeDBQueryInventory));
         Register(new LargeDBQuery(Kogama.OperationCode.LargeDBQueryAvatarShopInventory));
         Register(new GetNextResultSet(session));
-        Register(new RequestStreamingAssetList());
-        Register(new RequestStreamingAssetInventory());
+        Register(new RequestStreamingAssetList(session));
+        Register(new RequestStreamingAssetInventory(session));
         Register(new PurchaseProduct(session));
         Register(new RentProduct());
         Register(new ExpireProduct());
@@ -76,9 +76,10 @@ public sealed class OperationRouter
         Register(new Acknowledge(Kogama.OperationCode.SetHighlightToSeen));
         Register(new Acknowledge(Kogama.OperationCode.SetMouseSensitivity));
         Register(new Ignore(Kogama.OperationCode.StartSessionTime));
-        Register(new Ignore(Kogama.OperationCode.ResetPlayerPlanetData));
+        Register(new GameTierOperation(session, Kogama.OperationCode.ResetPlayerPlanetData));
+        Register(new GameTierOperation(session, Kogama.OperationCode.SetGamePassTierOperation));
+        Register(new GameTierOperation(session, Kogama.OperationCode.SetGamePassTierToSeenOperation));
         Register(new Ignore(Kogama.OperationCode.ClaimGamePointWelcomeReward));
-        Register(new Ignore(Kogama.OperationCode.SetGamePassTierOperation));
         Register(new HighScoreList(Kogama.OperationCode.GetHighScoreList, Kogama.EventCode.HighScores));
         Register(new HighScoreList(Kogama.OperationCode.GetTopHighScoreList, Kogama.EventCode.TopHighScores));
         Register(new UpdateGold(session));

@@ -10,34 +10,56 @@ namespace OpenKogama.Handlers.Operations;
 public sealed class RequestAccessoryData(Session session) : IOperationHandler
 {
     const int AccessoryAsset = 2;
-    const int ParticlesCategory = 2;
     const int HatsCategory = 1;
+    const int ParticlesCategory = 2;
+    const int BackCategory = 3;
 
     public byte Code => (byte)OperationCode.RequestAccessoryData;
 
+    static int CategoryOf(StreamingAsset asset) => asset.Category is ParticlesCategory or BackCategory ? asset.Category : HatsCategory;
+
     public void Handle(PhotonPeer peer, OperationRequest request)
     {
-        var accessories = ClientContent.Streaming(peer).Assets.Where(asset => asset.Type == AccessoryAsset).ToList();
+        var accessories = ClientContent.Streaming(peer, session.For(peer)?.Build).Assets.Where(asset => asset.Type == AccessoryAsset).ToList();
+        bool shortNames = session.For(peer)?.AccessoryQueries == true;
         var shop = new
         {
-            accessoryDatas = accessories.Select((asset, index) => (asset, index)).ToDictionary(entry => entry.asset.Id.ToString(), entry => new
-            {
-                accessoryMetaDataID = entry.asset.Id,
-                streamingAssetID = entry.asset.Id,
-                isAvailable = true,
-                isNew = false,
-                isFeatured = false,
-                priceGold = 0,
-                discount = 0,
-                level = 0,
-                name = entry.asset.Name,
-                category = entry.asset.Category == ParticlesCategory ? ParticlesCategory : HatsCategory,
-                position = entry.index,
-                url = entry.asset.Path,
-                owns = true,
-                accessorySlotType = Accessories.ModernSlotOf(entry.asset),
-                timelimit = new { timeLimit = 0 },
-            }),
+            accessoryDatas = accessories.Select((asset, index) => (asset, index)).ToDictionary(entry => entry.asset.Id.ToString(), entry =>
+                shortNames ? (object)new
+                {
+                    aMDID = entry.asset.Id,
+                    sAID = entry.asset.Id,
+                    iAvlb = true,
+                    iNew = false,
+                    iFtr = false,
+                    cost = 0,
+                    dsc = 0,
+                    lvl = 0,
+                    name = entry.asset.Name,
+                    cat = CategoryOf(entry.asset),
+                    pos = entry.index,
+                    url = entry.asset.Path,
+                    owns = true,
+                    slot = Accessories.ModernSlotOf(entry.asset),
+                    time = new { timeLimit = 0 },
+                } : new
+                {
+                    accessoryMetaDataID = entry.asset.Id,
+                    streamingAssetID = entry.asset.Id,
+                    isAvailable = true,
+                    isNew = false,
+                    isFeatured = false,
+                    priceGold = 0,
+                    discount = 0,
+                    level = 0,
+                    name = entry.asset.Name,
+                    category = CategoryOf(entry.asset),
+                    position = entry.index,
+                    url = entry.asset.Path,
+                    owns = true,
+                    accessorySlotType = Accessories.ModernSlotOf(entry.asset),
+                    timelimit = new { timeLimit = 0 },
+                }),
             accessoryBundle = new
             {
                 accessoryBundleID = -1,

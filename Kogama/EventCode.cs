@@ -83,6 +83,8 @@ public enum EventCode : byte
     TopHighScores = 128,
     GoldRewardedForLevel = 129,
     NextLevelGoldReward = 130,
+    GetPublishedPlanetProfileData = 131,
+    PlayerPlanetData = 132,
     Leave = 254,
     Join = 255,
 }

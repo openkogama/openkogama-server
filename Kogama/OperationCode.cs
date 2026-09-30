@@ -131,6 +131,7 @@ public enum OperationCode : byte
     ClaimGamePointWelcomeReward = 130,
     SetGamePassTierOperation = 131,
     UpdateGold = 132,
+    SetGamePassTierToSeenOperation = 133,
     Leave = 254,
     Join = 255,
 }

@@ -4,7 +4,7 @@ using OpenKogama.Photon;
 
 namespace OpenKogama.Handlers.Operations;
 
-public sealed class RequestStreamingAssetList : IOperationHandler
+public sealed class RequestStreamingAssetList(Session session) : IOperationHandler
 {
     public byte Code => (byte)OperationCode.RequestStreamingAssetList;
 
@@ -12,7 +12,7 @@ public sealed class RequestStreamingAssetList : IOperationHandler
     {
         PhotonDictionary list = PhotonDictionary.Untyped();
         request.Parameters.TryGetValue((byte)ParameterKey.StreamingAssetTypeIDs, out object? types);
-        foreach (StreamingAsset asset in ClientContent.Streaming(peer).OfTypes(types))
+        foreach (StreamingAsset asset in ClientContent.Streaming(peer, session.For(peer)?.Build).OfTypes(types))
         {
             list.Add(asset.Id, asset.Describe());
         }

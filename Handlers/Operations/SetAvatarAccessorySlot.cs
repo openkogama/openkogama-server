@@ -19,7 +19,7 @@ public sealed class SetAvatarAccessorySlot(Session session) : IOperationHandler
         float offset = request[(byte)ParameterKey.AvatarAccessoryOffset] is { } rawOffset ? Convert.ToSingle(rawOffset) : 0f;
         float scale = request[(byte)ParameterKey.Scale] is { } rawScale ? Convert.ToSingle(rawScale) : 1f;
 
-        StreamingAsset? asset = ClientContent.Streaming(peer).Assets.Find(asset => asset.Id == assetId);
+        StreamingAsset? asset = ClientContent.Streaming(peer, owner?.Build).Assets.Find(asset => asset.Id == assetId);
         if (asset is null)
         {
             peer.Send(new OperationResponse(request) { ReturnCode = -1 });

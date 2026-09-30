@@ -32,6 +32,7 @@ public sealed class SetActorReady(Session session) : IOperationHandler
                     other.Peer.Send(ready);
         }
         ProfileMeta.Send(player);
+        session.GamePasses.Send(player);
         int xp = Leveling.XpOf(player.ProfileId);
         Leveling.PayLevelGold(player.ProfileId, xp);
         Experience.ShowLevelGold(player, xp);

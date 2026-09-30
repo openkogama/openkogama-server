@@ -12,6 +12,8 @@ public interface IProfileStore
     int AddGold(int profile, int amount);
     (int Level, Dictionary<int, int> Unseen) LevelRewards(int profile);
     void SetLevelRewards(int profile, int level, Dictionary<int, int> unseen);
+    (int Tier, int Seen) GameTier(int profile, int world);
+    void SetGameTier(int profile, int world, int tier, int seen);
     int CoinBoost(int profile);
     int AddCoinBoost(int profile, int milliseconds);
     (int Spins, long Next) Spins(int profile);

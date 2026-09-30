@@ -9,11 +9,11 @@ public sealed class GetNextGameBatch(Session session) : IOperationHandler
 {
     public static void SendAdded(Session session, int actor, Snapshot added)
     {
-        var formats = new Dictionary<(bool, bool), byte[]>();
+        var formats = new Dictionary<object, byte[]>();
         foreach (Player player in session.Players)
         {
             if (!player.Knows(added)) continue;
-            (bool, bool) format = (player.LinkState, player.ObjectLinkState);
+            object format = player.WorldFormat;
             if (!formats.TryGetValue(format, out byte[]? data))
                 formats[format] = data = player.WorldData(added);
             player.Peer.Send(new EventData((byte)EventCode.GetGameBatch)

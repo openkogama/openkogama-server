@@ -62,6 +62,25 @@ public sealed class SqliteProfileStore(Database database) : IProfileStore
         command.ExecuteNonQuery();
     }
 
+    public (int Tier, int Seen) GameTier(int profile, int world)
+    {
+        using SqliteConnection connection = database.Open();
+        using SqliteCommand command = Command(connection, "SELECT tier, seen FROM game_tiers WHERE profile = $profile AND world = $world",
+            ("$profile", profile), ("$world", world));
+        using SqliteDataReader reader = command.ExecuteReader();
+        return reader.Read() ? (reader.GetInt32(0), reader.GetInt32(1)) : (0, 0);
+    }
+
+    public void SetGameTier(int profile, int world, int tier, int seen)
+    {
+        using SqliteConnection connection = database.Open();
+        using SqliteCommand command = Command(connection, """
+            INSERT INTO game_tiers (profile, world, tier, seen) VALUES ($profile, $world, $tier, $seen)
+            ON CONFLICT (profile, world) DO UPDATE SET tier = $tier, seen = $seen
+            """, ("$profile", profile), ("$world", world), ("$tier", tier), ("$seen", seen));
+        command.ExecuteNonQuery();
+    }
+
     public int CoinBoost(int profile)
     {
         using SqliteConnection connection = database.Open();

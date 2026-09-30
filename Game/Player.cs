@@ -106,10 +106,16 @@ public sealed class Player(PhotonPeer peer, int actor, int avatarId)
     public bool SpawnRoles => peer.Translator is Kogama.Protocols.OperationRemap remap && remap.Knows(Kogama.EventCode.SetupUserPlayMode);
     public DateTime? PlayingSince { get; set; }
 
+    public StreamingAssetCatalog Streaming => ClientContent.Streaming(peer, Build);
+
+    public object WorldFormat => (LinkState, ObjectLinkState, ModernAccessories, SpawnRoles, Streaming);
+
+    public bool Silver => peer.Translator is not Kogama.Protocols.OperationRemap remap || remap.Knows(Kogama.ParameterKey.SilverAmount);
+
     public string SpawnRoleData() => System.Text.Json.JsonSerializer.Serialize(new
     {
         activeSpawnRole = ActiveSpawnRole,
-        spawnRoleAvatarIds = new[] { AvatarId, BuildAvatarId }.Where(id => id >= 0),
+        spawnRoleAvatarIds = (Mode == GameMode.CharacterEditor ? new[] { BuildAvatarId } : new[] { AvatarId, BuildAvatarId }).Where(id => id >= 0),
     });
 
     public string SpawnRoleMetaData() => System.Text.Json.JsonSerializer.Serialize(new
@@ -135,7 +141,7 @@ public sealed class Player(PhotonPeer peer, int actor, int avatarId)
     {
         if (!SpawnRoles) snapshot = WithoutBuildAvatars(snapshot);
         else snapshot = snapshot with { Objects = [.. snapshot.Objects.Select(WithoutLaser)] };
-        if (ModernAccessories) snapshot = snapshot with { Objects = [.. snapshot.Objects.Select(Accessories.Modern)] };
+        snapshot = snapshot with { Objects = [.. snapshot.Objects.Select(obj => Accessories.For(this, obj))] };
         return World.WorldSerializer.Write(snapshot, linkState: LinkState, objectLinkState: ObjectLinkState);
     }
 

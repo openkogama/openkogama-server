@@ -10,6 +10,9 @@ public static class Experience
     public const byte NoReason = 0;
     const int NoMembers = 0;
     const byte PlayModeRepeatPlayTime = 1;
+    const byte EditModeRepeatPlayTime = 2;
+    const byte AvatarModeRepeatPlayTime = 3;
+    const byte HugeReward = 6;
     const string PlayMinute = "1MinXpRewardPlayMode";
     static readonly TimeSpan Minute = TimeSpan.FromMinutes(1);
 
@@ -24,7 +27,7 @@ public static class Experience
             Parameters =
             {
                 [(byte)ParameterKey.CurrentPlayerXP] = total,
-                [(byte)ParameterKey.XPRewardType] = reason,
+                [(byte)ParameterKey.XPRewardType] = Shown(player, reason),
                 [(byte)ParameterKey.AmountXP] = amount,
                 [(byte)ParameterKey.Count] = NoMembers,
             },
@@ -44,6 +47,18 @@ public static class Experience
         }
         return total;
     }
+
+    static byte Shown(Player player, byte reason) => reason switch
+    {
+        NoReason => player.Mode switch
+        {
+            GameMode.Edit => EditModeRepeatPlayTime,
+            GameMode.CharacterEditor => AvatarModeRepeatPlayTime,
+            _ => PlayModeRepeatPlayTime,
+        },
+        > HugeReward => HugeReward,
+        _ => reason,
+    };
 
     public static void ShowLevelGold(Player player, int xp)
     {

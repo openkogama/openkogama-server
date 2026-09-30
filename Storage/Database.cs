@@ -134,6 +134,15 @@ public sealed class Database
         ALTER TABLE profiles ADD COLUMN gold_level INTEGER NOT NULL DEFAULT 1;
         ALTER TABLE profiles ADD COLUMN unseen_gold TEXT;
         """,
+        """
+        CREATE TABLE game_tiers (
+            profile INTEGER NOT NULL,
+            world INTEGER NOT NULL,
+            tier INTEGER NOT NULL DEFAULT 0,
+            seen INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (profile, world)
+        );
+        """,
     ];
 
     readonly string _connectionString;

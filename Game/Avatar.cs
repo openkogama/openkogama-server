@@ -52,7 +52,7 @@ public static class Avatar
         var accessories = new List<(string Key, PackedType Type, object Value)>();
         foreach (WornAccessory accessory in worn)
         {
-            if (StreamingAssets.For("2015").Assets.Find(asset => asset.Id == accessory.Item) is not { } asset) continue;
+            if (StreamingAssets.Find(accessory.Item) is not { } asset) continue;
             accessories.Add((accessory.Item.ToString(), PackedType.Hashtable, new List<(string Key, PackedType Type, object Value)>
             {
                 ("1", PackedType.Int32, accessory.Item),

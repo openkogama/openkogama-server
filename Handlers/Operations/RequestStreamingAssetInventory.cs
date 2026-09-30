@@ -4,7 +4,7 @@ using OpenKogama.Photon;
 
 namespace OpenKogama.Handlers.Operations;
 
-public sealed class RequestStreamingAssetInventory : IOperationHandler
+public sealed class RequestStreamingAssetInventory(Session session) : IOperationHandler
 {
     static readonly long Owned = new DateTime(2015, 1, 1, 0, 0, 0, DateTimeKind.Utc).Ticks;
 
@@ -14,7 +14,7 @@ public sealed class RequestStreamingAssetInventory : IOperationHandler
     {
         PhotonDictionary inventory = PhotonDictionary.Untyped();
         request.Parameters.TryGetValue((byte)ParameterKey.StreamingAssetTypeIDs, out object? types);
-        foreach (StreamingAsset asset in ClientContent.Streaming(peer).OfTypes(types))
+        foreach (StreamingAsset asset in ClientContent.Streaming(peer, session.For(peer)?.Build).OfTypes(types))
         {
             PhotonDictionary entry = PhotonDictionary.Untyped();
             entry.Add((byte)DBQueryKey.StreamingAssetID, asset.Id);

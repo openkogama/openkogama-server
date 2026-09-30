@@ -5,7 +5,10 @@ namespace OpenKogama.Game;
 
 public static class ClientContent
 {
-    public static StreamingAssetCatalog Streaming(PhotonPeer peer) => StreamingAssets.For(Rule(peer)?.Streaming ?? "2015");
+    public static StreamingAssetCatalog Streaming(PhotonPeer peer, string? build) =>
+        peer.Translator is not LegacyTranslator && build is not null && BundleSets.For(build) is string set
+            ? StreamingAssets.ForSet(set)
+            : StreamingAssets.For(Rule(peer)?.Streaming ?? "2015");
 
     public static IEnumerable<Material> Materials(PhotonPeer peer)
     {

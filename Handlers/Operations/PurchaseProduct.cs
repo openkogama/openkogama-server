@@ -16,6 +16,7 @@ public sealed class PurchaseProduct(Session session) : IOperationHandler
     const int MarketPlaceAvatarProduct = 8;
     const int ThemeProduct = 9;
     const int AccessoryBundleProduct = 10;
+    const int GamePassTierProduct = 11;
 
     public byte Code => (byte)OperationCode.PurchaseProduct;
 
@@ -29,6 +30,7 @@ public sealed class PurchaseProduct(Session session) : IOperationHandler
                 7 => MarketPlaceAvatarProduct,
                 8 => ThemeProduct,
                 9 => AccessoryBundleProduct,
+                10 => GamePassTierProduct,
                 _ => type,
             };
 
@@ -49,6 +51,10 @@ public sealed class PurchaseProduct(Session session) : IOperationHandler
             case MysteryBoxSpinsProduct when session.For(peer) is Player buyer && product.Values.OfType<int>().FirstOrDefault() is > 0 and int count:
                 peer.Send(Success(request, buyer));
                 Console.WriteLine($"profile {buyer.ProfileId}: bought {count} spins, {Spins.Buy(buyer, count)} left");
+                break;
+            case GamePassTierProduct when session.For(peer) is Player tierBuyer && Value(product, (byte)ParameterKey.Data) is { } tier:
+                short result = session.GamePasses.Purchase(tierBuyer, Convert.ToInt32(tier));
+                peer.Send(result == 0 ? Success(request, tierBuyer) : new OperationResponse(request) { ReturnCode = result });
                 break;
             case ThemeProduct when !session.Play && Value(product, (byte)ParameterKey.Id) is { } theme:
                 bool applied = Themes.Apply(session, Convert.ToInt32(theme), PhotonValues.Table(Value(product, (byte)ParameterKey.MetaData)));
@@ -125,7 +131,7 @@ public sealed class PurchaseProduct(Session session) : IOperationHandler
             Parameters =
             {
                 [(byte)ParameterKey.WorldObjectID] = bodyId,
-                [(byte)ParameterKey.AvatarMetaData] = AvatarMetaData.Of(bodyId),
+                [(byte)ParameterKey.AvatarMetaData] = AvatarMetaData.Of(bodyId, player.Silver),
             },
         });
         peer.Send(new EventData((byte)EventCode.GetGameBatch)

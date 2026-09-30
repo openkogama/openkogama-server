@@ -49,7 +49,7 @@ public sealed class CreateGameSnapshot(Session session) : IOperationHandler
             Parameters =
             {
                 [(byte)ParameterKey.Data] = me.SpawnRoleData(),
-                [(byte)ParameterKey.Id] = me.AvatarId >= 0 ? session.BodyOf(me.AvatarId) : session.Bodies.FirstOrDefault(-1),
+                [(byte)ParameterKey.Id] = me.Mode == GameMode.CharacterEditor || me.AvatarId < 0 ? session.Bodies.FirstOrDefault(-1) : session.BodyOf(me.AvatarId),
                 [(byte)ParameterKey.Timestamp] = me.LogicSteps ? session.Logic.StepStamp : session.Logic.Frame * Logic.FrameInterval,
                 [(byte)ParameterKey.TeamList] = Teams(session),
             },

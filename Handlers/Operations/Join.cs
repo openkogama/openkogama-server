@@ -6,7 +6,9 @@ namespace OpenKogama.Handlers.Operations;
 
 public sealed class Join(Session session) : IOperationHandler
 {
-    const int SpinEnabled = 0x20;
+    const int OldSpinEnabled = 0x20;
+    const int SpinEnabled = 0x10;
+    static readonly Version MovedFlagsVersion = new(1, 74);
     const byte Www = 4;
     const string NoBannedTools = """{"ApplicationDescs":[],"applicationDescFactoryBase":{"ApplicationDescs":[]}}""";
 
@@ -24,7 +26,7 @@ public sealed class Join(Session session) : IOperationHandler
         if (request[(byte)ParameterKey.ClientBuildTarget] is byte target) player.BuildTarget = target;
         if (int.TryParse(request[(byte)ParameterKey.Token] as string, out int profile) && profile > 0)
             player.ProfileId = profile;
-        if (player.SpawnRoles && player.Mode == GameMode.Edit) session.AddBuildAvatar(player);
+        if (player.SpawnRoles && player.Mode is GameMode.Edit or GameMode.CharacterEditor) session.AddBuildAvatar(player);
 
         PhotonDictionary prices = PhotonDictionary.Untyped();
         prices.Add("GameCoinBoost", new[] { 0, 0 });
@@ -39,7 +41,7 @@ public sealed class Join(Session session) : IOperationHandler
                 [(byte)ParameterKey.IsGamePublished] = session.Published,
                 [(byte)ParameterKey.GameType] = (int)GameType.Classic,
                 [(byte)ParameterKey.TeamID] = (int)player.Team,
-                [(byte)ParameterKey.ClientSettingFlags] = SpinEnabled,
+                [(byte)ParameterKey.ClientSettingFlags] = Version.TryParse(player.Build, out Version? build) && build >= MovedFlagsVersion ? SpinEnabled : OldSpinEnabled,
                 [(byte)ParameterKey.Prices] = prices,
                 [(byte)ParameterKey.GameCoinBoosterLeft] = CoinBoost.Left(player),
                 [(byte)ParameterKey.MarketPlaceLevel] = 0,
