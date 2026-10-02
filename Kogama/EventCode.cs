@@ -85,6 +85,7 @@ public enum EventCode : byte
     NextLevelGoldReward = 130,
     GetPublishedPlanetProfileData = 131,
     PlayerPlanetData = 132,
+    SetSpawnRoleBody = 133,
     Leave = 254,
     Join = 255,
 }

@@ -59,6 +59,10 @@ public sealed class TriggerBox(Session session, bool entering) : IOperationHandl
                 if (entering) session.Round.Collect(player, obj);
                 break;
 
+            case WorldObjectType.GamePoint or WorldObjectType.GamePointChest:
+                if (entering) session.GamePasses.Collect(player, obj);
+                break;
+
             case WorldObjectType.PickupItemSpawner or WorldObjectType.PickupCubeGun:
                 if (entering) Pickup.Take(session, player, obj);
                 break;

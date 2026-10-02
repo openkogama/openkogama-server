@@ -16,7 +16,7 @@ public static class CollectTheItem
         session.Logic.Signal(instance.Id, instigator, true);
         if (!IsTemporary(instance))
         {
-            int actor = session.Players.FirstOrDefault(player => player.AvatarId == instigator)?.Actor ?? 0;
+            int actor = session.Players.FirstOrDefault(player => player.Owns(instigator))?.Actor ?? 0;
             Handlers.Operations.Pickup.Respawn(session, instance.Id, actor);
             return;
         }

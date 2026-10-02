@@ -24,11 +24,14 @@ public sealed class Session
         foreach (WorldObject obj in World.ToSnapshot().Objects)
             World.Modify(obj.Id, RuntimeDefaults.Reset);
         _avatarPrototypes = Avatar.AddPrototypes(World);
+        AvatarClasses.AddPreviews(World);
         Logic = new Logic(this);
         Logic.ResetAll();
         Teams = new Teams(this);
         Round = new Round(this);
         GamePasses = new GamePasses(this, worldId is not null);
+        if (worldId is not null && World.FindFirst(WorldObjectType.GameBoosterDataObject) is null)
+            World.Add(new WorldObject { Id = World.NewObjectId(), ParentId = World.RootId, Type = WorldObjectType.GameBoosterDataObject, Owner = -1 });
     }
 
     public string Name { get; }
@@ -105,11 +108,7 @@ public sealed class Session
         if (body is not null) Dress(body.Id, avatar);
     }
 
-    void Dress(int bodyId, int avatar)
-    {
-        if (Stores.Profiles.AvatarParts(avatar) is { } parts) Avatar.UseParts(World, bodyId, parts);
-        Avatar.WearAccessories(World, bodyId, Stores.Profiles.Accessories(avatar));
-    }
+    void Dress(int bodyId, int avatar) => Avatar.Dress(World, bodyId, avatar);
 
     public void SaveEditedAvatar(Player player)
     {
@@ -169,6 +168,36 @@ public sealed class Session
         _players.Remove(player);
         World.Remove(player.AvatarId);
         if (player.BuildAvatarId >= 0) World.Remove(player.BuildAvatarId);
+        foreach (int role in player.ClassAvatars.Values) World.Remove(role);
+    }
+
+    public int[] AvatarPrototypes => _avatarPrototypes;
+
+    public void ActivateRole(Player player, int role, float[]? position = null, float[]? rotation = null)
+    {
+        WorldObject? previous = World.Find(player.ActiveSpawnRole);
+        position ??= player.LastPosition ?? previous?.Position ?? [.. World.Spawn];
+        rotation ??= player.LastRotation ?? previous?.Rotation ?? [0f, 0f, 0f, 1f];
+        player.ActiveSpawnRole = role;
+
+        var activate = new EventData((byte)EventCode.SetActiveSpawnRole)
+        {
+            Parameters =
+            {
+                [(byte)ParameterKey.ActorNr] = player.Actor,
+                [(byte)ParameterKey.Id] = role,
+                [(byte)ParameterKey.PosX] = position[0],
+                [(byte)ParameterKey.PosY] = position[1],
+                [(byte)ParameterKey.PosZ] = position[2],
+                [(byte)ParameterKey.RotX] = rotation[0],
+                [(byte)ParameterKey.RotY] = rotation[1],
+                [(byte)ParameterKey.RotZ] = rotation[2],
+                [(byte)ParameterKey.RotW] = rotation[3],
+            },
+        };
+        foreach (Player other in _players)
+            if (other.SpawnRoles && (other == player || other.Saw(player.Actor)))
+                other.Peer.Send(activate);
     }
 
     public static Session CharacterEditor(int actor, int profile)

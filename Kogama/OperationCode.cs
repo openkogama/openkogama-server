@@ -132,6 +132,10 @@ public enum OperationCode : byte
     SetGamePassTierOperation = 131,
     UpdateGold = 132,
     SetGamePassTierToSeenOperation = 133,
+    CustomDevCommands = 134,
+    CreateSpawnRole = 135,
+    GetAvatarBodies = 136,
+    SetSpawnRoleBody = 137,
     Leave = 254,
     Join = 255,
 }

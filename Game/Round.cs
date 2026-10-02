@@ -147,6 +147,7 @@ public sealed class Round(Session session)
 
     void End(GameStateReason reason, int actor)
     {
+        session.GamePasses.ResetCrystals();
         ReportWinner(reason, actor);
         SetState(GameStateType.RoundEnded, EndedMs, reason, actor);
 

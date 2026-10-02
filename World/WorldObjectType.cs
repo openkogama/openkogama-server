@@ -50,6 +50,8 @@ public enum WorldObjectType
     GamePoint = 130,
     GamePassProgressionDataObject = 131,
     BuildModeAvatar = 133,
+    AvatarSpawnRoleCreator = 134,
+    GameBoosterDataObject = 135,
     GodzillaTrigger = 147,
     Theme = 150,
     TriggerCube = 162,

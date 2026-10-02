@@ -14,7 +14,7 @@ public sealed class AvatarGesture(Session session, OperationCode code, EventCode
 
         var evt = new EventData((byte)relay)
         {
-            Parameters = new Dictionary<byte, object?>(request.Parameters) { [(byte)ParameterKey.WorldObjectID] = player.AvatarId },
+            Parameters = new Dictionary<byte, object?>(request.Parameters) { [(byte)ParameterKey.WorldObjectID] = player.PlayAvatar },
         };
         foreach (Player other in session.Players)
             if (other != player)

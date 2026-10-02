@@ -6,4 +6,5 @@ public enum QueryType : byte
     Item = 1,
     AddToGameWorld = 2,
     AccessoryUserData = 3,
+    Bodies = 4,
 }

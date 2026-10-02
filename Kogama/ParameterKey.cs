@@ -172,6 +172,7 @@ public enum ParameterKey : byte
     UserProfileData = 223,
     PlayerPlanetData = 224,
     Count = 225,
+    AdConsentEndpointURL = 226,
     Data = 245,
     ActorNr = 254,
 }

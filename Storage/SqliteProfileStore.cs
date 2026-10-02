@@ -62,23 +62,40 @@ public sealed class SqliteProfileStore(Database database) : IProfileStore
         command.ExecuteNonQuery();
     }
 
-    public (int Tier, int Seen) GameTier(int profile, int world)
+    public PlanetProgress Planet(int profile, int world)
     {
         using SqliteConnection connection = database.Open();
-        using SqliteCommand command = Command(connection, "SELECT tier, seen FROM game_tiers WHERE profile = $profile AND world = $world",
+        using SqliteCommand command = Command(connection, "SELECT tier, seen, points, welcome FROM game_tiers WHERE profile = $profile AND world = $world",
             ("$profile", profile), ("$world", world));
         using SqliteDataReader reader = command.ExecuteReader();
-        return reader.Read() ? (reader.GetInt32(0), reader.GetInt32(1)) : (0, 0);
+        if (!reader.Read()) return new PlanetProgress(0, 0, 0, null);
+        DateTime? welcome = reader.IsDBNull(3) ? null : DateTime.Parse(reader.GetString(3), null, System.Globalization.DateTimeStyles.RoundtripKind);
+        return new PlanetProgress(reader.GetInt32(0), reader.GetInt32(1), reader.GetInt32(2), welcome);
     }
 
-    public void SetGameTier(int profile, int world, int tier, int seen)
+    public void SetPlanet(int profile, int world, PlanetProgress progress)
     {
         using SqliteConnection connection = database.Open();
         using SqliteCommand command = Command(connection, """
-            INSERT INTO game_tiers (profile, world, tier, seen) VALUES ($profile, $world, $tier, $seen)
-            ON CONFLICT (profile, world) DO UPDATE SET tier = $tier, seen = $seen
-            """, ("$profile", profile), ("$world", world), ("$tier", tier), ("$seen", seen));
+            INSERT INTO game_tiers (profile, world, tier, seen, points, welcome) VALUES ($profile, $world, $tier, $seen, $points, $welcome)
+            ON CONFLICT (profile, world) DO UPDATE SET tier = $tier, seen = $seen, points = $points, welcome = $welcome
+            """, ("$profile", profile), ("$world", world), ("$tier", progress.Tier), ("$seen", progress.Seen), ("$points", progress.Points),
+            ("$welcome", (object?)progress.Welcome?.ToString("o") ?? DBNull.Value));
         command.ExecuteNonQuery();
+    }
+
+    public List<PlanetScore> PlanetScores(int world)
+    {
+        using SqliteConnection connection = database.Open();
+        using SqliteCommand command = Command(connection, """
+            SELECT g.profile, p.name, g.points FROM game_tiers g LEFT JOIN profiles p ON p.id = g.profile
+            WHERE g.world = $world AND g.points > 0 ORDER BY g.points DESC, g.profile
+            """, ("$world", world));
+        using SqliteDataReader reader = command.ExecuteReader();
+        var scores = new List<PlanetScore>();
+        while (reader.Read())
+            scores.Add(new PlanetScore(reader.GetInt32(0), reader.IsDBNull(1) ? null : reader.GetString(1), reader.GetInt32(2)));
+        return scores;
     }
 
     public int CoinBoost(int profile)

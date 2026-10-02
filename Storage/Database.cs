@@ -143,6 +143,10 @@ public sealed class Database
             PRIMARY KEY (profile, world)
         );
         """,
+        """
+        ALTER TABLE game_tiers ADD COLUMN points INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE game_tiers ADD COLUMN welcome TEXT;
+        """,
     ];
 
     readonly string _connectionString;

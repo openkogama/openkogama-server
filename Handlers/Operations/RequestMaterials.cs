@@ -18,7 +18,7 @@ public sealed class RequestMaterials(Session session) : IOperationHandler
 
         PhotonDictionary list = PhotonDictionary.Untyped();
 
-        foreach (Material material in ClientContent.Materials(peer))
+        foreach (Material material in ClientContent.Materials(peer, session.For(peer)?.Build))
         {
             PhotonDictionary entry = PhotonDictionary.Untyped();
             entry.Add((byte)DBQueryKey.MaterialName, material.Name);

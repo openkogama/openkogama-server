@@ -14,7 +14,7 @@ public sealed class UpdateWorldObject(Session session) : IOperationHandler
         Player? sender = session.For(peer);
         int objectId = Convert.ToInt32(request[(byte)ParameterKey.WorldObjectID]);
         if (sender is not null
-            && objectId == sender.AvatarId
+            && sender.Owns(objectId)
             && request.Parameters.TryGetValue((byte)ParameterKey.PosY, out object? y))
         {
             session.Round.TrackHeight(sender, Convert.ToSingle(y));
@@ -28,7 +28,7 @@ public sealed class UpdateWorldObject(Session session) : IOperationHandler
         };
         evt.Parameters[(byte)ParameterKey.ActorNr] = (int)peer.Id;
 
-        bool builder = sender is not null && objectId == sender.BuildAvatarId;
+        bool builder = sender is not null && sender.ExtraRole(objectId);
         foreach (Player player in session.Players)
             if (player.Peer != peer && (!builder || player.SpawnRoles))
                 player.Peer.Send(evt, reliable: false);

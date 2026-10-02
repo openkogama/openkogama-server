@@ -8,6 +8,7 @@ public sealed class Player(PhotonPeer peer, int actor, int avatarId)
     public int Actor => actor;
     public int AvatarId { get; set; } = avatarId;
     public int BuildAvatarId { get; set; } = -1;
+    public Dictionary<int, int> ClassAvatars { get; } = [];
     public int ActiveSpawnRole { get; set; } = avatarId;
     public float[]? LastPosition { get; set; }
     public float[]? LastRotation { get; set; }
@@ -76,10 +77,10 @@ public sealed class Player(PhotonPeer peer, int actor, int avatarId)
         (Kogama.ParameterKey.ClientBuildTarget, BuildTarget),
         (Kogama.ParameterKey.IsActorReady, Ready),
         (Kogama.ParameterKey.UserProfileData, ProfileData()),
-        (Kogama.ParameterKey.PlayerPlanetData, NoPlanetProgress),
+        (Kogama.ParameterKey.PlayerPlanetData, PlanetSummary),
     ];
 
-    const string NoPlanetProgress = """{"highScoreGamePoints":0,"gamePassTier":0}""";
+    public string PlanetSummary { get; set; } = """{"highScoreGamePoints":0,"gamePassTier":0}""";
 
     public string ProfileData() => System.Text.Json.JsonSerializer.Serialize(new
     {
@@ -115,17 +116,22 @@ public sealed class Player(PhotonPeer peer, int actor, int avatarId)
     public string SpawnRoleData() => System.Text.Json.JsonSerializer.Serialize(new
     {
         activeSpawnRole = ActiveSpawnRole,
-        spawnRoleAvatarIds = (Mode == GameMode.CharacterEditor ? new[] { BuildAvatarId } : new[] { AvatarId, BuildAvatarId }).Where(id => id >= 0),
+        spawnRoleAvatarIds = (Mode == GameMode.CharacterEditor ? new[] { BuildAvatarId } : new[] { AvatarId, BuildAvatarId }).Where(id => id >= 0).Concat(ClassAvatars.Values),
     });
 
-    public string SpawnRoleMetaData() => System.Text.Json.JsonSerializer.Serialize(new
+    public bool ExtraRole(int id) => id == BuildAvatarId || ClassAvatars.ContainsValue(id);
+
+    public int PlayAvatar => ClassAvatars.ContainsValue(ActiveSpawnRole) ? ActiveSpawnRole : AvatarId;
+
+    public bool Owns(int avatar) => avatar == AvatarId || ClassAvatars.ContainsValue(avatar);
+
+    public string SpawnRoleMetaData()
     {
-        spawnRolesDefaultTypeWoIDMap = new Dictionary<string, int>
-        {
-            ["DefaultPlayModeSpawnRole"] = AvatarId,
-            ["BuildModeSpawnRole"] = BuildAvatarId >= 0 ? BuildAvatarId : AvatarId,
-        },
-    });
+        var roles = new Dictionary<string, int>();
+        if (Mode != GameMode.CharacterEditor) roles["DefaultPlayModeSpawnRole"] = AvatarId;
+        if (Mode != GameMode.Play) roles["BuildModeSpawnRole"] = BuildAvatarId >= 0 ? BuildAvatarId : AvatarId;
+        return System.Text.Json.JsonSerializer.Serialize(new { spawnRolesDefaultTypeWoIDMap = roles });
+    }
 
     static readonly Version LinkStateVersion = new(1, 30);
     static readonly Version ObjectLinkStateVersion = new(1, 32, 4);
@@ -137,12 +143,13 @@ public sealed class Player(PhotonPeer peer, int actor, int avatarId)
 
     bool NativeSince(Version since) => peer.Translator is not Kogama.Protocols.LegacyTranslator && Version.TryParse(ClientVersion, out Version? version) && version >= since;
 
-    public byte[] WorldData(World.Snapshot snapshot)
+    public byte[] WorldData(World.Snapshot snapshot, bool package = false)
     {
-        if (!SpawnRoles) snapshot = WithoutBuildAvatars(snapshot);
+        if (!SpawnRoles) snapshot = Without(Without(snapshot, obj => obj.Type == World.WorldObjectType.BuildModeAvatar), obj => obj.Type == World.WorldObjectType.Avatar && obj.Transient);
+        else if (Mode == GameMode.CharacterEditor) snapshot = Without(snapshot, obj => obj.Type == World.WorldObjectType.Avatar);
         else snapshot = snapshot with { Objects = [.. snapshot.Objects.Select(WithoutLaser)] };
         snapshot = snapshot with { Objects = [.. snapshot.Objects.Select(obj => Accessories.For(this, obj))] };
-        return World.WorldSerializer.Write(snapshot, linkState: LinkState, objectLinkState: ObjectLinkState);
+        return World.WorldSerializer.Write(snapshot, linkState: LinkState, objectLinkState: ObjectLinkState, events: !package);
     }
 
     static bool HoldsLaser(IEnumerable<(string Key, World.PackedType Type, object Value)> item) =>
@@ -176,9 +183,9 @@ public sealed class Player(PhotonPeer peer, int actor, int avatarId)
         };
     }
 
-    static World.Snapshot WithoutBuildAvatars(World.Snapshot snapshot)
+    static World.Snapshot Without(World.Snapshot snapshot, Func<World.WorldObject, bool> hide)
     {
-        var hidden = snapshot.Objects.Where(obj => obj.Type == World.WorldObjectType.BuildModeAvatar).Select(obj => obj.Id).ToHashSet();
+        var hidden = snapshot.Objects.Where(hide).Select(obj => obj.Id).ToHashSet();
         if (hidden.Count == 0) return snapshot;
         int count;
         do

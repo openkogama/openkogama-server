@@ -18,6 +18,9 @@ public sealed class GamePasses
     const int SecondsPerXp = 5;
     const int WelcomeReward = 8;
     const byte TierUnlockedReward = 7;
+    const string ChestAmount = "gamePointAmount";
+    const int ListSize = 13;
+    const int ListMiddle = 6;
     const short InsufficientFunds = 1;
     const short AlreadyPurchased = 2;
     const short Failed = 4;
@@ -25,7 +28,7 @@ public sealed class GamePasses
 
     readonly Session _session;
     readonly int _id = -1;
-    readonly Dictionary<int, int> _testTiers = [];
+    readonly Dictionary<int, HashSet<int>> _collected = [];
     bool _enabled;
     long _next;
 
@@ -89,45 +92,85 @@ public sealed class GamePasses
 
     public short Purchase(Player player, int tier)
     {
-        if (_id < 0 || !_enabled || !_session.Play || _session.WorldId is not int world) return Failed;
+        if (_id < 0 || !_enabled || !_session.Play || Key is not int key) return Failed;
 
-        (int current, int seen) = Stores.Profiles.GameTier(player.ProfileId, world);
+        PlanetProgress progress = Stores.Profiles.Planet(player.ProfileId, key);
+        int current = Math.Max(progress.Tier, EarnedTier(progress.Points));
         if (tier <= current) return AlreadyPurchased;
         if (tier != current + 1 || tier > MaxTier) return Failed;
 
-        int xp = TierXp()[tier];
-        int price = xp / 2;
+        int price = RemainingPrice(progress.Points, tier);
         if (Stores.Profiles.Gold(player.ProfileId) < price) return InsufficientFunds;
 
         Stores.Profiles.AddGold(player.ProfileId, -price);
-        Stores.Profiles.SetGameTier(player.ProfileId, world, tier, seen);
-        Experience.Award(player, xp, TierUnlockedReward);
+        Stores.Profiles.SetPlanet(player.ProfileId, key, progress with { Tier = tier });
+        Experience.Award(player, TierXp()[tier], TierUnlockedReward);
         Update(player);
-        Console.WriteLine($"profile {player.ProfileId}: bought tier {tier} in world {world} for {price} gold");
+        Console.WriteLine($"profile {player.ProfileId}: bought tier {tier} in world {key} for {price} gold");
         return 0;
     }
 
     public void Test(Player player, int tier)
     {
-        if (_id < 0 || _session.Play) return;
-        _testTiers[player.Actor] = Math.Clamp(tier, 0, MaxTier);
+        if (_id < 0 || _session.Play || Key is not int key) return;
+        PlanetProgress progress = Stores.Profiles.Planet(player.ProfileId, key);
+        int chosen = Math.Clamp(tier, 0, MaxTier);
+        Stores.Profiles.SetPlanet(player.ProfileId, key, progress with { Tier = chosen, Seen = chosen, Points = 0 });
         Update(player);
     }
 
     public void Seen(Player player, int tier)
     {
-        if (!_session.Play || _session.WorldId is not int world) return;
-        (int current, _) = Stores.Profiles.GameTier(player.ProfileId, world);
-        Stores.Profiles.SetGameTier(player.ProfileId, world, current, Math.Clamp(tier, 0, current));
+        if (Key is not int key) return;
+        PlanetProgress progress = Stores.Profiles.Planet(player.ProfileId, key);
+        int current = Math.Max(progress.Tier, EarnedTier(progress.Points));
+        Stores.Profiles.SetPlanet(player.ProfileId, key, progress with { Seen = Math.Clamp(tier, 0, current) });
     }
 
     public void Reset(Player player)
     {
-        if (_id < 0) return;
-        if (_session.Play && _session.WorldId is int world) Stores.Profiles.SetGameTier(player.ProfileId, world, 0, 0);
-        else _testTiers.Remove(player.Actor);
+        if (_id < 0 || Key is not int key) return;
+        PlanetProgress progress = Stores.Profiles.Planet(player.ProfileId, key);
+        Stores.Profiles.SetPlanet(player.ProfileId, key, progress with { Tier = 0, Seen = 0, Points = 0 });
+        _collected.Remove(player.Actor);
         Update(player);
     }
+
+    public void ClaimWelcome(Player player, bool doubled)
+    {
+        if (_id < 0 || !_enabled || Key is not int key) return;
+        PlanetProgress progress = Stores.Profiles.Planet(player.ProfileId, key);
+        if (progress.Welcome?.Date == DateTime.UtcNow.Date) return;
+        AddPoints(player, key, progress with { Welcome = DateTime.UtcNow }, WelcomeReward * (doubled ? 2 : 1));
+    }
+
+    public void Collect(Player player, WorldObject crystal)
+    {
+        if (_id < 0 || !_enabled || Key is not int key) return;
+        HashSet<int> collected = _collected.TryGetValue(player.Actor, out HashSet<int>? set) ? set : _collected[player.Actor] = [];
+        if (!collected.Add(crystal.Id)) return;
+
+        int amount = crystal.Type == WorldObjectType.GamePoint
+            ? 1
+            : crystal.Data.Find(pair => pair.Key == ChestAmount).Value is int value ? value : 0;
+        if (amount > 0) AddPoints(player, key, Stores.Profiles.Planet(player.ProfileId, key), amount);
+    }
+
+    public void ResetCrystals() => _collected.Clear();
+
+    void AddPoints(Player player, int key, PlanetProgress progress, int amount)
+    {
+        int before = Math.Max(progress.Tier, EarnedTier(progress.Points));
+        progress = progress with { Points = progress.Points + amount };
+        int after = Math.Max(progress.Tier, EarnedTier(progress.Points));
+        Stores.Profiles.SetPlanet(player.ProfileId, key, progress);
+        if (_session.Play)
+            for (int tier = before + 1; tier <= after; tier++)
+                Experience.Award(player, TierXp()[tier], TierUnlockedReward);
+        Update(player);
+    }
+
+    int? Key => _session.WorldId is int world ? _session.Play ? world : -world : null;
 
     void Update(Player player)
     {
@@ -138,21 +181,70 @@ public sealed class GamePasses
         });
     }
 
+    public string HighScores(Player player, bool top)
+    {
+        List<PlanetScore> scores = Key is int key ? Stores.Profiles.PlanetScores(key) : [];
+        int own = scores.FindIndex(score => score.Profile == player.ProfileId);
+        int start = top || own < 0 ? 0 : Math.Max(0, Math.Min(own - ListMiddle, scores.Count - ListSize));
+        return JsonSerializer.Serialize(new
+        {
+            highScores = scores.Skip(start).Take(ListSize).Select(score => new
+            {
+                profileID = score.Profile,
+                username = score.Name ?? $"Player{score.Profile}",
+                gamePoints = score.Points,
+                isSubscriber = false,
+            }),
+            topRank = start + 1,
+        });
+    }
+
+    int Rank(Player player, int key) => Stores.Profiles.PlanetScores(key).FindIndex(score => score.Profile == player.ProfileId) + 1;
+
     object PlanetData(Player player)
     {
-        (int tier, int seen) = _session.Play && _session.WorldId is int world
-            ? Stores.Profiles.GameTier(player.ProfileId, world)
-            : (_testTiers.GetValueOrDefault(player.Actor), _testTiers.GetValueOrDefault(player.Actor));
+        PlanetProgress progress = Key is int key ? Stores.Profiles.Planet(player.ProfileId, key) : new PlanetProgress(0, 0, 0, null);
+        player.PlanetSummary = JsonSerializer.Serialize(new { highScoreGamePoints = progress.Points, gamePassTier = progress.Tier });
         return new
         {
-            highScoreGamePoints = 0,
-            rank = 0,
-            progressionGamePoints = 0,
+            highScoreGamePoints = progress.Points,
+            rank = Key is int ranked ? Rank(player, ranked) : 0,
+            progressionGamePoints = progress.Points,
             playtime = "00:00:00",
-            gamePassTier = tier,
-            playerPlanetMetaData = new { gamePassTierSeen = seen, welcomeRewardClaimed = true, lastDailyWelcomeRewardClaim = "0001-01-01T00:00:00" },
+            gamePassTier = progress.Tier,
+            playerPlanetMetaData = new
+            {
+                gamePassTierSeen = progress.Seen,
+                welcomeRewardClaimed = progress.Welcome is not null,
+                lastDailyWelcomeRewardClaim = (progress.Welcome ?? DateTime.MinValue).ToString("yyyy-MM-ddTHH:mm:ss"),
+            },
             previewGamePassTier = 0,
         };
+    }
+
+    int[] Requirements() => [.. TierXp().Select(xp => xp * 5 / 6)];
+
+    int EarnedTier(int points)
+    {
+        int[] requirements = Requirements();
+        int total = 0;
+        int earned = 0;
+        for (int tier = 0; tier <= MaxTier; tier++)
+        {
+            total += requirements[tier];
+            if (points >= total) earned = tier;
+            else break;
+        }
+        return earned;
+    }
+
+    int RemainingPrice(int points, int tier)
+    {
+        int[] requirements = Requirements();
+        int price = TierXp()[tier] / 2;
+        int before = requirements.Take(tier).Sum();
+        int toward = Math.Clamp(points - before, 0, requirements[tier]);
+        return requirements[tier] == 0 ? price : price - (int)((double)price * toward / requirements[tier]);
     }
 
     object Calculator()

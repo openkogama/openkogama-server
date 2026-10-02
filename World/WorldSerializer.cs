@@ -24,7 +24,7 @@ public static class WorldSerializer
     const byte HasOwner = 1;
     const byte HasPreviewOwner = 2;
 
-    public static byte[] Write(Snapshot snapshot, bool runtime = true, bool linkState = false, bool objectLinkState = false)
+    public static byte[] Write(Snapshot snapshot, bool runtime = true, bool linkState = false, bool objectLinkState = false, bool events = true)
     {
         var writer = new BytePackerWriter();
 
@@ -38,7 +38,7 @@ public static class WorldSerializer
 
         WriteLinks(writer, snapshot.Links, runtime && linkState);
         WriteLinks(writer, snapshot.ObjectLinks, runtime && objectLinkState);
-        if (!runtime) return writer.ToArray();
+        if (!runtime || !events) return writer.ToArray();
 
         writer.WriteInt32(snapshot.RuntimeEvents.Count);
         foreach (byte[] runtimeEvent in snapshot.RuntimeEvents)

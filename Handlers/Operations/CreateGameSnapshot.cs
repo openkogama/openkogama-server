@@ -49,6 +49,7 @@ public sealed class CreateGameSnapshot(Session session) : IOperationHandler
             Parameters =
             {
                 [(byte)ParameterKey.Data] = me.SpawnRoleData(),
+                [(byte)ParameterKey.MetaData] = me.SpawnRoleMetaData(),
                 [(byte)ParameterKey.Id] = me.Mode == GameMode.CharacterEditor || me.AvatarId < 0 ? session.Bodies.FirstOrDefault(-1) : session.BodyOf(me.AvatarId),
                 [(byte)ParameterKey.Timestamp] = me.LogicSteps ? session.Logic.StepStamp : session.Logic.Frame * Logic.FrameInterval,
                 [(byte)ParameterKey.TeamList] = Teams(session),
@@ -61,7 +62,6 @@ public sealed class CreateGameSnapshot(Session session) : IOperationHandler
         setup.Parameters[(byte)ParameterKey.GameStateStartTime] = session.Round.StartTime;
         setup.Parameters[(byte)ParameterKey.GameStateDuration] = session.Round.DurationFor(me);
         setup.Parameters[(byte)ParameterKey.GameStatCounterData] = session.Round.Stats.ToBytes();
-        if (code == EventCode.SetupUserBuildMode) setup.Parameters[(byte)ParameterKey.MetaData] = me.SpawnRoleMetaData();
         return setup;
     }
 

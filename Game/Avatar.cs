@@ -103,29 +103,37 @@ public static class Avatar
             Type = type,
             Position = [.. world.Spawn],
             Owner = actor,
-            Runtime =
-            [
-                ("health", PackedType.Single, 100f),
-                ("shield", PackedType.Single, 0f),
-                ("isFiring", PackedType.Bool, false),
-                ("modifiers", PackedType.Hashtable, new List<(string, PackedType, object)>()),
-                ("currentItem", PackedType.Hashtable, new List<(string, PackedType, object)> { ("type", PackedType.Int32, (int)Kogama.AvatarItemType.Hand) }),
-                ("invulnerable", PackedType.Bool, false),
-                ("avatarRuntimeState", PackedType.Byte, (byte)1),
-                ("avatarModeTypes", PackedType.Int32, 1),
-                ("animation", PackedType.Hashtable, new List<(string, PackedType, object)>()),
-                ("seat", PackedType.Int32, -1),
-                ("maxHealth", PackedType.Single, 100f),
-                ("spawnRoleModeType", PackedType.Int32, Playing),
-                ("headRotationYaw", PackedType.Single, 0f),
-                ("headRotationPitch", PackedType.Single, 0f),
-                ("pointRotationYaw", PackedType.Single, 0f),
-                ("pointRotationPitch", PackedType.Single, 0f),
-                ("emote", PackedType.Int32, 0),
-            ],
+            Runtime = Runtime(),
         };
 
         return [avatar, .. BuildBody(world, actor, avatar.Id, partPrototypes)];
+    }
+
+    public static List<(string Key, PackedType Type, object Value)> Runtime() =>
+        [
+            ("health", PackedType.Single, 100f),
+            ("shield", PackedType.Single, 0f),
+            ("isFiring", PackedType.Bool, false),
+            ("modifiers", PackedType.Hashtable, new List<(string, PackedType, object)>()),
+            ("currentItem", PackedType.Hashtable, new List<(string, PackedType, object)> { ("type", PackedType.Int32, (int)Kogama.AvatarItemType.Hand) }),
+            ("invulnerable", PackedType.Bool, false),
+            ("avatarRuntimeState", PackedType.Byte, (byte)1),
+            ("avatarModeTypes", PackedType.Int32, 1),
+            ("animation", PackedType.Hashtable, new List<(string, PackedType, object)>()),
+            ("seat", PackedType.Int32, -1),
+            ("maxHealth", PackedType.Single, 100f),
+            ("spawnRoleModeType", PackedType.Int32, Playing),
+            ("headRotationYaw", PackedType.Single, 0f),
+            ("headRotationPitch", PackedType.Single, 0f),
+            ("pointRotationYaw", PackedType.Single, 0f),
+            ("pointRotationPitch", PackedType.Single, 0f),
+            ("emote", PackedType.Int32, 0),
+        ];
+
+    public static void Dress(GameWorld world, int bodyId, int avatar)
+    {
+        if (Storage.Stores.Profiles.AvatarParts(avatar) is { } parts) UseParts(world, bodyId, parts);
+        WearAccessories(world, bodyId, Storage.Stores.Profiles.Accessories(avatar));
     }
 
     public static byte[] DefaultBody(int actor)

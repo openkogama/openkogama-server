@@ -40,6 +40,11 @@ public sealed class WorldObjectData(Session session, DataChange change) : IOpera
         }
 
         session.World.MarkChanged();
+        if (session.World.Find(objectId)?.Type == WorldObjectType.AvatarSpawnRoleCreator)
+        {
+            AvatarClasses.SyncSkills(session.World, objectId);
+            session.Teams.Update();
+        }
 
         var evt = new EventData((byte)(change switch
         {

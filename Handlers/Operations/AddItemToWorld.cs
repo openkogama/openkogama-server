@@ -31,6 +31,11 @@ public sealed class AddItemToWorld(Session session) : IOperationHandler
 
         int parentId = Convert.ToInt32(request[(byte)ParameterKey.WorldObjectGroupID]);
         Snapshot added = session.World.Insert(template, parentId);
+        if (added.Objects.Any(obj => obj.Type == WorldObjectType.AvatarSpawnRoleCreator))
+        {
+            AvatarClasses.AddPreviews(session.World);
+            added = session.World.SubtreeSnapshot(added.Objects[0].Id);
+        }
         session.World.MarkChanged();
         session.Teams.Update();
         if (root.Type == WorldObjectType.RoundCube) session.Round.Start();

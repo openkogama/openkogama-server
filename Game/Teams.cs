@@ -16,6 +16,8 @@ public sealed class Teams
         [WorldObjectType.SpawnPointYellow] = Team.Yellow,
     };
 
+    const string ClassTeam = "team";
+
     readonly Session _session;
     readonly object _sync = new();
     List<Team> _active;
@@ -81,11 +83,18 @@ public sealed class Teams
     List<Team> FromWorld()
     {
         List<Team> teams = [.. _session.World.ToSnapshot().Objects
-            .Where(obj => Spawns.ContainsKey(obj.Type))
-            .Select(obj => Spawns[obj.Type])
+            .Select(TeamOf)
+            .OfType<Team>()
             .Distinct()
             .Order()];
         return teams.Count > 0 ? teams : [Team.Blue];
+    }
+
+    static Team? TeamOf(WorldObject obj)
+    {
+        if (Spawns.TryGetValue(obj.Type, out Team team)) return team;
+        if (obj.Type != WorldObjectType.AvatarSpawnRoleCreator) return null;
+        return obj.Data.Find(pair => pair.Key == ClassTeam).Value is int value && Enum.IsDefined((Team)value) ? (Team)value : null;
     }
 
     void Broadcast(EventCode code, Team team, PhotonDictionary? actors = null)

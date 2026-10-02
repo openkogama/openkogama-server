@@ -155,6 +155,7 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
 
         ReleaseEverything(session, gone);
         Colossus.Release(session, gone.AvatarId);
+        foreach (int role in gone.ClassAvatars.Values) Colossus.Release(session, role);
         session.Remove(gone);
         session.Round.Stats.RemoveActor(gone.Actor);
 
@@ -178,6 +179,9 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
         {
             other.Peer.Send(unregister);
             if (gone.BuildAvatarId >= 0 && other.SpawnRoles) other.Peer.Send(unregisterBuilder);
+            if (other.SpawnRoles)
+                foreach (int role in gone.ClassAvatars.Values)
+                    other.Peer.Send(new EventData((byte)EventCode.UnregisterWorldObject) { Parameters = { [(byte)ParameterKey.WorldObjectID] = role } });
             other.Peer.Send(leave);
         }
 
@@ -198,21 +202,23 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
     {
         var events = new List<EventData>();
 
-        if (session.World.Find(gone.AvatarId) is { } avatar && avatar.ParentId != session.World.RootId)
+        int[] avatars = [gone.AvatarId, .. gone.ClassAvatars.Values];
+        foreach (int avatarId in avatars)
         {
+            if (session.World.Find(avatarId) is not { } avatar || avatar.ParentId == session.World.RootId) continue;
             int rootId = session.World.RootId;
-            session.World.Modify(gone.AvatarId, obj =>
+            session.World.Modify(avatarId, obj =>
             {
                 obj.ParentId = rootId;
                 obj.SetRuntime("seat", PackedType.Int32, -1);
             });
             events.Add(new EventData((byte)EventCode.DetachWorldObjectFromVehicle)
             {
-                Parameters = { [(byte)ParameterKey.WorldObjectID] = gone.AvatarId },
+                Parameters = { [(byte)ParameterKey.WorldObjectID] = avatarId },
             });
         }
 
-        var own = session.World.Subtree(gone.AvatarId).Select(obj => obj.Id).ToHashSet();
+        var own = avatars.SelectMany(avatarId => session.World.Subtree(avatarId)).Select(obj => obj.Id).ToHashSet();
         if (gone.BuildAvatarId >= 0) own.UnionWith(session.World.Subtree(gone.BuildAvatarId).Select(obj => obj.Id));
         foreach (WorldObject obj in session.World.ToSnapshot().Objects)
         {

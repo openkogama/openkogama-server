@@ -70,6 +70,10 @@ public sealed class OperationRouter
         Register(new ReportReachedFinishLine(session, Kogama.OperationCode.ReportReachedTimeAttackFlag));
         Register(new RequestAccessoryData(session));
         Register(new SetActiveSpawnRole(session));
+        Register(new CreateSpawnRole(session));
+        Register(new GetAvatarBodies(session));
+        Register(new SetSpawnRoleBody(session));
+        Register(new Ignore(Kogama.OperationCode.CustomDevCommands));
         Register(new UnEquipAccessory(session));
         Register(new UpdateAvatarAccessoryScale(session));
         Register(new Acknowledge(Kogama.OperationCode.ResetHighlights));
@@ -79,9 +83,9 @@ public sealed class OperationRouter
         Register(new GameTierOperation(session, Kogama.OperationCode.ResetPlayerPlanetData));
         Register(new GameTierOperation(session, Kogama.OperationCode.SetGamePassTierOperation));
         Register(new GameTierOperation(session, Kogama.OperationCode.SetGamePassTierToSeenOperation));
-        Register(new Ignore(Kogama.OperationCode.ClaimGamePointWelcomeReward));
-        Register(new HighScoreList(Kogama.OperationCode.GetHighScoreList, Kogama.EventCode.HighScores));
-        Register(new HighScoreList(Kogama.OperationCode.GetTopHighScoreList, Kogama.EventCode.TopHighScores));
+        Register(new ClaimWelcomeReward(session));
+        Register(new HighScoreList(session, Kogama.OperationCode.GetHighScoreList, Kogama.EventCode.HighScores, top: false));
+        Register(new HighScoreList(session, Kogama.OperationCode.GetTopHighScoreList, Kogama.EventCode.TopHighScores, top: true));
         Register(new UpdateGold(session));
         Register(new RequestFriends(session));
         Register(new RequestFriendship(session, byName: true));

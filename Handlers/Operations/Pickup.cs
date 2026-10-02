@@ -41,7 +41,8 @@ public static class Pickup
         var itemData = pickup.Data.Find(pair => pair.Key == "itemData");
         if (itemData.Key is not null) currentItem.Add(itemData);
 
-        session.World.Modify(player.AvatarId, avatar => avatar.SetRuntime("currentItem", PackedType.Hashtable, currentItem));
+        int avatarId = player.PlayAvatar;
+        session.World.Modify(avatarId, avatar => avatar.SetRuntime("currentItem", PackedType.Hashtable, currentItem));
 
         var runtime = new Dictionary<object, object?> { ["currentItem"] = PackedData.ToPhoton(currentItem) };
         foreach (Player other in session.Players)
@@ -51,7 +52,7 @@ public static class Pickup
                 Parameters =
                 {
                     [(byte)ParameterKey.ActorNr] = other == player ? 0 : player.Actor,
-                    [(byte)ParameterKey.WorldObjectID] = player.AvatarId,
+                    [(byte)ParameterKey.WorldObjectID] = avatarId,
                     [(byte)ParameterKey.WorldObjectRunTimeData] = runtime,
                 },
             });

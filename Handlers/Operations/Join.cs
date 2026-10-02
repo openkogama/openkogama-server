@@ -60,6 +60,7 @@ public sealed class Join(Session session) : IOperationHandler
                 [(byte)ParameterKey.EnableRewardedAds] = false,
                 [(byte)ParameterKey.PostGameInterstitialIntervalInSeconds] = 0,
                 [(byte)ParameterKey.UserProfileData] = player.ProfileData(),
+                [(byte)ParameterKey.AdConsentEndpointURL] = "",
             },
         };
 

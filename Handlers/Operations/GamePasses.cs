@@ -3,14 +3,15 @@ using OpenKogama.Photon;
 
 namespace OpenKogama.Handlers.Operations;
 
-public sealed class HighScoreList(OperationCode code, EventCode reply) : IOperationHandler
+public sealed class HighScoreList(Game.Session session, OperationCode code, EventCode reply, bool top) : IOperationHandler
 {
-    const string NoHighScores = """{"highScores":[],"topRank":1}""";
-
     public byte Code => (byte)code;
 
-    public void Handle(PhotonPeer peer, OperationRequest request) =>
-        peer.Send(new EventData((byte)reply) { Parameters = { [(byte)ParameterKey.Data] = NoHighScores } });
+    public void Handle(PhotonPeer peer, OperationRequest request)
+    {
+        if (session.For(peer) is not { } player) return;
+        peer.Send(new EventData((byte)reply) { Parameters = { [(byte)ParameterKey.Data] = session.GamePasses.HighScores(player, top) } });
+    }
 }
 
 public sealed class GameTierOperation(Game.Session session, OperationCode code) : IOperationHandler
@@ -39,4 +40,15 @@ public sealed class UpdateGold(Game.Session session) : IOperationHandler
 
     public static int Gold(Game.Session session, PhotonPeer peer) =>
         session.For(peer) is { } player ? Storage.Stores.Profiles.Gold(player.ProfileId) : 0;
+}
+
+public sealed class ClaimWelcomeReward(Game.Session session) : IOperationHandler
+{
+    public byte Code => (byte)OperationCode.ClaimGamePointWelcomeReward;
+
+    public void Handle(PhotonPeer peer, OperationRequest request)
+    {
+        if (session.For(peer) is not { } player) return;
+        session.GamePasses.ClaimWelcome(player, request[(byte)ParameterKey.Bool] is true);
+    }
 }
