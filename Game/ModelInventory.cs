@@ -7,6 +7,9 @@ namespace OpenKogama.Game;
 public static class ModelInventory
 {
     public const int ModelCategory = 1;
+    public const int PremiumModelCategory = 5;
+
+    public static int ShopCategory(int category) => category == ModelCategory ? PremiumModelCategory : category;
     public const string ModelName = "CubeModel";
 
     public static (Item Item, Dictionary<byte, object?> Fields) Add(Player player, WorldObject obj, Prototype prototype, int objectId) =>

@@ -24,7 +24,7 @@ public sealed class AddItemToMarketPlace(Session session) : IOperationHandler
         string name = request[(byte)ParameterKey.ItemName] as string is { Length: > 0 } given ? given : item.Name;
         string description = request[(byte)ParameterKey.ItemDescription] as string ?? "";
         int price = Math.Max(0, Convert.ToInt32(request[(byte)ParameterKey.ItemPrice]));
-        int listing = Stores.Market.Put(ListingKind.Item, player.ProfileId, itemId, name, description, item.Category, price, item.Bytes);
+        int listing = Stores.Market.Put(ListingKind.Item, player.ProfileId, itemId, name, description, ModelInventory.ShopCategory(item.Category), price, item.Bytes);
 
         peer.Send(new OperationResponse(request)
         {

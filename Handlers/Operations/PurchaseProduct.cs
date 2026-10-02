@@ -75,7 +75,7 @@ public sealed class PurchaseProduct(Session session) : IOperationHandler
             return;
         }
 
-        Item item = ModelInventory.Give(player, listing.Name, listing.Category, listing.Data, listing.Owner, 0).Item;
+        Item item = ModelInventory.Give(player, listing.Name, ModelInventory.ShopCategory(listing.Category), listing.Data, listing.Owner, 0).Item;
         peer.Send(Success(request, player));
         Console.WriteLine($"profile {player.ProfileId}: bought listing {listingId} as item {item.Id}");
     }

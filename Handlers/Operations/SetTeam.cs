@@ -14,8 +14,6 @@ public sealed class SetTeam(Session session) : IOperationHandler
         Player? player = session.For(peer);
         if (player is null) return;
 
-        peer.Send(new OperationResponse(request));
-
         if (!session.Teams.Set(player, team))
             session.Teams.Set(player, session.Teams.Default);
 

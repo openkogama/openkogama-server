@@ -38,7 +38,7 @@ public sealed class GetNextResultSet(Session session) : IOperationHandler
         foreach ((Listing listing, int index) in Stores.Market.List(ListingKind.Item).Select((listing, index) => (listing, index)))
         {
             PhotonDictionary entry = PhotonDictionary.Untyped();
-            entry.Add((byte)DBQueryKey.ItemCategoryID, listing.Category);
+            entry.Add((byte)DBQueryKey.ItemCategoryID, ModelInventory.ShopCategory(listing.Category));
             entry.Add((byte)DBQueryKey.ItemTypeID, listing.Id);
             entry.Add((byte)DBQueryKey.ItemName, listing.Name);
             entry.Add((byte)DBQueryKey.ItemDescription, listing.Description);
