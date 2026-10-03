@@ -27,6 +27,7 @@ public sealed class GameTierOperation(Game.Session session, OperationCode code) 
             case OperationCode.SetGamePassTierOperation: session.GamePasses.Test(player, tier); break;
             case OperationCode.SetGamePassTierToSeenOperation: session.GamePasses.Seen(player, tier); break;
             case OperationCode.ResetPlayerPlanetData: session.GamePasses.Reset(player); break;
+            case OperationCode.TogglePreviewTierOperation: session.GamePasses.Refresh(player); break;
         }
     }
 }

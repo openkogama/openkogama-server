@@ -170,6 +170,8 @@ public sealed class GamePasses
         Update(player);
     }
 
+    public void Refresh(Player player) => Update(player);
+
     int? Key => _session.WorldId is int world ? _session.Play ? world : -world : null;
 
     void Update(Player player)
@@ -258,7 +260,7 @@ public sealed class GamePasses
                 gamePointRequirement = xp[tier] * 5 / 6,
                 estimatedRequiredPlaytime = TimeSpan.FromSeconds(xp[tier] * SecondsPerXp).ToString(@"hh\:mm\:ss"),
             };
-        return new { gamePassRewardsActivated = true, gamePointVelocityIsZero = false, welcomeReward = WelcomeReward, progressionThresholds = thresholds };
+        return new { gamePassRewardsActivated = _enabled, gamePointVelocityIsZero = !_enabled, welcomeReward = WelcomeReward, progressionThresholds = thresholds };
     }
 
     int[] TierXp()

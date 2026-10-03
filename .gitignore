@@ -4,5 +4,6 @@ obj/
 worlds/
 profiles/
 cache/
+bundles/
 server.db*
 logs/

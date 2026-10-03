@@ -99,6 +99,7 @@ public sealed class Player(PhotonPeer peer, int actor, int avatarId)
     public bool AdminMessages => NativeSince(AdminMessagesVersion);
     public bool ChatKinds => NativeSince(ChatKindsVersion);
     public bool AccessoryQueries => NativeSince(AccessoryQueriesVersion);
+    public bool WaitsForQueryReady => !NativeSince(ImmediateQueriesVersion);
     public bool ModernAccessories => peer.Translator is Kogama.Protocols.OperationRemap remap && remap.Knows(Kogama.OperationCode.RequestAccessoryData);
     public bool RichText => peer.Protocol != PhotonProtocol.Protocol15 && peer.Translator is not Kogama.Protocols.LegacyTranslator;
     public bool ShortRoundStates => peer.Translator is Kogama.Protocols.OperationRemap remap && remap.ShortStates;
@@ -140,6 +141,7 @@ public sealed class Player(PhotonPeer peer, int actor, int avatarId)
     static readonly Version AdminMessagesVersion = new(1, 33);
     static readonly Version ChatKindsVersion = new(1, 81, 2);
     static readonly Version AccessoryQueriesVersion = new(2, 3);
+    static readonly Version ImmediateQueriesVersion = new(1, 34);
 
     bool NativeSince(Version since) => peer.Translator is not Kogama.Protocols.LegacyTranslator && Version.TryParse(ClientVersion, out Version? version) && version >= since;
 

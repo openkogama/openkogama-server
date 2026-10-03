@@ -6,7 +6,16 @@ using OpenKogama.Plugins;
 using OpenKogama.Storage;
 using OpenKogama.Web;
 
+if (args is ["install", .. var sets])
+{
+    bool installed = true;
+    foreach (string set in sets)
+        installed &= await AssetCache.InstallAsync(set);
+    return installed ? 0 : 1;
+}
+
 LogFile.Start("logs");
+AssetCache.Offline = args.Contains("--offline");
 
 var database = new Database("server.db");
 Stores.Profiles = new SqliteProfileStore(database);
@@ -32,6 +41,8 @@ server.Operation = host.Handle;
 
 _ = server.RunAsync();
 Console.WriteLine("udp 5055");
+_ = server.RunWebSocketsAsync("http://127.0.0.1:5055/");
+Console.WriteLine("websocket 5055");
 
 _ = Task.Run(async () =>
 {
@@ -59,9 +70,13 @@ string SessionJson(int profile, GameMode mode, int world, string? client) => Jso
     jsonOptions);
 
 StreamingAssetCatalog streaming = StreamingAssets.For("2015");
-var assets = new AssetCache(streaming.Root);
-var legacyAssets = new AssetCache(StreamingAssets.For("3.x").Root, "cache/streaming-3x");
-var assetSets = BundleSets.Roots.ToDictionary(set => set.Key, set => new AssetCache(set.Value, $"cache/streaming-{set.Key}"));
+var assets = AssetCache.ForSet("2015", streaming.Root);
+var legacyAssets = AssetCache.ForSet("3.x", StreamingAssets.For("3.x").Root);
+var assetSets = BundleSets.Roots.ToDictionary(set => set.Key, set => AssetCache.ForSet(set.Key, set.Value));
+foreach ((string set, string root) in BundleSets.Roots.Where(set => set.Value.Contains("/kogama_assets_u5/")))
+    assetSets[set + BundleSets.WebGL] = AssetCache.ForSet(set + BundleSets.WebGL, BundleSets.WebGLRoot(root));
+if (streaming.WebGLRoot is string legacyWebGL)
+    assetSets[BundleSets.Legacy + BundleSets.WebGL] = AssetCache.ForSet(BundleSets.Legacy + BundleSets.WebGL, legacyWebGL);
 _ = Task.Run(() => assets.PrefetchAsync(streaming.Assets.Select(asset => asset.Path)));
 
 foreach (int port in new[] { 843, 844, 845 })
@@ -71,6 +86,16 @@ Console.WriteLine("policy 843-845");
 _ = new NullProxy(8081).RunAsync();
 Console.WriteLine("proxy 8081");
 
-var web = new HttpServer("http://127.0.0.1:8080/") { SessionJson = SessionJson, Assets = assets, LegacyAssets = legacyAssets, AssetSets = assetSets, DeleteWorld = host.DeleteWorld };
+var api = new WebApi
+{
+    SessionJson = SessionJson,
+    Assets = assets,
+    LegacyAssets = legacyAssets,
+    AssetSets = assetSets,
+    DeleteWorld = host.DeleteWorld,
+    Shutdown = () => _ = Task.Delay(100).ContinueWith(_ => Environment.Exit(0)),
+};
+var web = new HttpServer("http://127.0.0.1:8080/", api);
 Console.WriteLine("http 8080");
 web.Run();
+return 0;

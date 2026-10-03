@@ -28,7 +28,11 @@
     "v72": "https://cdn.openkogama.org/eu/kogama_assets/v72/kogama_assets_u5/",
     "v74": "https://cdn.openkogama.org/eu/kogama_assets/v74/kogama_assets_u5/",
     "v75": "https://cdn.openkogama.org/eu/kogama_assets/v75/kogama_assets_u5/",
-    "v78": "https://cdn.openkogama.org/eu/kogama_assets/v78/kogama_assets_u5/"
+    "v78": "https://cdn.openkogama.org/eu/kogama_assets/v78/kogama_assets_u5/",
+    "v81": "https://cdn.openkogama.org/eu/kogama_assets/v81/kogama_assets_u5/",
+    "v84": "https://cdn.openkogama.org/eu/kogama_assets/v84/kogama_assets_u5/",
+    "v87": "https://cdn.openkogama.org/eu/kogama_assets/v87/kogama_assets_u5/",
+    "v90": "https://cdn.openkogama.org/eu/kogama_assets/v90/kogama_assets_u5/"
   },
   "engines": {
     "v39": "2018.2",
@@ -39,7 +43,11 @@
     "v72": "2018.2",
     "v74": "2018.2",
     "v75": "2018.2",
-    "v78": "2018.3"
+    "v78": "2018.3",
+    "v81": "2018.3",
+    "v84": "2018.3",
+    "v87": "2018.3",
+    "v90": "2018.4"
   },
   "ranges": [
     { "from": "1.25.13.290", "set": "v2" },
@@ -75,7 +83,11 @@
     { "from": "2.6.0", "set": "v74" },
     { "from": "2.8.0", "set": "v75" },
     { "from": "2.8.5", "set": "v78" },
-    { "from": "2.9.0", "set": "v3" }
+    { "from": "2.13.0", "set": "v81" },
+    { "from": "2.20.0", "set": "v84" },
+    { "from": "2.24.0", "set": "v87" },
+    { "from": "2.30.4", "set": "v90" },
+    { "from": "2.30.12", "set": "v3" }
   ],
   "builds": {
     "1.32.7.526": "v3",

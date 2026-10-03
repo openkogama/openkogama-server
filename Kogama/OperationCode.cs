@@ -136,6 +136,10 @@ public enum OperationCode : byte
     CreateSpawnRole = 135,
     GetAvatarBodies = 136,
     SetSpawnRoleBody = 137,
+    ClaimRewardedAdXP = 138,
+    TogglePreviewTierOperation = 139,
+    ClaimPlayingNewGameRewardedGold = 140,
+    IncrementStatRequest = 141,
     Leave = 254,
     Join = 255,
 }

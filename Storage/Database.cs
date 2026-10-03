@@ -151,12 +151,12 @@ public sealed class Database
 
     readonly string _connectionString;
 
-    public Database(string path)
+    public Database(string path, bool writeAhead = true)
     {
         _connectionString = new SqliteConnectionStringBuilder { DataSource = path }.ToString();
 
         using SqliteConnection connection = Open();
-        Execute(connection, "PRAGMA journal_mode = WAL;");
+        Execute(connection, writeAhead ? "PRAGMA journal_mode = WAL;" : "PRAGMA journal_mode = DELETE;");
 
         long version = Scalar(connection, "PRAGMA user_version;");
         for (int i = (int)version; i < Migrations.Length; i++)

@@ -86,6 +86,7 @@ public enum EventCode : byte
     GetPublishedPlanetProfileData = 131,
     PlayerPlanetData = 132,
     SetSpawnRoleBody = 133,
+    XPRewardedAdReady = 134,
     Leave = 254,
     Join = 255,
 }

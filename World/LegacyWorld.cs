@@ -62,7 +62,7 @@ public static class LegacyWorld
     {
         Snapshot snapshot = WorldSerializer.Read(data, runtime);
         ProtocolTable server = ProtocolTable.For(ClientProtocols.ServerVersion);
-        var types = new CodeMap(server.WorldObjectType, client.WorldObjectType);
+        var types = new CodeMap(OperationRemap.ServerCodes<WorldObjectType>(server.WorldObjectType), client.WorldObjectType);
         var items = new CodeMap(server.AvatarItemType, client.AvatarItemType);
         var removed = WithBrokenBlueprints(snapshot.Objects, snapshot.Objects
             .Where(obj => types.Map((int)obj.Type) is null || obj.Data.Find(pair => pair.Key == "itemType").Value is int item && items.Map(item) is null)

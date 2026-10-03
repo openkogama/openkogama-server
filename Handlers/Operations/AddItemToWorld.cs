@@ -40,7 +40,7 @@ public sealed class AddItemToWorld(Session session) : IOperationHandler
         session.Teams.Update();
         if (root.Type == WorldObjectType.RoundCube) session.Round.Start();
 
-        GetNextGameBatch.SendAdded(session, peer.Id, added);
+        GetNextGameBatch.SendAdded(session, owner?.Actor ?? peer.Id, added);
 
         Console.WriteLine($"peer {peer.Id}: placed {item.Name} as {added.Objects[0].Id}");
     }

@@ -95,7 +95,7 @@ public sealed class ProtocolTable
         Directory.EnumerateFiles(Path.Combine(AppContext.BaseDirectory, "data", "protocols"), "*.json")
             .Select(Path.GetFileNameWithoutExtension)
             .OfType<string>()
-            .Where(version => System.Version.TryParse(version, out _) && version != "2.30.6" && !IsLegacy(version))
+            .Where(version => System.Version.TryParse(version, out _) && !IsLegacy(version))
             .Select(For)
             .Where(table => table.CreatableObjects is not null);
 
@@ -129,8 +129,47 @@ public sealed class ProtocolTable
         if (version.Length == 0 || !version.All(c => char.IsDigit(c) || c == '.')) yield break;
         if (File.Exists(Path.Combine(AppContext.BaseDirectory, "data", "protocols", version + ".json"))) yield return version;
 
-        string aliases = Path.Combine(AppContext.BaseDirectory, "data", "protocols", "aliases.json");
-        if (File.Exists(aliases) && JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(aliases))?.GetValueOrDefault(version) is string table)
-            yield return table;
+        Dictionary<string, string> known = Known();
+        if (known.TryGetValue(version, out string? table))
+        {
+            if (table != version) yield return table;
+        }
+        else if (Nearest(version, known) is string nearest)
+        {
+            yield return nearest;
+        }
     }
+
+    static Dictionary<string, string> Known()
+    {
+        string folder = Path.Combine(AppContext.BaseDirectory, "data", "protocols");
+        Dictionary<string, string> known = Directory.EnumerateFiles(folder, "*.json")
+            .Select(Path.GetFileNameWithoutExtension)
+            .OfType<string>()
+            .Where(name => System.Version.TryParse(name, out _))
+            .ToDictionary(name => name, name => name);
+        string aliases = Path.Combine(folder, "aliases.json");
+        if (File.Exists(aliases) && JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(aliases)) is { } map)
+            foreach ((string alias, string target) in map)
+                known.TryAdd(alias, target);
+        return known;
+    }
+
+    static string? Nearest(string version, Dictionary<string, string> known)
+    {
+        if (!System.Version.TryParse(version, out System.Version? wanted)) return null;
+        List<(System.Version Version, string Table)> line = [.. known
+            .Select(entry => (Parsed: System.Version.TryParse(entry.Key, out System.Version? parsed) ? parsed : null, entry.Value))
+            .Where(entry => entry.Parsed is not null && entry.Parsed.Major == wanted.Major && entry.Parsed.Minor == wanted.Minor)
+            .Select(entry => (entry.Parsed!, entry.Value))
+            .OrderBy(entry => entry.Item1)];
+        if (line.Count == 0 || wanted > line[^1].Version) return null;
+
+        List<(System.Version Version, string Table)> build = [.. line.Where(entry => entry.Version.Build == wanted.Build)];
+        List<(System.Version Version, string Table)> pool = build.Count > 0 ? build : line;
+        return pool.MinBy(entry => Distance(entry.Version, wanted)).Table;
+    }
+
+    static long Distance(System.Version a, System.Version b) =>
+        Math.Abs(((long)Math.Max(a.Build, 0) * 100000 + Math.Max(a.Revision, 0)) - ((long)Math.Max(b.Build, 0) * 100000 + Math.Max(b.Revision, 0)));
 }

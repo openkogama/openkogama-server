@@ -10,10 +10,12 @@ public static class SecurityHelper
 {
     const string Password = "P63oUa9unCY";
 
-    static readonly byte[] Key;
-    static readonly byte[] Iv;
+    static readonly Dictionary<string, string> Precomputed = new()
+    {
+        ["openkogama"] = "TLA5sckQhV5CpR11uZAZis0SDa7ER7NtnLlZhRQjpJ0=",
+    };
 
-    static SecurityHelper()
+    static readonly Lazy<(byte[] Key, byte[] Iv)> Secret = new(() =>
     {
         // The client takes 32 + 16 bytes off one PBKDF2 stream, so the IV is bytes 32..48.
         byte[] derived = Rfc2898DeriveBytes.Pbkdf2(
@@ -23,16 +25,18 @@ public static class SecurityHelper
             HashAlgorithmName.SHA1,
             outputLength: 48);
 
-        Key = derived[..32];
-        Iv = derived[32..48];
-    }
+        return (derived[..32], derived[32..48]);
+    });
 
     public static string Encrypt(string text)
     {
+        if (Precomputed.TryGetValue(text, out string? known)) return known;
+
+        (byte[] key, byte[] iv) = Secret.Value;
         using Aes aes = Aes.Create();
-        aes.Key = Key;
-        aes.IV = Iv;
+        aes.Key = key;
+        aes.IV = iv;
         byte[] plain = Encoding.Unicode.GetBytes(text);
-        return Convert.ToBase64String(aes.EncryptCbc(plain, Iv));
+        return Convert.ToBase64String(aes.EncryptCbc(plain, iv));
     }
 }

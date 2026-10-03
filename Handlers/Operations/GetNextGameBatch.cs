@@ -16,6 +16,7 @@ public sealed class GetNextGameBatch(Session session) : IOperationHandler
             object format = player.WorldFormat;
             if (!formats.TryGetValue(format, out byte[]? data))
                 formats[format] = data = player.WorldData(added);
+            int queryId = NextQueryId();
             player.Peer.Send(new EventData((byte)EventCode.GetGameBatch)
             {
                 Parameters =
@@ -23,10 +24,12 @@ public sealed class GetNextGameBatch(Session session) : IOperationHandler
                     [(byte)ParameterKey.ActorNr] = actor,
                     [(byte)ParameterKey.Data] = data,
                     [(byte)ParameterKey.QueryType] = (byte)QueryType.AddToGameWorld,
-                    [(byte)ParameterKey.QueryId] = GetNextGameBatch.NextQueryId(),
+                    [(byte)ParameterKey.QueryId] = queryId,
                     [(byte)ParameterKey.QueryDataLeft] = false,
                 },
             });
+            if (player.WaitsForQueryReady)
+                player.Peer.Send(new EventData((byte)EventCode.GameQueryReady) { Parameters = { [(byte)ParameterKey.QueryId] = queryId } });
         }
     }
 

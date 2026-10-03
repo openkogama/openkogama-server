@@ -35,6 +35,7 @@ public sealed class StreamingAsset
 public sealed class StreamingAssetCatalog
 {
     public string Root { get; set; } = "";
+    public string? WebGLRoot { get; set; }
     public List<StreamingAsset> Assets { get; set; } = [];
 
     HashSet<int>? _ids;

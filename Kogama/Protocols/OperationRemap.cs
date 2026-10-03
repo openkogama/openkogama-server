@@ -172,7 +172,7 @@ public sealed class OperationRemap(ProtocolTable client) : IMessageTranslator
     static bool Renumbered(Dictionary<string, int> client, Dictionary<string, int> server) =>
         client.Any(pair => server.TryGetValue(pair.Key, out int code) && code != pair.Value);
 
-    static Dictionary<string, int> ServerCodes<T>(Dictionary<string, int> table) where T : struct, Enum
+    internal static Dictionary<string, int> ServerCodes<T>(Dictionary<string, int> table) where T : struct, Enum
     {
         var codes = new Dictionary<string, int>(table);
         foreach (T value in Enum.GetValues<T>())

@@ -27,6 +27,7 @@ public static class ProfileMeta
                 [(byte)ParameterKey.Bool] = true,
                 [(byte)ParameterKey.MetaData] = json,
                 [(byte)ParameterKey.Data] = NoHighlights,
+                [(byte)ParameterKey.GoldRewardedGame] = false,
             },
         });
     }

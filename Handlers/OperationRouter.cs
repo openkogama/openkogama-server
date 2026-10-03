@@ -74,6 +74,10 @@ public sealed class OperationRouter
         Register(new GetAvatarBodies(session));
         Register(new SetSpawnRoleBody(session));
         Register(new Ignore(Kogama.OperationCode.CustomDevCommands));
+        Register(new Ignore(Kogama.OperationCode.ClaimRewardedAdXP));
+        Register(new Ignore(Kogama.OperationCode.ClaimPlayingNewGameRewardedGold));
+        Register(new Ignore(Kogama.OperationCode.IncrementStatRequest));
+        Register(new GameTierOperation(session, Kogama.OperationCode.TogglePreviewTierOperation));
         Register(new UnEquipAccessory(session));
         Register(new UpdateAvatarAccessoryScale(session));
         Register(new Acknowledge(Kogama.OperationCode.ResetHighlights));

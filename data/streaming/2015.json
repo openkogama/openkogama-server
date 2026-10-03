@@ -1,5 +1,6 @@
 {
   "root": "https://cdn.openkogama.org/eu/kogama_assets_u5/",
+  "webglRoot": "https://cdn.openkogama.org/eu/kogama_assets/kogama_assets_u5_webgl/",
   "assets": [
     {
       "id": 1,

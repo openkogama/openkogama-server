@@ -22,6 +22,18 @@ public static class BundleSets
         return Loaded.Ranges.LastOrDefault(range => version >= Version.Parse(range.From))?.Set;
     }
 
-    public static string Url(string build) =>
-        For(build) is string set ? $"http://127.0.0.1:8080/bundles-{set}/" : "http://127.0.0.1:8080/bundles/";
+    public const string WebGL = "-webgl";
+
+    public static string Installed(string build) =>
+        Kogama.Protocols.ProtocolTable.Resolve(build) is string table && Kogama.Protocols.ProtocolTable.IsLegacy(table)
+            ? "2015"
+            : For(build) ?? "2015";
+
+    public static string WebGLRoot(string root) => root.Replace("/kogama_assets_u5/", "/kogama_assets_u5_webgl/");
+
+    public const string Legacy = "2015";
+
+    public static string Url(string build, bool webgl = false) =>
+        For(build) is string set ? $"http://127.0.0.1:8080/bundles-{set}{(webgl ? WebGL : "")}/"
+            : webgl ? $"http://127.0.0.1:8080/bundles-{Legacy}{WebGL}/" : "http://127.0.0.1:8080/bundles/";
 }

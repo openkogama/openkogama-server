@@ -6,8 +6,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Remove="api\**;examples\**" />
-    <None Remove="api\**;examples\**" />
+    <Compile Remove="api\**;examples\**;browser\**" />
+    <None Remove="api\**;examples\**;browser\**" />
     <Content Include="data\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

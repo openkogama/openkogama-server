@@ -127,6 +127,7 @@ public static class Avatar
             ("headRotationPitch", PackedType.Single, 0f),
             ("pointRotationYaw", PackedType.Single, 0f),
             ("pointRotationPitch", PackedType.Single, 0f),
+            ("size", PackedType.Single, 1f),
             ("emote", PackedType.Int32, 0),
         ];
 

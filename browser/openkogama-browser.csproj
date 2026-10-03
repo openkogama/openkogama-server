@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>OpenKogama.Browser</RootNamespace>
+    <AssemblyName>OpenKogama.Browser</AssemblyName>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <WasmBuildNative>true</WasmBuildNative>
+    <NoWarn>$(NoWarn);CA1416;IL2026;IL3050</NoWarn>
+    <TrimMode>partial</TrimMode>
+    <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\**\*.cs" Exclude="..\browser\**;..\api\**;..\examples\**;..\bin\**;..\obj\**;..\Program.cs;..\Web\HttpServer.cs;..\Web\NullProxy.cs;..\Web\SocketPolicyServer.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\openkogama-photon\openkogama-photon.csproj" />
+    <ProjectReference Include="..\api\openkogama-api.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.12" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="..\data\**\*" Exclude="..\data\streaming\manifests\**" LogicalName="data/%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
+</Project>
