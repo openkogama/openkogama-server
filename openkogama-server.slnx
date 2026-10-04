@@ -4,4 +4,6 @@
   <Project Path="api/openkogama-api.csproj" />
   <Project Path="examples/welcome/welcome.csproj" />
   <Project Path="examples/xp/xp.csproj" />
+  <Project Path="examples/sandbox/sandbox.csproj" />
+  <Project Path="examples/deadzone/deadzone.csproj" />
 </Solution>

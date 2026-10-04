@@ -16,13 +16,12 @@ public static class KgmapFile
 
     public static (JsonObject Meta, List<byte[]> Batches) Read(byte[] file)
     {
-        using Stream input = file[0] == 0x1f && file[1] == 0x8b
-            ? new GZipStream(new MemoryStream(file), CompressionMode.Decompress)
-            : new MemoryStream(file);
+        using Stream input = Open(file);
         using var reader = new BinaryReader(input, Encoding.UTF8);
 
         if (reader.ReadUInt32() != Magic) throw new InvalidDataException("not a .kgmap");
         ushort version = reader.ReadUInt16();
+        if (LegacyKgmap.IsLegacy(version)) return LegacyKgmap.Read(reader, version);
 
         JsonObject meta = [];
         if (version >= 6)
@@ -38,9 +37,27 @@ public static class KgmapFile
         return (meta, batches);
     }
 
+    static Stream Open(byte[] file) => file[0] == 0x1f && file[1] == 0x8b
+        ? new GZipStream(new MemoryStream(file), CompressionMode.Decompress)
+        : new MemoryStream(file);
+
+    static ushort? FileVersion(byte[] file)
+    {
+        using Stream input = Open(file);
+        using var reader = new BinaryReader(input);
+        try
+        {
+            return reader.ReadUInt32() == Magic ? reader.ReadUInt16() : null;
+        }
+        catch (Exception error) when (error is EndOfStreamException or InvalidDataException)
+        {
+            return null;
+        }
+    }
+
     public static string? Title(byte[] file)
     {
-        if (!IsKgmap(file)) return null;
+        if (!IsKgmap(file) || FileVersion(file) is not ushort version || LegacyKgmap.IsLegacy(version)) return null;
         try
         {
             string? title = Read(file).Meta["GameTitle"]?.GetValue<string>();
@@ -62,8 +79,14 @@ public static class KgmapFile
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
 
         string temp = path + ".tmp";
-        using (var file = File.Create(temp))
-        using (var gzip = new GZipStream(file, CompressionLevel.Optimal))
+        File.WriteAllBytes(temp, Pack(meta, batch));
+        File.Move(temp, path, overwrite: true);
+    }
+
+    public static byte[] Pack(JsonObject meta, byte[] batch)
+    {
+        var output = new MemoryStream();
+        using (var gzip = new GZipStream(output, CompressionLevel.Optimal))
         using (var writer = new BinaryWriter(gzip, Encoding.UTF8))
         {
             byte[] json = Encoding.UTF8.GetBytes(meta.ToJsonString());
@@ -76,7 +99,6 @@ public static class KgmapFile
             writer.Write(batch.Length);
             writer.Write(batch);
         }
-
-        File.Move(temp, path, overwrite: true);
+        return output.ToArray();
     }
 }

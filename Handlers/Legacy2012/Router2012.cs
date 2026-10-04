@@ -197,7 +197,7 @@ public sealed class Router2012
 
     void RequestWorldObjects(PhotonPeer peer, OperationRequest request)
     {
-        IReadOnlyList<WorldObject> objects = session.World.ToSnapshot().Objects;
+        IReadOnlyList<WorldObject> objects = session.WithoutNpcs(session.World.ToSnapshot()).Objects;
         var batch = new Queue<Dictionary<object, object?>>(WorldObjects2012.Describe(objects, ProtocolTable.For(Version)));
         int count = batch.Count;
         var kept = batch.Select(obj => (int)obj[(byte)Key2012.WorldObjectID]!).ToHashSet();

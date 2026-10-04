@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using OpenKogama.Game;
 using OpenKogama.Handlers;
 using OpenKogama.Handlers.Legacy;
@@ -257,6 +258,21 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
         return true;
     }
 
+    public byte[]? ExportWorld(int id)
+    {
+        foreach (Session session in Worlds())
+            if (session.WorldId == id) session.SaveIfChanged();
+
+        if (Stores.Worlds.World(id) is not { } stored) return null;
+        var meta = new JsonObject
+        {
+            ["GameTitle"] = stored.Name,
+            ["SavedAt"] = DateTime.UtcNow.ToString("O"),
+            ["Kgmexporter"] = "openkogama-server",
+        };
+        return KgmapFile.Pack(meta, stored.Data);
+    }
+
     public void SaveAll()
     {
         foreach (Session session in Worlds())
@@ -271,6 +287,8 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
             Spins.Tick(session);
             Experience.Tick(session);
             session.GamePasses.Tick();
+            session.TickNpcs();
+            session.TickAnnouncements();
         }
         Plugins.PluginHost.Tick();
     }

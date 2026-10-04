@@ -7,6 +7,12 @@ namespace OpenKogama.Handlers.Operations;
 
 public sealed class TriggerBox(Session session, bool entering) : IOperationHandler
 {
+    static readonly HashSet<WorldObjectType> Collectibles =
+    [
+        WorldObjectType.CollectibleItem, WorldObjectType.GamePoint, WorldObjectType.GamePointChest,
+        WorldObjectType.PickupItemSpawner, WorldObjectType.PickupCubeGun, WorldObjectType.CollectTheItemCollectableInstance,
+    ];
+
     public byte Code => (byte)(entering ? OperationCode.TriggerBoxEnter : OperationCode.TriggerBoxExit);
 
     public void Handle(PhotonPeer peer, OperationRequest request)
@@ -18,6 +24,7 @@ public sealed class TriggerBox(Session session, bool entering) : IOperationHandl
         WorldObject? obj = session.World.Find(objectId);
         Player? player = session.For(peer);
         if (obj is null || player is null) return;
+        if (entering && Collectibles.Contains(obj.Type)) Plugins.PluginHost.Collected(session, player, obj);
 
         switch (obj.Type)
         {

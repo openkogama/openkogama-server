@@ -76,6 +76,15 @@ public sealed class CreateGameSnapshot(Session session) : IOperationHandler
             users.Add(p.Actor, info);
             me?.Sees(p.Actor);
         }
+        if (me?.SeesNpcs != true) return users;
+        foreach (Npc npc in session.Npcs)
+        {
+            PhotonDictionary info = PhotonDictionary.ByteKeyed();
+            foreach ((ParameterKey key, object value) in npc.Info()) info.Add((byte)key, value);
+            if (me.SpawnRoles) info.Add((byte)ParameterKey.Data, npc.SpawnRoleData());
+            users.Add(npc.Actor, info);
+            me.Sees(npc.Actor);
+        }
         return users;
     }
 

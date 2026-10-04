@@ -41,6 +41,7 @@ public sealed class AddItemToWorld(Session session) : IOperationHandler
         if (root.Type == WorldObjectType.RoundCube) session.Round.Start();
 
         GetNextGameBatch.SendAdded(session, owner?.Actor ?? peer.Id, added);
+        if (session.World.Find(added.Objects[0].Id) is WorldObject placed) Plugins.PluginHost.Added(session, placed, owner);
 
         Console.WriteLine($"peer {peer.Id}: placed {item.Name} as {added.Objects[0].Id}");
     }

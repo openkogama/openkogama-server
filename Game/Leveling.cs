@@ -110,6 +110,8 @@ public static class Leveling
         var badges = new JsonArray();
         for (int level = 1; level <= MaxLevel; level++)
             badges.Add(new JsonObject { ["Level"] = level, ["URL"] = $"{badgeRoot}{level}.png", ["FriendsLimit"] = Data.Levels[level - 1].Friends });
+        foreach ((int level, string name) in CustomBadges.All())
+            badges.Add(new JsonObject { ["Level"] = level, ["URL"] = $"{badgeRoot}custom/{Uri.EscapeDataString(name)}.png", ["FriendsLimit"] = 0 });
 
         return new JsonObject
         {

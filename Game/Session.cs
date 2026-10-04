@@ -5,10 +5,10 @@ using OpenKogama.World;
 
 namespace OpenKogama.Game;
 
-public sealed class Session
+public sealed partial class Session
 {
     const string LegacyPath = "worlds/default.kgmap";
-    static readonly string TemplatePath = Path.Combine(AppContext.BaseDirectory, "data", "maps", "default.kgmap");
+    static readonly string TemplatePath = Templates.DefaultPath;
     static readonly string EditorPath = Path.Combine(AppContext.BaseDirectory, "data", "maps", "avatar-editor.kgmap");
 
     readonly List<Player> _players = [];
@@ -247,7 +247,7 @@ public sealed class Session
     }
 
     public static int CreateWorld(string name, string? template = null) =>
-        Stores.Worlds.Create(name, 0, WorldConverter.Load(Templates.Find(template)?.Path ?? TemplatePath).ToData());
+        Stores.Worlds.Create(name, 0, Templates.Create(template).ToData());
 
     public static int ImportWorld(string name, byte[] file, string? client = null)
     {

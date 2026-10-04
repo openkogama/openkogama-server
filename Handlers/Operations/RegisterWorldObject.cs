@@ -39,6 +39,7 @@ public sealed class RegisterWorldObject(Session session) : IOperationHandler
         peer.Send(new OperationResponse(request));
 
         GetNextGameBatch.SendAdded(session, player.Actor, session.World.SubtreeSnapshot(obj.Id));
+        Plugins.PluginHost.Added(session, obj, player);
 
         Console.WriteLine($"peer {peer.Id}: registered {obj.Type} as {obj.Id}");
     }

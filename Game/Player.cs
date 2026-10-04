@@ -102,6 +102,8 @@ public sealed class Player(PhotonPeer peer, int actor, int avatarId)
     public bool WaitsForQueryReady => !NativeSince(ImmediateQueriesVersion);
     public bool ModernAccessories => peer.Translator is Kogama.Protocols.OperationRemap remap && remap.Knows(Kogama.OperationCode.RequestAccessoryData);
     public bool RichText => peer.Protocol != PhotonProtocol.Protocol15 && peer.Translator is not Kogama.Protocols.LegacyTranslator;
+    public bool Notifications => peer.Translator is Kogama.Protocols.OperationRemap remap && remap.Knows(Kogama.EventCode.NotificationEvent);
+    public bool SeesNpcs => peer.Protocol != PhotonProtocol.Protocol15 && peer.Translator is not Kogama.Protocols.LegacyTranslator;
     public bool ShortRoundStates => peer.Translator is Kogama.Protocols.OperationRemap remap && remap.ShortStates;
     public bool ReadyEvents => peer.Translator is Kogama.Protocols.OperationRemap remap && remap.Knows(Kogama.ParameterKey.IsActorReady);
     public bool ServerExperience => peer.Translator is Kogama.Protocols.OperationRemap remap && remap.Knows(Kogama.EventCode.XPReward);

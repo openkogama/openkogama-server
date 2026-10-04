@@ -1,0 +1,23 @@
+{
+  "spawnEvery": 2,
+  "maxAlive": 30,
+  "spawnPoints": [[76.1, 32.2, -46.1]],
+  "monsters": {
+    "zombie": { "name": "Zombie", "level": 1, "size": 1, "speed": 8, "health": 100, "damage": 10, "knockback": 1 },
+    "baby": { "name": "Baby Zombie", "level": 2, "size": 0.5, "speed": 11, "health": 50, "damage": 6, "knockback": 0.5 },
+    "brute": { "name": "Brute", "level": 5, "size": 2, "speed": 5, "health": 400, "damage": 25, "knockback": 2 },
+    "exploder": { "name": "Exploder", "level": 4, "size": 1.2, "speed": 10, "health": 40, "damage": 0, "knockback": 0, "skin": "soldier", "explosion": { "trigger": 2, "fuse": 1, "radius": 10, "damage": 150, "push": 3500 } }
+  },
+  "nights": [
+    { "name": "Tutorial", "steps": ["2 zombie", "wait 5", "3 zombie"] },
+    { "name": "Kids", "steps": ["baby", "wait 8", "rush 3 baby", "wait 4", "rush 3 baby", "zombie", "wait 4", "rush 5 baby", "zombie"] },
+    { "name": "The Pack", "maxAlive": 9, "steps": ["rush 3 zombie", "rush 3 baby", "rush 3 zombie", "rush 3 baby", "rush 3 zombie", "rush 3 zombie"] },
+    { "name": "Swarm", "steps": ["rush 4 baby", "wait 3", "rush 4 baby", "zombie", "wait 3", "rush 5 baby", "wait 2", "rush 5 baby", "zombie"] },
+    { "name": "The Brute", "steps": ["rush brute", "rush 4 zombie", "rush 3 baby", "wait 12", "rush 3 zombie", "wait 6", "rush 3 baby"] },
+    { "name": "Calm", "steps": ["2 zombie", "wait 5", "zombie", "baby", "wait 5", "2 zombie", "baby"] },
+    { "name": "Kamikaze", "steps": ["exploder", "wait 8", "3 zombie", "exploder", "2 baby", "zombie", "exploder", "3 zombie", "baby", "wait 6", "rush 3 exploder"] },
+    { "name": "Siege", "steps": ["rush 3 zombie", "rush 2 baby", "brute", "3 zombie", "exploder", "wait 5", "rush 3 baby", "2 zombie", "exploder", "zombie", "wait 4", "rush 4 zombie", "exploder", "baby"] },
+    { "name": "Silence", "steps": ["zombie", "wait 8", "zombie", "wait 10", "baby", "wait 15", "rush 6 zombie", "rush 5 baby", "rush 2 exploder", "wait 3", "rush 6 zombie", "rush 4 baby", "brute"] },
+    { "name": "Twin Brutes", "steps": ["rush 2 brute", "rush 4 zombie", "wait 8", "exploder", "3 zombie", "2 baby", "exploder", "wait 6", "rush 3 baby", "rush 3 zombie", "exploder"] }
+  ]
+}

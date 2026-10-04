@@ -15,6 +15,9 @@ public enum ChatKind
 public static class ServerChat
 {
     const int AdminMessage = 3;
+    const int ModalNotification = 6;
+    const int ShortNotification = 2;
+    const int LongNotification = 8;
     const int TeamMessage = 8;
     const int NearbyMessage = 9;
 
@@ -50,6 +53,27 @@ public static class ServerChat
             player.Peer.Send(GameMessage(AdminMessage, new() { [SendChatMsg.Text] = text }));
         else
             player.Peer.Send(GameMessage(SendChatMsg.ChatMessage, Line(player, text)));
+    }
+
+    public static void Notify(Player player, string text, bool brief = false)
+    {
+        if (!player.Notifications)
+        {
+            Message(player, text);
+            return;
+        }
+        player.Peer.Send(new EventData((byte)EventCode.NotificationEvent)
+        {
+            Parameters =
+            {
+                [(byte)ParameterKey.NotificationType] = ModalNotification,
+                [(byte)ParameterKey.NotificationData] = new Dictionary<object, object?>
+                {
+                    [(byte)1] = text,
+                    [(byte)2] = brief ? ShortNotification : LongNotification,
+                },
+            },
+        });
     }
 
     public static void Say(Session session, Player speaker, string text)

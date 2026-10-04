@@ -23,6 +23,7 @@ public sealed class PostGameMsg(Session session) : IOperationHandler
             && Actor(data, Victim) == victim.Actor)
         {
             session.Round.ReportKill(killer, victim);
+            Plugins.PluginHost.Killed(session, victim, killer);
         }
 
         if (Convert.ToInt32(request[(byte)ParameterKey.GameMsgType]) == Chat && session.For(peer) is Player sender)

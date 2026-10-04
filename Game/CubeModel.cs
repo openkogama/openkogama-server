@@ -13,6 +13,58 @@ public sealed class CubeModel
 
     public int Count => _cubes.Count;
 
+    public List<(short X, short Y, short Z)> Positions()
+    {
+        lock (_sync) return [.. _cubes.Keys];
+    }
+
+    public byte[]? Get(int x, int y, int z)
+    {
+        if (x is < short.MinValue or > short.MaxValue || y is < short.MinValue or > short.MaxValue || z is < short.MinValue or > short.MaxValue) return null;
+        lock (_sync) return _cubes.GetValueOrDefault(((short)x, (short)y, (short)z));
+    }
+
+    public ((int X, int Y, int Z) Min, (int X, int Y, int Z) Max)? Bounds()
+    {
+        lock (_sync)
+        {
+            if (_cubes.Count == 0) return null;
+            int minX = int.MaxValue, minY = int.MaxValue, minZ = int.MaxValue;
+            int maxX = int.MinValue, maxY = int.MinValue, maxZ = int.MinValue;
+            foreach ((short x, short y, short z) in _cubes.Keys)
+            {
+                minX = Math.Min(minX, x); minY = Math.Min(minY, y); minZ = Math.Min(minZ, z);
+                maxX = Math.Max(maxX, x); maxY = Math.Max(maxY, y); maxZ = Math.Max(maxZ, z);
+            }
+            return ((minX, minY, minZ), (maxX, maxY, maxZ));
+        }
+    }
+
+    public static void AppendAdded(List<byte> changes, short x, short y, short z, byte material)
+    {
+        changes.Add((byte)CubeAction.Added);
+        AppendPosition(changes, x, y, z);
+        changes.Add(DefaultCorners | OneMaterial);
+        changes.Add(material);
+    }
+
+    public static void AppendDeleted(List<byte> changes, short x, short y, short z)
+    {
+        changes.Add((byte)CubeAction.Deleted);
+        AppendPosition(changes, x, y, z);
+    }
+
+    static void AppendPosition(List<byte> changes, short x, short y, short z)
+    {
+        Span<byte> buffer = stackalloc byte[2];
+        foreach (short value in (ReadOnlySpan<short>)[x, y, z])
+        {
+            BinaryPrimitives.WriteInt16BigEndian(buffer, value);
+            changes.Add(buffer[0]);
+            changes.Add(buffer[1]);
+        }
+    }
+
     public static CubeModel SingleCube(byte material)
     {
         var model = new CubeModel();

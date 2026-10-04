@@ -93,6 +93,7 @@ var api = new WebApi
     LegacyAssets = legacyAssets,
     AssetSets = assetSets,
     DeleteWorld = host.DeleteWorld,
+    ExportWorld = host.ExportWorld,
     Shutdown = () => _ = Task.Delay(100).ContinueWith(_ => Environment.Exit(0)),
 };
 var web = new HttpServer("http://127.0.0.1:8080/", api);

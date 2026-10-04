@@ -7,12 +7,12 @@ namespace OpenKogama.Handlers.Operations;
 
 public sealed class GetNextGameBatch(Session session) : IOperationHandler
 {
-    public static void SendAdded(Session session, int actor, Snapshot added)
+    public static void SendAdded(Session session, int actor, Snapshot added, Func<Player, bool>? audience = null)
     {
         var formats = new Dictionary<object, byte[]>();
         foreach (Player player in session.Players)
         {
-            if (!player.Knows(added)) continue;
+            if (audience?.Invoke(player) == false || !player.Knows(added)) continue;
             object format = player.WorldFormat;
             if (!formats.TryGetValue(format, out byte[]? data))
                 formats[format] = data = player.WorldData(added);
@@ -79,6 +79,16 @@ public sealed class GetNextGameBatch(Session session) : IOperationHandler
         bool native = peer.Translator is not Kogama.Protocols.LegacyTranslator;
         if (native) Console.WriteLine($"peer {peer.Id}: client {me.ClientVersion}");
         Snapshot snapshot = session.World.ToSnapshot();
+        if (me.SeesNpcs)
+        {
+            foreach (Npc npc in session.Npcs.Where(npc => !me.Saw(npc.Actor)))
+                session.Introduce(me, npc);
+            snapshot = session.NpcsAway(snapshot);
+        }
+        else
+        {
+            snapshot = session.WithoutNpcs(snapshot);
+        }
         if (native)
         {
             snapshot = LegacyWorld.KnownItems(snapshot, Kogama.Protocols.ProtocolTable.For(me.ClientVersion), out int dropped);

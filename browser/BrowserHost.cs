@@ -52,6 +52,7 @@ public static partial class BrowserHost
                     "http://127.0.0.1:8080/ping", "http://127.0.0.1:8080/disconnect", "http://127.0.0.1:8080/reward", client),
                 json),
             DeleteWorld = _host.DeleteWorld,
+            ExportWorld = _host.ExportWorld,
         };
 
         _ = _server.TickAsync();

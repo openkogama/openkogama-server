@@ -26,6 +26,7 @@ public sealed class WebApi
     public AssetCache? LegacyAssets { get; set; }
     public Dictionary<string, AssetCache> AssetSets { get; init; } = [];
     public Func<int, bool> DeleteWorld { get; set; } = _ => false;
+    public Func<int, byte[]?> ExportWorld { get; set; } = _ => null;
     public Action? Shutdown { get; set; }
 
     public ApiResponse Route(ApiRequest request)
@@ -78,10 +79,45 @@ public sealed class WebApi
             return ApiResponse.Json("{}", renamed ? 200 : 400);
         }
 
+        if (path.TrimEnd('/') == "/api/worlds/export")
+        {
+            return int.TryParse(query["id"], out int id) && ExportWorld(id) is byte[] file
+                ? new ApiResponse(200, "application/octet-stream", file)
+                : ApiResponse.NotFound;
+        }
+
         if (path.TrimEnd('/') == "/api/worlds/import" && request.Method == "POST")
         {
             string name = query["name"] is { Length: > 0 } given ? given : "Imported World";
             return ApiResponse.Json(JsonSerializer.Serialize(new { id = Session.ImportWorld(name, request.Body, query["client"]) }));
+        }
+
+        if (path.TrimEnd('/') == "/api/avatars")
+        {
+            int owner = ProfileOf(query);
+            int active = Stores.Profiles.ActiveAvatar(owner);
+            return ApiResponse.Json(JsonSerializer.Serialize(Stores.Profiles.Avatars(owner).Select(avatar => new { id = avatar.Id, active = avatar.Id == active })));
+        }
+
+        if (path.TrimEnd('/') == "/api/avatars/active" && request.Method == "POST")
+        {
+            if (!int.TryParse(query["id"], out int id)) return ApiResponse.Json("{}", 400);
+            Stores.Profiles.SetActiveAvatar(ProfileOf(query), id);
+            return ApiResponse.Json("{}");
+        }
+
+        if (path.TrimEnd('/') == "/api/avatars/export")
+        {
+            return int.TryParse(query["id"], out int id) && AvatarFiles.Export(id) is { } skin
+                ? new ApiResponse(200, "application/json", Encoding.UTF8.GetBytes(skin.ToJson()))
+                : ApiResponse.NotFound;
+        }
+
+        if (path.TrimEnd('/') == "/api/avatars/import" && request.Method == "POST")
+        {
+            return AvatarFiles.Import(ProfileOf(query), Encoding.UTF8.GetString(request.Body)) is int id
+                ? ApiResponse.Json(JsonSerializer.Serialize(new { id }))
+                : ApiResponse.Json("{}", 400);
         }
 
         if (path.TrimEnd('/') == "/api/worlds")
@@ -134,6 +170,9 @@ public sealed class WebApi
                 return new ApiResponse(200, "image/png", image);
         }
 
+        if (path.StartsWith("/badges/custom/") && CustomBadges.Image(Uri.UnescapeDataString(Path.GetFileNameWithoutExtension(path))) is byte[] icon)
+            return new ApiResponse(200, "image/png", icon);
+
         if (path.StartsWith("/badges/"))
         {
             string file = Path.Combine(AppContext.BaseDirectory, "data", "badges", Path.GetFileName(path));
@@ -146,6 +185,9 @@ public sealed class WebApi
 
         return ApiResponse.NotFound;
     }
+
+    static int ProfileOf(NameValueCollection query) =>
+        int.TryParse(query["profile"], out int profile) && profile > 0 ? profile : 1;
 
     static NameValueCollection Form(ApiRequest request)
     {
