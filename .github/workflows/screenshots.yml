@@ -39,7 +39,7 @@ jobs:
           name: server
           path: server
       - run: ./.github/screenshot.ps1 -Version "${{ matrix.version }}" -Server server -Out shots
-        shell: pwsh
+        shell: powershell
       - uses: actions/upload-artifact@v4
         if: always()
         with:
