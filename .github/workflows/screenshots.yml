@@ -4,10 +4,16 @@ on:
   push:
     branches: [screenshots-ci]
   workflow_dispatch:
+    inputs:
+      chunk:
+        description: builds per job
+        default: "12"
 
 jobs:
-  server:
+  build:
     runs-on: windows-latest
+    outputs:
+      chunks: ${{ steps.plan.outputs.chunks }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -16,32 +22,86 @@ jobs:
         with:
           repository: openkogama/openkogama-photon
           path: openkogama-photon
+      - uses: actions/checkout@v4
+        with:
+          repository: openkogama/openkogama-player
+          path: openkogama-player
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
       - run: dotnet publish openkogama-server/openkogama-server.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o server
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x86
+      - run: |
+          cmake -S openkogama-player -B player-build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build player-build
+          New-Item -ItemType Directory player | Out-Null
+          Copy-Item player-build/openkogama-player.exe player/
+          Copy-Item -Recurse player-build/versions player/versions
+        shell: pwsh
+      - id: plan
+        shell: pwsh
+        run: |
+          $size = [int]("${{ inputs.chunk }}" -replace '^$', '12')
+          $ids = (Invoke-RestMethod "https://cdn.openkogama.org/versions.json" -Headers @{ "User-Agent" = "openkogama-server" }).versions | Sort-Object timestamp | ForEach-Object id
+          $chunks = for ($i = 0; $i -lt $ids.Count; $i += $size) { @{ n = $i / $size; ids = ($ids[$i..([Math]::Min($i + $size, $ids.Count) - 1)] -join ',') } }
+          "chunks=$($chunks | ConvertTo-Json -Compress -AsArray)" >> $env:GITHUB_OUTPUT
+          Write-Host "$($ids.Count) builds in $(@($chunks).Count) jobs"
       - uses: actions/upload-artifact@v4
         with:
           name: server
           path: server
+      - uses: actions/upload-artifact@v4
+        with:
+          name: player
+          path: player
 
   shot:
-    needs: server
+    needs: build
     runs-on: windows-latest
+    timeout-minutes: 120
     strategy:
       fail-fast: false
+      max-parallel: 20
       matrix:
-        version: ["1.31.2.463", "2.8.9", "2.30.11", "3.5.25"]
+        chunk: ${{ fromJson(needs.build.outputs.chunks) }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           name: server
           path: server
-      - run: ./.github/screenshot.ps1 -Version "${{ matrix.version }}" -Server server -Out shots
+      - uses: actions/download-artifact@v4
+        with:
+          name: player
+          path: player
+      - run: ./.github/screenshot.ps1 -Ids "${{ matrix.chunk.ids }}" -Server server -Player player -Out shots
         shell: powershell
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: shot-${{ matrix.version }}
+          name: shots-${{ matrix.chunk.n }}
           path: shots
+
+  video:
+    needs: shot
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: shots-*
+          path: shots
+      - run: |
+          pip install pillow
+          python .github/video.py shots video/kogama-versions.mp4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: video
+          path: video/kogama-versions.mp4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: shots/**/*.png

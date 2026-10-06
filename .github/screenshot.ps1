@@ -1,4 +1,4 @@
-param([string]$Version, [string]$Server, [string]$Out, [int]$Width = 1080, [int]$Height = 1920)
+param([string]$Ids, [string]$Server, [string]$Player, [string]$Out, [int]$Width = 1080, [int]$Height = 1920, [int]$Timeout = 180)
 $ErrorActionPreference = "Stop"
 $Server = (Resolve-Path $Server).Path
 New-Item -ItemType Directory -Force $Out | Out-Null
@@ -20,9 +20,14 @@ public static class Shot {
     AdjustWindowRect(ref r, GetWindowLong(h, -16), false);
     SetWindowPos(h, IntPtr.Zero, 0, 0, r.R - r.L, r.B - r.T, 0x0004 | 0x0010);
   }
-  static bool Blank(Bitmap b) {
-    for (int y = 0; y < b.Height; y += 37) for (int x = 0; x < b.Width; x += 37) { var c = b.GetPixel(x, y); if (c.R + c.G + c.B > 30) return false; }
-    return true;
+  public static bool Blank(Bitmap b) {
+    Color first = b.GetPixel(0, 0); int dark = 0, total = 0, same = 0;
+    for (int y = 0; y < b.Height; y += 23) for (int x = 0; x < b.Width; x += 23) {
+      var c = b.GetPixel(x, y); total++;
+      if (c.R + c.G + c.B < 30) dark++;
+      if (Math.Abs(c.R - first.R) + Math.Abs(c.G - first.G) + Math.Abs(c.B - first.B) < 12) same++;
+    }
+    return dark * 10 > total * 9 || same * 100 > total * 99;
   }
   public static Bitmap Capture(IntPtr h) {
     RECT r; GetClientRect(h, out r); int w = r.R - r.L, hh = r.B - r.T;
@@ -42,62 +47,124 @@ public static class Shot {
 }
 "@
 
-try { Set-DisplayResolution -Width 1920 -Height 1080 -Force } catch { Write-Host "resolution: $_" }
 Add-Type -AssemblyName System.Windows.Forms
 $screen = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
-Write-Host "screen $($screen.Width)x$($screen.Height)"
-
-$agent = @{ "User-Agent" = "openkogama-server" }
-$versions = (Invoke-RestMethod "https://cdn.openkogama.org/versions.json" -Headers $agent).versions
-$entry = $versions | Where-Object { $_.version -eq $Version } | Sort-Object timestamp | Select-Object -Last 1
-if (-not $entry) { throw "no build $Version" }
-Write-Host "client $Version unity $($entry.unityVersion) il2cpp $($entry.il2cpp)"
-$zip = Join-Path $env:RUNNER_TEMP "client.zip"
-Invoke-WebRequest ($entry.urls | Select-Object -First 1) -OutFile $zip -Headers $agent
-if ((Get-FileHash $zip -Algorithm SHA256).Hash -ne $entry.sha256.ToUpper()) { throw "sha256 mismatch" }
-$client = Join-Path $env:RUNNER_TEMP "client"
-Expand-Archive $zip $client
-$exe = Get-ChildItem $client -Recurse -Filter kogama.exe | Select-Object -First 1
-if (-not $exe) { throw "no kogama.exe" }
-
-$serverLog = Join-Path $Out "server.log"
-$serverProcess = Start-Process (Join-Path $Server "openkogama-server.exe") -WorkingDirectory $Server -RedirectStandardOutput $serverLog -RedirectStandardError (Join-Path $Out "server-errors.log") -PassThru -NoNewWindow
-for ($i = 0; $i -lt 60 -and -not ((Test-Path $serverLog) -and (Select-String -Path $serverLog -Pattern "http 8080" -Quiet)); $i++) { Start-Sleep 1 }
-$world = (Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/worlds?name=City&template=city" -Body "").id
-Write-Host "world $world"
-
-$session = "http://127.0.0.1:8080/session?mode=play&world=$world&client=$Version&unity=$($entry.unityVersion)"
-$package = "kogamaPackage:" + [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($session))
-$psi = New-Object System.Diagnostics.ProcessStartInfo
-$psi.FileName = $exe.FullName
-$psi.Arguments = "$package -popupwindow -logFile `"$(Join-Path $Out 'client.log')`""
-$psi.WorkingDirectory = $exe.DirectoryName
-$psi.UseShellExecute = $false
-$psi.EnvironmentVariables["http_proxy"] = "http://127.0.0.1:8081"
-$psi.EnvironmentVariables["no_proxy"] = "127.0.0.1,localhost"
-$game = [System.Diagnostics.Process]::Start($psi)
-
-$ready = $false
-for ($i = 0; $i -lt 300; $i++) {
-    Start-Sleep 1
-    if (Select-String -Path $serverLog -Pattern "actor ready" -Quiet) { $ready = $true; break }
-    if ($game.HasExited) { break }
-}
-Write-Host "ready $ready after $i s"
-Start-Sleep 10
-
-$game.Refresh()
-$handle = $game.MainWindowHandle
-if ($handle -eq [IntPtr]::Zero) { throw "no game window" }
 $scale = [Math]::Min(1.0, [Math]::Min($screen.Width / $Width, $screen.Height / $Height))
 $renderWidth = [int][Math]::Round($Width * $scale)
 $renderHeight = [int][Math]::Round($Height * $scale)
-[Shot]::Size($handle, $renderWidth, $renderHeight)
-Start-Sleep 8
-$bitmap = [Shot]::Capture($handle)
-Write-Host "captured $($bitmap.Width)x$($bitmap.Height)"
-[Shot]::Save($bitmap, $Width, $Height, (Join-Path $Out "menu-$Version-${Width}x$Height.png"))
+Write-Host "screen $($screen.Width)x$($screen.Height) render ${renderWidth}x$renderHeight"
 
-Stop-Process -Id $game.Id -Force -ErrorAction SilentlyContinue
-Stop-Process -Id $serverProcess.Id -Force -ErrorAction SilentlyContinue
-if (-not $ready) { throw "client did not get ready" }
+$agent = @{ "User-Agent" = "openkogama-server" }
+$versions = (Invoke-RestMethod "https://cdn.openkogama.org/versions.json" -Headers $agent).versions
+$results = Join-Path $Out "results.jsonl"
+$webPlayerReady = $false
+
+function Stop-Leftovers {
+    Get-Process kogama, openkogama-player, openkogama-server -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+    Start-Sleep 2
+}
+
+function Install-WebPlayer {
+    $root = Join-Path $env:USERPROFILE "AppData\LocalLow\Unity\WebPlayer"
+    $zip = Join-Path $env:RUNNER_TEMP "webplayer.zip"
+    Invoke-WebRequest "https://cdn.openkogama.org/webplayer/unity-webplayer-4.6.6f2-win.zip" -OutFile $zip -Headers $agent
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $archive = [System.IO.Compression.ZipFile]::OpenRead($zip)
+    foreach ($entry in $archive.Entries) {
+        $path = Join-Path $root ($entry.FullName -replace '/', '\')
+        if ($entry.FullName.EndsWith('/') -or $entry.FullName.EndsWith('\')) { New-Item -ItemType Directory -Force $path | Out-Null; continue }
+        New-Item -ItemType Directory -Force (Split-Path $path) | Out-Null
+        [System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $path, $true)
+    }
+    $archive.Dispose()
+    New-Item -Force "HKCU:\Software\Unity\WebPlayer" | Out-Null
+    Set-ItemProperty "HKCU:\Software\Unity\WebPlayer" Directory $root
+    Set-ItemProperty "HKCU:\Software\Unity\WebPlayer" UnityWebPlayerReleaseChannel Stable
+    Set-ItemProperty "HKCU:\Software\Unity\WebPlayer" UnityWebPlayerDevelopment no
+}
+
+function Capture-Build($entry) {
+    $version = if ($entry.version) { $entry.version } else { "2012" }
+    $name = "{0}-{1}" -f $entry.timestamp, $version
+    $work = Join-Path $env:RUNNER_TEMP "build"
+    Remove-Item -Recurse -Force $work -ErrorAction SilentlyContinue
+    New-Item -ItemType Directory -Force $work | Out-Null
+    Write-Host "== $name unity $($entry.unityVersion)"
+
+    $zip = Join-Path $work "client.zip"
+    Invoke-WebRequest ($entry.urls | Select-Object -First 1) -OutFile $zip -Headers $agent
+    if ((Get-FileHash $zip -Algorithm SHA256).Hash -ne $entry.sha256.ToUpper()) { throw "sha256 mismatch" }
+    $client = Join-Path $work "client"
+    Expand-Archive $zip $client
+    Remove-Item $zip
+
+    Get-ChildItem $Server -Filter "server.db*" | Remove-Item -Force
+    $serverLog = Join-Path $work "server.log"
+    $serverProcess = Start-Process (Join-Path $Server "openkogama-server.exe") -WorkingDirectory $Server -RedirectStandardOutput $serverLog -RedirectStandardError (Join-Path $work "server-errors.log") -PassThru -NoNewWindow
+    for ($i = 0; $i -lt 60 -and -not ((Test-Path $serverLog) -and (Select-String -Path $serverLog -Pattern "http 8080" -Quiet)); $i++) { Start-Sleep 1 }
+    $world = (Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/worlds?name=City&template=city" -Body "").id
+
+    $clientLog = Join-Path $work "client.log"
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.UseShellExecute = $false
+    $psi.EnvironmentVariables["http_proxy"] = "http://127.0.0.1:8081"
+    $psi.EnvironmentVariables["no_proxy"] = "127.0.0.1,localhost"
+    if ($entry.unityVersion.StartsWith("3.")) {
+        if (-not $script:webPlayerReady) { Install-WebPlayer; $script:webPlayerReady = $true }
+        $webFile = (Get-ChildItem $client -Recurse -Include *.unity3d, *.unityweb | Select-Object -First 1).FullName
+        $psi.FileName = Join-Path $Player "openkogama-player.exe"
+        $psi.WorkingDirectory = $Player
+        if ($entry.unityVersion.StartsWith("3.4")) {
+            $psi.Arguments = "`"${webFile}?Username=1&Password=&PlanetName=$world&EditMode=false`" --serve-as http://127.0.0.1:8080/kogama2012/WebPlayer.unity3d --title KoGaMa --log `"$clientLog`""
+        } else {
+            $session = "http://127.0.0.1:8080/session?mode=play&world=$world&client=$version"
+            $psi.Arguments = "`"$webFile`" --version $version --reply `"sendPlayerParams=$session&client=$version`" --title KoGaMa --log `"$clientLog`""
+        }
+    } else {
+        $exe = Get-ChildItem $client -Recurse -Filter kogama.exe | Select-Object -First 1
+        $session = "http://127.0.0.1:8080/session?mode=play&world=$world&client=$version&unity=$($entry.unityVersion)"
+        $psi.FileName = $exe.FullName
+        $psi.WorkingDirectory = $exe.DirectoryName
+        $psi.Arguments = "kogamaPackage:" + [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($session)) + " -popupwindow -logFile `"$clientLog`""
+    }
+    $game = [System.Diagnostics.Process]::Start($psi)
+
+    $ready = $false
+    for ($i = 0; $i -lt $Timeout; $i++) {
+        Start-Sleep 1
+        if (Select-String -Path $serverLog -Pattern "actor ready|synchronize finished" -Quiet) { $ready = $true; break }
+        if ($game.HasExited) { break }
+    }
+    Start-Sleep 10
+    $file = $null
+    $blank = $true
+    $game.Refresh()
+    if (-not $game.HasExited -and $game.MainWindowHandle -ne [IntPtr]::Zero) {
+        [Shot]::Size($game.MainWindowHandle, $renderWidth, $renderHeight)
+        Start-Sleep 8
+        $bitmap = [Shot]::Capture($game.MainWindowHandle)
+        $blank = [Shot]::Blank($bitmap)
+        $file = "$name.png"
+        [Shot]::Save($bitmap, $Width, $Height, (Join-Path $Out $file))
+        $bitmap.Dispose()
+    }
+    Write-Host "ready $ready blank $blank file $file"
+
+    Stop-Process -Id $game.Id -Force -ErrorAction SilentlyContinue
+    Stop-Process -Id $serverProcess.Id -Force -ErrorAction SilentlyContinue
+    Stop-Leftovers
+    New-Item -ItemType Directory -Force (Join-Path $Out "logs") | Out-Null
+    foreach ($log in @($serverLog, $clientLog)) { if (Test-Path $log) { Copy-Item $log (Join-Path $Out "logs\$name-$(Split-Path $log -Leaf)") } }
+    [ordered]@{ id = $entry.id; version = $version; unity = $entry.unityVersion; timestamp = $entry.timestamp; ready = $ready; blank = $blank; file = $file } | ConvertTo-Json -Compress | Add-Content $results
+}
+
+foreach ($id in $Ids.Split(',')) {
+    $entry = $versions | Where-Object { $_.id -eq $id } | Select-Object -First 1
+    if (-not $entry) { Write-Host "no build $id"; continue }
+    try { Capture-Build $entry }
+    catch {
+        Write-Host "failed $id $_"
+        Stop-Leftovers
+        [ordered]@{ id = $entry.id; version = $entry.version; unity = $entry.unityVersion; timestamp = $entry.timestamp; ready = $false; blank = $true; file = $null; error = "$_" } | ConvertTo-Json -Compress | Add-Content $results
+    }
+}
