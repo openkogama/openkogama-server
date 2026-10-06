@@ -1,0 +1,48 @@
+name: screenshots
+
+on:
+  push:
+    branches: [screenshots-ci]
+  workflow_dispatch:
+
+jobs:
+  server:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: openkogama-server
+      - uses: actions/checkout@v4
+        with:
+          repository: openkogama/openkogama-photon
+          path: openkogama-photon
+          token: ${{ secrets.PHOTON_TOKEN }}
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet publish openkogama-server/openkogama-server.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o server
+      - uses: actions/upload-artifact@v4
+        with:
+          name: server
+          path: server
+
+  shot:
+    needs: server
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ["1.31.2.463", "2.8.9", "2.30.11"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: server
+          path: server
+      - run: ./.github/screenshot.ps1 -Version "${{ matrix.version }}" -Server server -Out shots
+        shell: pwsh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: shot-${{ matrix.version }}
+          path: shots
