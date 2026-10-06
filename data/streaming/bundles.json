@@ -32,7 +32,10 @@
     "v81": "https://cdn.openkogama.org/eu/kogama_assets/v81/kogama_assets_u5/",
     "v84": "https://cdn.openkogama.org/eu/kogama_assets/v84/kogama_assets_u5/",
     "v87": "https://cdn.openkogama.org/eu/kogama_assets/v87/kogama_assets_u5/",
-    "v90": "https://cdn.openkogama.org/eu/kogama_assets/v90/kogama_assets_u5/"
+    "v90": "https://cdn.openkogama.org/eu/kogama_assets/v90/kogama_assets_u5/",
+    "v93": "https://cdn.openkogama.org/eu/kogama_assets/v93/kogama_assets_u5/",
+    "v95": "https://cdn.openkogama.org/eu/kogama_assets/v95/kogama_assets_u5/",
+    "v96": "https://cdn.openkogama.org/eu/kogama_assets/v96/kogama_assets_u5/"
   },
   "engines": {
     "v39": "2018.2",
@@ -47,7 +50,10 @@
     "v81": "2018.3",
     "v84": "2018.3",
     "v87": "2018.3",
-    "v90": "2018.4"
+    "v90": "2018.4",
+    "v93": "2018.4",
+    "v95": "2021.3",
+    "v96": "2022.3"
   },
   "ranges": [
     { "from": "1.25.13.290", "set": "v2" },
@@ -87,8 +93,13 @@
     { "from": "2.20.0", "set": "v84" },
     { "from": "2.24.0", "set": "v87" },
     { "from": "2.30.4", "set": "v90" },
-    { "from": "2.30.12", "set": "v3" }
+    { "from": "2.30.11.1125", "set": "v93" },
+    { "from": "2.30.46", "set": "v95" },
+    { "from": "3.0.90", "set": "v96" }
   ],
+  "renamed": {
+    "AssetBundles/Atlas/atlas1.unity3d": "AssetBundles/Atlas/atlas.unity3d"
+  },
   "builds": {
     "1.32.7.526": "v3",
     "1.32.8.537": "v3"

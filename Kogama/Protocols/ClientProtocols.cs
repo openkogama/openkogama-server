@@ -6,9 +6,22 @@ public static class ClientProtocols
 {
     public const string ServerVersion = "1.25.12.280";
     const byte GameId = 255;
+    public const byte Handshake = 248;
+    public const byte HandshakeEvent = 252;
+    public const byte HandshakeData = 245;
     static readonly string[] Legacy = ["1.9.0.1", "1.8.15.2", "1.8.8.4"];
 
-    public static string? Hint(OperationRequest join) => join[GameId] as string ?? Reported(join);
+    public static string? Hint(OperationRequest join) => join[GameId] as string ?? (Reported(join) is string reported ? WithEngine(join, reported) : null);
+
+    static string WithEngine(OperationRequest join, string version)
+    {
+        foreach (string table in ProtocolTable.Candidates(version))
+            if (ProtocolTable.For(table).ParameterKeys.TryGetValue("ProfileToken", out int key)
+                && int.TryParse(join[(byte)key] as string, out int profile)
+                && Game.ClientEngines.Of(profile) is string unity)
+                return version + "@" + unity;
+        return version;
+    }
 
     public static string NativeVersion(OperationRequest join) => Native(join) ?? ServerVersion;
 

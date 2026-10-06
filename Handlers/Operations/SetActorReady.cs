@@ -13,7 +13,7 @@ public sealed class SetActorReady(Session session) : IOperationHandler
         Player? player = session.For(peer);
         peer.Send(new OperationResponse(request)
         {
-            Parameters = { [(byte)ParameterKey.ActorNr] = player?.Actor ?? 0 },
+            Parameters = { [(byte)ParameterKey.ActorNr] = player?.Actor ?? 0, [(byte)ParameterKey.Bool] = true },
         });
         if (player is null) return;
 
@@ -25,7 +25,7 @@ public sealed class SetActorReady(Session session) : IOperationHandler
             player.PlayingSince = DateTime.UtcNow;
             var ready = new EventData((byte)EventCode.SetActorReady)
             {
-                Parameters = { [(byte)ParameterKey.ActorNr] = player.Actor },
+                Parameters = { [(byte)ParameterKey.ActorNr] = player.Actor, [(byte)ParameterKey.Bool] = true },
             };
             foreach (Player other in session.Players)
                 if (other != player && other.ReadyEvents && other.Saw(player.Actor))

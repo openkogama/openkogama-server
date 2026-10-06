@@ -50,6 +50,7 @@ public sealed class WebApi
                 _ => GameMode.Edit,
             };
             int world = int.TryParse(query["world"], out int chosen) ? chosen : 0;
+            ClientEngines.Remember(profile, query["unity"]);
             string session = SessionJson(profile, mode, world, query["client"]);
             if (query["transport"] == "ws" && System.Text.Json.Nodes.JsonNode.Parse(session) is System.Text.Json.Nodes.JsonObject web)
             {
@@ -215,7 +216,7 @@ public sealed class WebApi
         int slash = path.IndexOf('/', "/bundles-".Length);
         if (slash < 0) return null;
         string set = path["/bundles-".Length..slash];
-        string file = Uri.UnescapeDataString(path[(slash + 1)..]);
+        string file = BundleSets.FileOf(Uri.UnescapeDataString(path[(slash + 1)..]));
         if (set == "3x") return LegacyAssets?.Get(file);
         if (!AssetSets.ContainsKey(set)) return null;
 

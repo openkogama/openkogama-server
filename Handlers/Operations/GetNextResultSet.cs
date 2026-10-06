@@ -71,6 +71,7 @@ public sealed class GetNextResultSet(Session session) : IOperationHandler
     {
         PhotonDictionary inventory = PhotonDictionary.Untyped();
         bool defaultFlag = Kogama.Protocols.ProtocolTable.For(version).DBQueryKeys.ContainsKey(nameof(DBQueryKey.IsDefaultInvItem));
+        bool dataFlag = Kogama.Protocols.ProtocolTable.For(version).DBQueryKeys.ContainsKey(nameof(DBQueryKey.HasData));
 
         foreach ((Item item, int slot, bool builtIn) in Inventories.WithSlots(profileId, version))
         {
@@ -90,6 +91,7 @@ public sealed class GetNextResultSet(Session session) : IOperationHandler
             entry.Add((byte)DBQueryKey.ItemData, item.Bytes);
             entry.Add((byte)DBQueryKey.SlotIndex, slot);
             if (defaultFlag) entry.Add((byte)DBQueryKey.IsDefaultInvItem, builtIn);
+            if (dataFlag) entry.Add((byte)DBQueryKey.HasData, true);
             inventory.Add(item.Id, entry);
         }
 

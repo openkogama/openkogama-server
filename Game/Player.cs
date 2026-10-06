@@ -16,6 +16,7 @@ public sealed class Player(PhotonPeer peer, int actor, int avatarId)
     public string ClientVersion { get; set; } = Kogama.Protocols.ClientProtocols.ServerVersion;
     public GameMode Mode { get; set; } = GameMode.Edit;
     public string Build { get; set; } = Kogama.Protocols.ClientProtocols.ServerVersion;
+    public string? Unity { get; set; }
 
     public int ProfileId { get; set; } = actor;
     public Team Team { get; set; }

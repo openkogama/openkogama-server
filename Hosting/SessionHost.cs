@@ -28,6 +28,12 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
             return;
         }
 
+        if (peer.Translator is null && request.OperationCode == ClientProtocols.Handshake)
+        {
+            peer.Send(new EventData(ClientProtocols.HandshakeEvent) { [ClientProtocols.HandshakeData] = Guid.NewGuid().ToString("N") });
+            return;
+        }
+
         if (peer.Translator is null && request.OperationCode == (byte)OperationCode.Join && ClientProtocols.Detect(request) is { } detected)
         {
             peer.Translator = detected;

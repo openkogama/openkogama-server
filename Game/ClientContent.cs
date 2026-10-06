@@ -10,7 +10,7 @@ public static class ClientContent
             ? StreamingAssets.ForSet(set)
             : StreamingAssets.For(Rule(peer)?.Streaming ?? "2015");
 
-    static readonly (Version Since, int[] Ids)[] AddedMaterials = [(new(1, 30), [59]), (new(2, 30, 4), [60, 61, 62])];
+    static readonly (Version Since, int[] Ids)[] AddedMaterials = [(new(1, 30), [59]), (new(2, 30, 4), [60, 61, 62]), (new(2, 30, 11, 1125), [63, 64, 65, 66, 67, 68])];
 
     public static IEnumerable<Material> Materials(PhotonPeer peer, string? build)
     {

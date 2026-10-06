@@ -44,5 +44,5 @@ public enum DBQueryKey : byte
     MaterialPhysicalProperties = 115,
     ItemCategoryID = 116,
     IsDefaultInvItem = 141,
+    HasData = 139,
 }
-

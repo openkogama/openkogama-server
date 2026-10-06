@@ -158,6 +158,7 @@ public enum ParameterKey : byte
     NotificationType = 200,
     NotificationData = 201,
     SentryUrl = 202,
+    PlanetPermissions = 203,
     IsFiring = 204,
     FrameCount = 205,
     RandomBoxIndex = 206,

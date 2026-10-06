@@ -129,6 +129,7 @@ public static class Avatar
             ("pointRotationPitch", PackedType.Single, 0f),
             ("size", PackedType.Single, 1f),
             ("emote", PackedType.Int32, 0),
+            ("hasHandEquippableItem", PackedType.Bool, false),
         ];
 
     public static void Dress(GameWorld world, int bodyId, int avatar)

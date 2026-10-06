@@ -126,6 +126,20 @@ public sealed class ProtocolTable
 
     public static IEnumerable<string> Candidates(string version)
     {
+        if (version.IndexOf('@') is int at and >= 0)
+        {
+            string plain = version[..at];
+            Dictionary<string, string> engines = Known();
+            string[] parts = plain.Split('.');
+            foreach (string key in new[] { plain, string.Join('.', parts.Take(3)) }.Distinct())
+                if (engines.TryGetValue(key + version[at..], out string? exact))
+                {
+                    yield return exact;
+                    yield break;
+                }
+            foreach (string candidate in Candidates(plain)) yield return candidate;
+            yield break;
+        }
         if (version.Length == 0 || !version.All(c => char.IsDigit(c) || c == '.')) yield break;
         if (File.Exists(Path.Combine(AppContext.BaseDirectory, "data", "protocols", version + ".json"))) yield return version;
 
