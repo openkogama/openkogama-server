@@ -1,4 +1,4 @@
-param([string]$Ids, [string]$Server, [string]$Player, [string]$Out, [int]$Width = 1080, [int]$Height = 1920, [int]$Timeout = 180)
+param([string]$Ids, [string]$Server, [string]$Player, [string]$Out, [int]$Width = 1080, [int]$Height = 1920, [int]$Timeout = 180, [string]$Template = "city", [switch]$Spawn, [int]$Settle = 6)
 $ErrorActionPreference = "Stop"
 $Server = (Resolve-Path $Server).Path
 New-Item -ItemType Directory -Force $Out | Out-Null
@@ -13,6 +13,26 @@ public static class Shot {
   [DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int cx, int cy, uint f);
   [DllImport("user32.dll")] static extern int GetWindowLong(IntPtr h, int i);
   [DllImport("user32.dll")] static extern bool AdjustWindowRect(ref RECT r, int style, bool menu);
+  [DllImport("user32.dll")] static extern bool SetCursorPos(int x, int y);
+  [DllImport("user32.dll")] static extern void mouse_event(uint flags, int dx, int dy, uint data, UIntPtr extra);
+  [DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr h);
+  public static bool AllowScreen;
+  public static void Click(IntPtr h, int x, int y) {
+    var p = new POINT { X = x, Y = y }; ClientToScreen(h, ref p);
+    SetForegroundWindow(h); System.Threading.Thread.Sleep(300);
+    SetCursorPos(p.X, p.Y); System.Threading.Thread.Sleep(200);
+    mouse_event(0x0002, 0, 0, 0, UIntPtr.Zero); System.Threading.Thread.Sleep(80); mouse_event(0x0004, 0, 0, 0, UIntPtr.Zero);
+  }
+  public static int[] LightButton(Bitmap b) {
+    int x = b.Width / 2, start = -1;
+    for (int y = b.Height / 8; y < b.Height * 7 / 8; y++) {
+      var c = b.GetPixel(x, y);
+      bool light = c.R > 200 && c.G > 200 && c.B > 190 && Math.Abs(c.R - c.B) < 30;
+      if (light && start < 0) start = y;
+      if (!light && start >= 0) { if (y - start > b.Height / 40) return new[] { x, (start + y) / 2 }; start = -1; }
+    }
+    return null;
+  }
   [StructLayout(LayoutKind.Sequential)] public struct RECT { public int L, T, R, B; }
   [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X, Y; }
   public static void Size(IntPtr h, int w, int hh) {
@@ -33,7 +53,7 @@ public static class Shot {
     RECT r; GetClientRect(h, out r); int w = r.R - r.L, hh = r.B - r.T;
     var b = new Bitmap(w, hh);
     using (var g = Graphics.FromImage(b)) { var dc = g.GetHdc(); PrintWindow(h, dc, 3); g.ReleaseHdc(dc); }
-    if (!Blank(b)) return b;
+    if (!Blank(b) || !AllowScreen) return b;
     var p = new POINT(); ClientToScreen(h, ref p);
     using (var g = Graphics.FromImage(b)) g.CopyFromScreen(p.X, p.Y, 0, 0, new Size(w, hh));
     return b;
@@ -47,6 +67,7 @@ public static class Shot {
 }
 "@
 
+[Shot]::AllowScreen = $env:GITHUB_ACTIONS -eq "true"
 Add-Type -AssemblyName System.Windows.Forms
 $screen = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
 $scale = [Math]::Min(1.0, [Math]::Min($screen.Width / $Width, $screen.Height / $Height))
@@ -83,6 +104,21 @@ function Install-WebPlayer {
     Set-ItemProperty "HKCU:\Software\Unity\WebPlayer" UnityWebPlayerDevelopment no
 }
 
+function Press-Play($handle, $work) {
+    $menu = [Shot]::Capture($handle)
+    $path = Join-Path $work "menu.png"
+    $menu.Save($path, [System.Drawing.Imaging.ImageFormat]::Png)
+    $point = $null
+    $found = & (Join-Path $PSScriptRoot "ocr.ps1") -Image $path -Word PLAY | Select-Object -Last 1
+    if ($found) { $point = $found.Split(' ') | ForEach-Object { [int]$_ } ; $how = "ocr" }
+    else { $point = [Shot]::LightButton($menu); $how = "button" }
+    $menu.Dispose()
+    if (-not $point) { Write-Host "play button not found"; return "none" }
+    [Shot]::Click($handle, $point[0], $point[1])
+    Write-Host "clicked play at $($point[0]),$($point[1]) via $how"
+    return $how
+}
+
 function Capture-Build($entry) {
     $version = if ($entry.version) { $entry.version } else { "2012" }
     $name = "{0}-{1}" -f $entry.timestamp, $version
@@ -102,7 +138,7 @@ function Capture-Build($entry) {
     $serverLog = Join-Path $work "server.log"
     $serverProcess = Start-Process (Join-Path $Server "openkogama-server.exe") -WorkingDirectory $Server -RedirectStandardOutput $serverLog -RedirectStandardError (Join-Path $work "server-errors.log") -PassThru -NoNewWindow
     for ($i = 0; $i -lt 60 -and -not ((Test-Path $serverLog) -and (Select-String -Path $serverLog -Pattern "http 8080" -Quiet)); $i++) { Start-Sleep 1 }
-    $world = (Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/worlds?name=City&template=city" -Body "").id
+    $world = (Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/worlds?name=$Template&template=$Template" -Body "").id
 
     $clientLog = Join-Path $work "client.log"
     $psi = New-Object System.Diagnostics.ProcessStartInfo
@@ -138,10 +174,12 @@ function Capture-Build($entry) {
     Start-Sleep 10
     $file = $null
     $blank = $true
+    $clicked = $null
     $game.Refresh()
     if (-not $game.HasExited -and $game.MainWindowHandle -ne [IntPtr]::Zero) {
         [Shot]::Size($game.MainWindowHandle, $renderWidth, $renderHeight)
         Start-Sleep 8
+        if ($Spawn) { $clicked = Press-Play $game.MainWindowHandle $work; Start-Sleep $Settle }
         $bitmap = [Shot]::Capture($game.MainWindowHandle)
         $blank = [Shot]::Blank($bitmap)
         $file = "$name.png"
@@ -155,7 +193,7 @@ function Capture-Build($entry) {
     Stop-Leftovers
     New-Item -ItemType Directory -Force (Join-Path $Out "logs") | Out-Null
     foreach ($log in @($serverLog, $clientLog)) { if (Test-Path $log) { Copy-Item $log (Join-Path $Out "logs\$name-$(Split-Path $log -Leaf)") } }
-    [ordered]@{ id = $entry.id; version = $version; unity = $entry.unityVersion; timestamp = $entry.timestamp; ready = $ready; blank = $blank; file = $file } | ConvertTo-Json -Compress | Add-Content $results
+    [ordered]@{ id = $entry.id; version = $version; unity = $entry.unityVersion; timestamp = $entry.timestamp; ready = $ready; blank = $blank; file = $file; clicked = $clicked } | ConvertTo-Json -Compress | Add-Content $results
 }
 
 foreach ($id in $Ids.Split(',')) {

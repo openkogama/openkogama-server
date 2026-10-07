@@ -8,6 +8,16 @@ on:
       chunk:
         description: builds per job
         default: "12"
+      template:
+        description: world template
+        default: "poison"
+      spawn:
+        description: press play and wait in the world
+        default: "true"
+
+env:
+  TEMPLATE: ${{ inputs.template || 'poison' }}
+  SPAWN: ${{ inputs.spawn || 'true' }}
 
 jobs:
   build:
@@ -30,6 +40,11 @@ jobs:
         with:
           dotnet-version: 10.0.x
       - run: dotnet publish openkogama-server/openkogama-server.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o server
+      - run: |
+          dotnet build openkogama-server/examples/poison/poison.csproj -c Release
+          New-Item -ItemType Directory -Force server/plugins | Out-Null
+          Copy-Item openkogama-server/examples/poison/bin/Release/net10.0/poison.dll server/plugins/
+        shell: pwsh
       - uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x86
@@ -76,7 +91,7 @@ jobs:
         with:
           name: player
           path: player
-      - run: ./.github/screenshot.ps1 -Ids "${{ matrix.chunk.ids }}" -Server server -Player player -Out shots
+      - run: ./.github/screenshot.ps1 -Ids "${{ matrix.chunk.ids }}" -Server server -Player player -Out shots -Template $env:TEMPLATE -Spawn:($env:SPAWN -eq "true") -Settle 3
         shell: powershell
       - uses: actions/upload-artifact@v4
         if: always()
@@ -95,12 +110,13 @@ jobs:
           pattern: shots-*
           path: shots
       - run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
           pip install pillow
-          python .github/video.py shots video/kogama-versions.mp4
+          python .github/video.py shots video/kogama-${{ env.TEMPLATE }}.mp4
       - uses: actions/upload-artifact@v4
         with:
           name: video
-          path: video/kogama-versions.mp4
+          path: video/kogama-${{ env.TEMPLATE }}.mp4
       - uses: actions/upload-artifact@v4
         with:
           name: screenshots
