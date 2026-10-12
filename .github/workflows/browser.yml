@@ -1,0 +1,30 @@
+name: browser
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: openkogama-server
+      - uses: actions/checkout@v4
+        with:
+          repository: openkogama/openkogama-photon
+          path: openkogama-photon
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet workload install wasm-tools
+      - run: dotnet publish openkogama-server/browser/openkogama-browser.csproj -c Release -o publish
+      - run: |
+          mkdir -p server/_framework
+          find publish/wwwroot/_framework -maxdepth 1 -type f ! -name "*.gz" ! -name "*.br" -exec cp {} server/_framework/ \;
+          python3 -c "import json, os; json.dump(sorted('_framework/' + f for f in os.listdir('server/_framework')), open('server/files.json', 'w'))"
+          ls -la server/_framework
+      - uses: actions/upload-artifact@v4
+        with:
+          name: browser-server
+          path: server
