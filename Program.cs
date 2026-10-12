@@ -16,6 +16,17 @@ if (args is ["install", .. var sets])
 
 LogFile.Start("logs");
 AssetCache.Offline = args.Contains("--offline");
+var serverInfo = ServerInfo.Load("server.json");
+var publicUrl = new Uri(serverInfo.PublicUrl.TrimEnd('/'));
+if (publicUrl.Scheme is not ("http" or "https") || publicUrl.AbsolutePath != "/"
+    || !string.IsNullOrEmpty(publicUrl.Query) || !string.IsNullOrEmpty(publicUrl.Fragment)
+    || !string.IsNullOrEmpty(publicUrl.UserInfo))
+    throw new ArgumentException("server.json publicUrl must be an HTTP/HTTPS server address.");
+string publicBase = publicUrl.GetLeftPart(UriPartial.Authority);
+string photonHost = publicUrl.Host;
+string photonAddress = (photonHost.Contains(':') ? $"[{photonHost.Trim('[', ']')}]" : photonHost) + ":5055";
+SessionLocator.GameServer = photonHost;
+SessionLocator.EntryWorld = serverInfo.EntryWorld;
 
 var database = new Database("server.db");
 Stores.Profiles = new SqliteProfileStore(database);
@@ -27,7 +38,7 @@ Session.EnsureDefaultWorld();
 
 var server = new PhotonServer(5055) { Log = Console.WriteLine };
 bool mixedClients = args.Contains("--mixed-clients");
-var host = new SessionHost(server, mixedClients);
+var host = new SessionHost(server, mixedClients) { EntryWorld = serverInfo.EntryWorld };
 PluginHost.LoadAll("plugins", host.Sessions);
 if (mixedClients) Console.WriteLine("mixed client versions enabled, unsupported");
 
@@ -41,7 +52,7 @@ server.Operation = host.Handle;
 
 _ = server.RunAsync();
 Console.WriteLine("udp 5055");
-_ = server.RunWebSocketsAsync("http://127.0.0.1:5055/");
+_ = server.RunWebSocketsAsync($"http://{serverInfo.ListenHost}:5055/");
 Console.WriteLine("websocket 5055");
 
 _ = Task.Run(async () =>
@@ -65,8 +76,8 @@ _ = Task.Run(async () =>
 
 var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 string SessionJson(int profile, GameMode mode, int world, string? client) => JsonSerializer.Serialize(
-    new SessionData("127.0.0.1:5055", profile, world, mode, "en_US", false, profile.ToString(),
-        "http://127.0.0.1:8080/ping", "http://127.0.0.1:8080/disconnect", "http://127.0.0.1:8080/reward", client),
+    new SessionData(photonAddress, profile, world, mode, "en_US", false, profile.ToString(),
+        publicBase + "/ping", publicBase + "/disconnect", publicBase + "/reward", client),
     jsonOptions);
 
 StreamingAssetCatalog streaming = StreamingAssets.For("2015");
@@ -89,6 +100,7 @@ Console.WriteLine("proxy 8081");
 var api = new WebApi
 {
     SessionJson = SessionJson,
+    ServerInfo = serverInfo,
     Assets = assets,
     LegacyAssets = legacyAssets,
     AssetSets = assetSets,
@@ -96,7 +108,7 @@ var api = new WebApi
     ExportWorld = host.ExportWorld,
     Shutdown = () => _ = Task.Delay(100).ContinueWith(_ => Environment.Exit(0)),
 };
-var web = new HttpServer("http://127.0.0.1:8080/", api);
+var web = new HttpServer($"http://{serverInfo.ListenHost}:8080/", api);
 Console.WriteLine("http 8080");
 web.Run();
 return 0;

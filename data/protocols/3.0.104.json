@@ -1013,6 +1013,7 @@
     "PickupCubeGun",
     "PickupItemSpawner",
     "PickupMeleeWeapon",
+    "PickupMeleeWeaponBlueprint",
     "PlayModeAvatar",
     "PointLight",
     "PressurePlate",

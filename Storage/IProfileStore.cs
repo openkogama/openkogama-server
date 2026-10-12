@@ -2,7 +2,7 @@ using OpenKogama.Game;
 
 namespace OpenKogama.Storage;
 
-public sealed record StoredAvatar(int Id, bool Active, int? Source);
+public sealed record StoredAvatar(int Id, bool Active, int? Source, string Name);
 
 public sealed record PlanetProgress(int Tier, int Seen, int Points, DateTime? Welcome);
 
@@ -40,6 +40,7 @@ public interface IProfileStore
     List<AvatarPart>? AvatarParts(int avatar);
     void SaveAvatar(int avatar, List<AvatarPart> parts);
     void SetActiveAvatar(int profile, int avatar);
+    bool RenameAvatar(int profile, int avatar, string name);
 
     List<WornAccessory> Accessories(int avatar);
     void SetAccessory(int avatar, int item, int slot, float offset, float scale = 1f);

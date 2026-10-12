@@ -26,7 +26,7 @@ public sealed class CreateGameSnapshot(Session session) : IOperationHandler
                 [(byte)ParameterKey.GameStateReason] = (int)session.Round.Reason,
                 [(byte)ParameterKey.FineGrainedTerrainPrototypeID] =
                     session.World.FindFirst(WorldObjectType.CubeModelTerrainFineGrained)?.PrototypeId ?? -1,
-                [(byte)ParameterKey.GameStatCounterData] = session.Round.Stats.ToBytes(),
+                [(byte)ParameterKey.GameStatCounterData] = session.Round.Stats.ToBytes(me?.ClientVersion ?? Kogama.Protocols.ClientProtocols.ServerVersion),
                 [(byte)ParameterKey.FrameCount] = session.Logic.Frame,
                 [(byte)ParameterKey.Timestamp] = me?.LogicSteps == true ? session.Logic.StepStamp : session.Logic.Frame * Logic.FrameInterval,
             },
@@ -61,7 +61,7 @@ public sealed class CreateGameSnapshot(Session session) : IOperationHandler
         setup.Parameters[(byte)ParameterKey.GameStateType] = (int)session.Round.State;
         setup.Parameters[(byte)ParameterKey.GameStateStartTime] = session.Round.StartTime;
         setup.Parameters[(byte)ParameterKey.GameStateDuration] = session.Round.DurationFor(me);
-        setup.Parameters[(byte)ParameterKey.GameStatCounterData] = session.Round.Stats.ToBytes();
+        setup.Parameters[(byte)ParameterKey.GameStatCounterData] = session.Round.Stats.ToBytes(me.ClientVersion);
         return setup;
     }
 

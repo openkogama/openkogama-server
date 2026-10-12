@@ -244,12 +244,12 @@ public sealed class SqliteProfileStore(Database database) : IProfileStore
     public List<StoredAvatar> Avatars(int profile)
     {
         using SqliteConnection connection = database.Open();
-        using SqliteCommand command = Command(connection, "SELECT id, active, source FROM avatars WHERE owner = $profile ORDER BY id", ("$profile", profile));
+        using SqliteCommand command = Command(connection, "SELECT id, active, source, name FROM avatars WHERE owner = $profile ORDER BY id", ("$profile", profile));
         using SqliteDataReader reader = command.ExecuteReader();
 
         var avatars = new List<StoredAvatar>();
         while (reader.Read())
-            avatars.Add(new StoredAvatar(reader.GetInt32(0), reader.GetInt32(1) == 1, reader.IsDBNull(2) ? null : reader.GetInt32(2)));
+            avatars.Add(new StoredAvatar(reader.GetInt32(0), reader.GetInt32(1) == 1, reader.IsDBNull(2) ? null : reader.GetInt32(2), reader.GetString(3)));
         return avatars;
     }
 
@@ -327,6 +327,14 @@ public sealed class SqliteProfileStore(Database database) : IProfileStore
             "UPDATE avatars SET active = CASE WHEN id = $avatar THEN 1 ELSE 0 END WHERE owner = $profile AND EXISTS (SELECT 1 FROM avatars WHERE id = $avatar AND owner = $profile)",
             ("$profile", profile), ("$avatar", avatar));
         command.ExecuteNonQuery();
+    }
+
+    public bool RenameAvatar(int profile, int avatar, string name)
+    {
+        using SqliteConnection connection = database.Open();
+        using SqliteCommand command = Command(connection, "UPDATE avatars SET name = $name WHERE id = $avatar AND owner = $profile",
+            ("$name", name), ("$avatar", avatar), ("$profile", profile));
+        return command.ExecuteNonQuery() > 0;
     }
 
     public List<WornAccessory> Accessories(int avatar)

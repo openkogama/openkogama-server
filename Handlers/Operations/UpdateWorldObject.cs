@@ -19,7 +19,7 @@ public sealed class UpdateWorldObject(Session session) : IOperationHandler
         {
             session.Round.TrackHeight(sender, Convert.ToSingle(y));
         }
-        if (sender is not null && objectId == sender.ActiveSpawnRole)
+        if (sender is not null && (objectId == sender.ActiveSpawnRole || session.World.Find(sender.ActiveSpawnRole)?.ParentId == objectId))
             Remember(sender, request);
 
         var evt = new EventData((byte)EventCode.UpdateWorldObject)

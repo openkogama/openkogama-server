@@ -135,6 +135,7 @@ public sealed class OperationRouter
         Register(new TriggerBox(session, entering: false));
         Register(new WorldObjectRPC(session));
         Register(new SpawnVehicleWithDriver(server, session));
+        Register(new VehicleEnergyUse(server, session));
         Register(new AttachWorldObjectToSeat(session));
         Register(new DetachWorldObjectFromVehicle(session));
         Register(new LinkOperation(session, objectLink: false, adding: true));

@@ -11,6 +11,7 @@ public sealed class TriggerBox(Session session, bool entering) : IOperationHandl
     [
         WorldObjectType.CollectibleItem, WorldObjectType.GamePoint, WorldObjectType.GamePointChest,
         WorldObjectType.PickupItemSpawner, WorldObjectType.PickupCubeGun, WorldObjectType.CollectTheItemCollectableInstance,
+        WorldObjectType.PickupMeleeWeapon, WorldObjectType.PickupCostume, WorldObjectType.PickupCustomGun,
     ];
 
     public byte Code => (byte)(entering ? OperationCode.TriggerBoxEnter : OperationCode.TriggerBoxExit);
@@ -70,8 +71,9 @@ public sealed class TriggerBox(Session session, bool entering) : IOperationHandl
                 if (entering) session.GamePasses.Collect(player, obj);
                 break;
 
-            case WorldObjectType.PickupItemSpawner or WorldObjectType.PickupCubeGun:
-                if (entering) Pickup.Take(session, player, obj);
+            case WorldObjectType.PickupItemSpawner or WorldObjectType.PickupCubeGun
+                or WorldObjectType.PickupMeleeWeapon or WorldObjectType.PickupCostume or WorldObjectType.PickupCustomGun:
+                if (entering) Pickup.Take(session, player, obj, ids.Length > 1 ? ids[1] : player.PlayAvatar);
                 break;
 
             default:

@@ -28,11 +28,23 @@ public sealed class WebApi
     public Func<int, bool> DeleteWorld { get; set; } = _ => false;
     public Func<int, byte[]?> ExportWorld { get; set; } = _ => null;
     public Action? Shutdown { get; set; }
+    public ServerInfo ServerInfo { get; init; } = new();
 
     public ApiResponse Route(ApiRequest request)
     {
         string path = request.Path;
         NameValueCollection query = request.Query;
+
+        if (path.TrimEnd('/') == "/api/server")
+            return ApiResponse.Json(JsonSerializer.Serialize(new {
+                title = ServerInfo.DisplayTitle,
+                thumbnail = ServerInfo.ThumbnailBytes() is not null ? "/api/server/thumbnail" : null,
+            }));
+
+        if (path.TrimEnd('/') == "/api/server/thumbnail")
+            return ServerInfo.ThumbnailBytes() is byte[] thumbnail
+                ? new ApiResponse(200, "application/octet-stream", thumbnail)
+                : ApiResponse.NotFound;
 
         if (SessionLocator.Answer(path, query) is string located)
             return new ApiResponse(200, "text/html", Encoding.UTF8.GetBytes(located));
@@ -50,6 +62,7 @@ public sealed class WebApi
                 _ => GameMode.Edit,
             };
             int world = int.TryParse(query["world"], out int chosen) ? chosen : 0;
+            if (world == 0 && mode == GameMode.Play) world = ServerInfo.EntryWorld();
             ClientEngines.Remember(profile, query["unity"]);
             string session = SessionJson(profile, mode, world, query["client"]);
             if (query["transport"] == "ws" && System.Text.Json.Nodes.JsonNode.Parse(session) is System.Text.Json.Nodes.JsonObject web)
@@ -97,7 +110,7 @@ public sealed class WebApi
         {
             int owner = ProfileOf(query);
             int active = Stores.Profiles.ActiveAvatar(owner);
-            return ApiResponse.Json(JsonSerializer.Serialize(Stores.Profiles.Avatars(owner).Select(avatar => new { id = avatar.Id, active = avatar.Id == active })));
+            return ApiResponse.Json(JsonSerializer.Serialize(Stores.Profiles.Avatars(owner).Select(avatar => new { id = avatar.Id, name = avatar.Name, active = avatar.Id == active })));
         }
 
         if (path.TrimEnd('/') == "/api/avatars/active" && request.Method == "POST")
@@ -105,6 +118,14 @@ public sealed class WebApi
             if (!int.TryParse(query["id"], out int id)) return ApiResponse.Json("{}", 400);
             Stores.Profiles.SetActiveAvatar(ProfileOf(query), id);
             return ApiResponse.Json("{}");
+        }
+
+        if (path.TrimEnd('/') == "/api/avatars/rename" && request.Method == "POST")
+        {
+            bool renamed = int.TryParse(query["id"], out int id)
+                && query["name"] is { Length: > 0 } name
+                && Stores.Profiles.RenameAvatar(ProfileOf(query), id, name.Trim());
+            return ApiResponse.Json("{}", renamed ? 200 : 400);
         }
 
         if (path.TrimEnd('/') == "/api/avatars/export")
@@ -150,7 +171,7 @@ public sealed class WebApi
             switch (path["/api/xp_level/".Length..].TrimEnd('/'))
             {
                 case "init_data":
-                    return ApiResponse.Json(Leveling.InitData(profile, "http://127.0.0.1:8080/badges/").ToJsonString());
+                    return ApiResponse.Json(Leveling.InitData(profile, ServerInfo.PublicUrl.TrimEnd('/') + "/badges/").ToJsonString());
                 case "level":
                     return ApiResponse.Json(Leveling.LevelOf(profile).ToString());
                 case "xp_limits_data":
