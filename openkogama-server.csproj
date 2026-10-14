@@ -21,6 +21,7 @@
     <RootNamespace>OpenKogama</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <CETCompat>false</CETCompat>
   </PropertyGroup>
 
 </Project>
