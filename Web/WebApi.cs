@@ -42,6 +42,7 @@ public sealed class WebApi
             return ApiResponse.Json(JsonSerializer.Serialize(new {
                 title = ServerInfo.DisplayTitle,
                 thumbnail = ServerInfo.ThumbnailBytes() is not null ? "/api/server/thumbnail" : null,
+                clients = ServerInfo.Clients ?? [],
             }));
 
         if (path.TrimEnd('/') == "/api/server/thumbnail")
@@ -57,6 +58,8 @@ public sealed class WebApi
 
         if (path is "/" or "/session")
         {
+            if (!ServerInfo.Allows(query["client"]))
+                return ApiResponse.Json(JsonSerializer.Serialize(new { error = $"This server accepts {string.Join(", ", ServerInfo.Clients)}" }), 403);
             int profile = int.TryParse(query["profile"], out int requested) && requested > 0 ? requested : 1;
             GameMode mode = query["mode"] switch
             {
@@ -68,6 +71,11 @@ public sealed class WebApi
             if (world == 0 && mode == GameMode.Play) world = ServerInfo.EntryWorld();
             ClientEngines.Remember(profile, query["unity"]);
             string session = SessionJson(profile, mode, world, query["client"]);
+            if (query["name"] is not null && System.Text.Json.Nodes.JsonNode.Parse(session) is System.Text.Json.Nodes.JsonObject named)
+            {
+                named["token"] = SessionToken.Create(profile, query["name"]);
+                session = named.ToJsonString();
+            }
             if (query["transport"] == "ws" && System.Text.Json.Nodes.JsonNode.Parse(session) is System.Text.Json.Nodes.JsonObject web)
             {
                 web["serverIP"] = "ws://" + web["serverIP"]?.GetValue<string>();

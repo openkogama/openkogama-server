@@ -15,6 +15,7 @@ namespace OpenKogama.Hosting;
 public sealed class SessionHost(PhotonServer server, bool mixedClients)
 {
     public Func<int> EntryWorld { get; init; } = () => 0;
+    public Func<string, bool> Allows { get; init; } = _ => true;
     sealed record Entry(Session Session, OperationRouter? Router, bool Editor, string Client = "", Router2012? Classic = null);
 
     readonly object _sync = new();
@@ -123,6 +124,11 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
     Entry? Assign2012(OperationRequest join)
     {
         const string Client = "2012";
+        if (!Allows(Client))
+        {
+            Console.WriteLine("2012 client rejected, not in server.json clients");
+            return null;
+        }
         if (!int.TryParse(join[(byte)Key2012.PlanetName] as string, out int id)) return null;
 
         bool play = join[(byte)Key2012.JoinEditMode] is not true;
@@ -202,7 +208,7 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
         Session session = entry.Session;
         if (session.Players.Count > 0 || session.WorldId is not int id) return;
 
-        session.SaveIfChanged();
+        session.SaveIfChanged(force: true);
         lock (_sync) _worlds.Remove((id, session.Play, entry.Client));
         Console.WriteLine($"world {id} {(session.Play ? "play" : "edit")} closed");
     }
@@ -281,10 +287,10 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
         return KgmapFile.Pack(meta, stored.Data);
     }
 
-    public void SaveAll()
+    public void SaveAll(bool force = false)
     {
         foreach (Session session in Worlds())
-            session.SaveIfChanged();
+            session.SaveIfChanged(force);
     }
 
     public void Tick()
@@ -314,7 +320,8 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
         if (mode == (int)GameMode.CharacterEditor)
         {
             Console.WriteLine($"peer {peer.Id}: character editor");
-            int profile = int.TryParse(request.Parameters.GetValueOrDefault((byte)ParameterKey.Token) as string, out int parsed) && parsed > 0 ? parsed : 1;
+            int parsed = SessionToken.Parse(request.Parameters.GetValueOrDefault((byte)ParameterKey.Token) as string).Profile;
+            int profile = parsed > 0 ? parsed : 1;
             return Create(Session.CharacterEditor(peer.Id, profile), editor: true);
         }
 

@@ -6,6 +6,7 @@ namespace OpenKogama.Web;
 public static class SessionLocator
 {
     public static string GameServer { get; set; } = "127.0.0.1";
+    public static string PublicUrl { get; set; } = "http://127.0.0.1:8080";
     public static Func<int> EntryWorld { get; set; } = () => 0;
 
     public static string? Answer(string path, NameValueCollection query)

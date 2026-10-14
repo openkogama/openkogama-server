@@ -147,6 +147,10 @@ public sealed class Database
         ALTER TABLE game_tiers ADD COLUMN points INTEGER NOT NULL DEFAULT 0;
         ALTER TABLE game_tiers ADD COLUMN welcome TEXT;
         """,
+        """
+        ALTER TABLE worlds ADD COLUMN play_data BLOB;
+        ALTER TABLE worlds ADD COLUMN play_backup BLOB;
+        """,
     ];
 
     readonly string _connectionString;

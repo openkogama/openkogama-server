@@ -9,9 +9,11 @@ public interface IWorldStore
     List<WorldInfo> List();
     StoredWorld? World(int id);
     byte[]? Published(int id);
+    List<byte[]> PlayStates(int id);
     int Create(string name, int owner, byte[] data);
     void SaveWorld(StoredWorld world);
     void Publish(int id, byte[] data);
+    void SavePlayState(int id, byte[] data);
     void MarkPlayed(int id);
     bool Rename(int id, string name);
     bool Delete(int id);

@@ -5,6 +5,8 @@
 
 ## Launcher servers
 
+To host a server for other players, follow [HOSTING.md](HOSTING.md).
+
 An optional `server.json` in the server working directory configures its launcher tile and the world opened by Join:
 
 ```json
@@ -12,14 +14,19 @@ An optional `server.json` in the server working directory configures its launche
   "title": "My KoGaMa server",
   "thumbnail": "server.png",
   "joinWorld": 1,
-  "publicUrl": "http://example.com:8080",
-  "listenHost": "+"
+  "publicUrl": "https://example.com",
+  "listenHost": "+",
+  "clients": ["3.5.20", "1.25.12.280-1.32.10.547"],
+  "mixedClients": false,
+  "keepPlayChanges": false
 }
 ```
 
-Without this file the server keeps its local addresses. `joinWorld` defaults to the first saved world. Set `publicUrl` to the HTTP/HTTPS address players use, and `listenHost` to the HTTP listener hostname (`+` accepts all hostnames); hosting requires HTTP port 8080 and Photon port 5055 to be reachable. On Windows the listener prefixes may require an HTTP URL reservation for the account running the server. Session responses use the public hostname for Photon and the public base URL for callbacks.
+Without this file the server keeps its local addresses. `joinWorld` defaults to the first saved world. Set `publicUrl` to the HTTP/HTTPS address players use, and `listenHost` to the HTTP listener hostname (`+` accepts all hostnames); hosting requires HTTP port 8080 and Photon port 5055 to be reachable. On Windows the listener prefixes may require an HTTP URL reservation for the account running the server. Session responses use the public hostname for Photon and the public base URL for callbacks, the API and asset bundles. Clients built with Unity 2022 or newer, such as 3.5.20, refuse plain HTTP to anything but localhost, so a public server needs an HTTPS `publicUrl`, for example behind Caddy.
 
-`GET /api/server` exposes only `title` (up to 40 characters) and an optional `/api/server/thumbnail` path. The image endpoint serves the configured file up to 256 KB; PNG, JPEG and WebP are accepted by the launcher. `GET /session?mode=play` opens the configured entry world. Lists, map selection and hubs belong inside the game; the launcher never reads a remote server's world or avatar lists.
+`clients` limits which game versions can join, as exact versions or inclusive ranges like `1.25.12.280-1.32.10.547`; the 2012 build is `2012`. Without it every version is accepted. Other versions get a 403 from `/session`, and the launcher picks an installed version that matches. `mixedClients` puts every version into one world session instead of one per translated protocol; it is unsupported, like `--mixed-clients`. `keepPlayChanges` saves what players change in play mode, such as cubes and moved vehicles, apart from the published world, so the world carries on after everyone leaves or the server restarts. It is saved every minute, when the last player leaves and when the server stops; a save that cannot be read back is skipped, the previous save is kept, and a world whose newest save does not load falls back to the previous one and then to the published world. Publishing the world again starts it fresh.
+
+`GET /api/server` exposes only `title` (up to 40 characters), `clients` and an optional `/api/server/thumbnail` path. The image endpoint serves the configured file up to 256 KB; PNG, JPEG and WebP are accepted by the launcher. `GET /session?mode=play` opens the configured entry world. Lists, map selection and hubs belong inside the game; the launcher never reads a remote server's world or avatar lists.
 
 ## Plugins
 

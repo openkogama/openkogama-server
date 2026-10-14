@@ -10,10 +10,12 @@ public sealed partial class Session
     const string LegacyPath = "worlds/default.kgmap";
     static readonly string TemplatePath = Templates.DefaultPath;
     static readonly string EditorPath = Path.Combine(AppContext.BaseDirectory, "data", "maps", "avatar-editor.kgmap");
+    const long PlaySaveInterval = 60_000;
 
     readonly List<Player> _players = [];
     readonly int[] _avatarPrototypes;
     readonly int? _worldId;
+    long _playSavedAt = Environment.TickCount64;
 
     public Session(GameWorld world, int? worldId, string name = "", bool play = false)
     {
@@ -37,6 +39,7 @@ public sealed partial class Session
     public string Name { get; }
     public int? WorldId => _worldId;
     public bool Play { get; }
+    public static bool KeepPlayChanges { get; set; }
     public bool Published => _worldId is int id && Stores.Worlds.Published(id) is not null;
     public Func<int> Clock { get; private set; } = () => Environment.TickCount;
     public Logic Logic { get; }
@@ -222,19 +225,57 @@ public sealed partial class Session
     public List<int> Bodies { get; } = [];
     public Dictionary<int, int> BodyAvatars { get; } = [];
 
-    public void SaveIfChanged()
+    public void SaveIfChanged(bool force = false)
     {
-        if (Play || _worldId is not int id || !World.TakeChanged()) return;
-        Stores.Worlds.SaveWorld(new StoredWorld(id, Name, 0, World.ToData()));
-        Console.WriteLine($"world {id} saved");
+        if (_worldId is not int id) return;
+        if (Play)
+        {
+            if (!KeepPlayChanges || !force && Environment.TickCount64 - _playSavedAt < PlaySaveInterval) return;
+            _playSavedAt = Environment.TickCount64;
+        }
+        if (!World.TakeChanged()) return;
+
+        try
+        {
+            byte[] data = World.ToData();
+            if (Play)
+            {
+                GameWorld.FromData(Name, null, [data]);
+                Stores.Worlds.SavePlayState(id, data);
+                Console.WriteLine($"world {id} play changes saved");
+            }
+            else
+            {
+                Stores.Worlds.SaveWorld(new StoredWorld(id, Name, 0, data));
+                Console.WriteLine($"world {id} saved");
+            }
+        }
+        catch (Exception error)
+        {
+            World.MarkChanged();
+            Console.WriteLine($"world {id}: save failed, {error.Message}");
+        }
     }
 
     public static Session? Open(int id, bool play)
     {
         if (Stores.Worlds.World(id) is not { } stored) return null;
 
-        byte[] data = play ? Stores.Worlds.Published(id) ?? stored.Data : stored.Data;
         Stores.Worlds.MarkPlayed(id);
+        if (play && KeepPlayChanges)
+            foreach (byte[] saved in Stores.Worlds.PlayStates(id))
+            {
+                try
+                {
+                    return new Session(GameWorld.FromData(stored.Name, null, [saved]), id, stored.Name, play);
+                }
+                catch (Exception error)
+                {
+                    Console.WriteLine($"world {id}: saved play changes unreadable, {error.Message}");
+                }
+            }
+
+        byte[] data = play ? Stores.Worlds.Published(id) ?? stored.Data : stored.Data;
         return new Session(GameWorld.FromData(stored.Name, null, [data]), id, stored.Name, play);
     }
 

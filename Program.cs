@@ -26,6 +26,7 @@ string publicBase = publicUrl.GetLeftPart(UriPartial.Authority);
 string photonHost = publicUrl.Host;
 string photonAddress = (photonHost.Contains(':') ? $"[{photonHost.Trim('[', ']')}]" : photonHost) + ":5055";
 SessionLocator.GameServer = photonHost;
+SessionLocator.PublicUrl = publicBase;
 SessionLocator.EntryWorld = serverInfo.EntryWorld;
 
 var database = new Database("server.db");
@@ -35,10 +36,11 @@ Stores.Friends = new SqliteFriendStore(database);
 Stores.Images = new SqliteImageStore(database);
 Stores.Market = new SqliteMarketStore(database);
 Session.EnsureDefaultWorld();
+Session.KeepPlayChanges = serverInfo.KeepPlayChanges;
 
 var server = new PhotonServer(5055) { Log = Console.WriteLine };
-bool mixedClients = args.Contains("--mixed-clients");
-var host = new SessionHost(server, mixedClients) { EntryWorld = serverInfo.EntryWorld };
+bool mixedClients = args.Contains("--mixed-clients") || serverInfo.MixedClients;
+var host = new SessionHost(server, mixedClients) { EntryWorld = serverInfo.EntryWorld, Allows = serverInfo.Allows };
 PluginHost.LoadAll("plugins", host.Sessions);
 if (mixedClients) Console.WriteLine("mixed client versions enabled, unsupported");
 
@@ -63,7 +65,7 @@ _ = Task.Run(async () =>
         host.SaveAll();
     }
 });
-AppDomain.CurrentDomain.ProcessExit += (_, _) => host.SaveAll();
+AppDomain.CurrentDomain.ProcessExit += (_, _) => host.SaveAll(force: true);
 
 _ = Task.Run(async () =>
 {
@@ -94,8 +96,11 @@ foreach (int port in new[] { 843, 844, 845 })
     _ = new SocketPolicyServer(port).RunAsync();
 Console.WriteLine("policy 843-845");
 
-_ = new NullProxy(8081).RunAsync();
-Console.WriteLine("proxy 8081");
+if (publicUrl.IsLoopback)
+{
+    _ = new NullProxy(8081).RunAsync();
+    Console.WriteLine("proxy 8081");
+}
 
 var api = new WebApi
 {

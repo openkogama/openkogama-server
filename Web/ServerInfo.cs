@@ -10,6 +10,9 @@ public sealed class ServerInfo
     public int JoinWorld { get; init; }
     public string PublicUrl { get; init; } = "http://127.0.0.1:8080";
     public string ListenHost { get; init; } = "127.0.0.1";
+    public string[] Clients { get; init; } = [];
+    public bool MixedClients { get; init; }
+    public bool KeepPlayChanges { get; init; }
 
     public static ServerInfo Load(string path) => File.Exists(path)
         ? JsonSerializer.Deserialize<ServerInfo>(File.ReadAllText(path), new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
@@ -17,6 +20,17 @@ public sealed class ServerInfo
         : new ServerInfo();
 
     public int EntryWorld() => JoinWorld > 0 ? JoinWorld : Stores.Worlds.List().FirstOrDefault()?.Id ?? 0;
+
+    public bool Allows(string? client) =>
+        Clients is not { Length: > 0 } || client is not null && Clients.Any(entry => Matches(entry.Trim(), client));
+
+    static bool Matches(string entry, string client)
+    {
+        string[] range = entry.Split('-', 2, StringSplitOptions.TrimEntries);
+        if (range.Length == 2 && Version.TryParse(range[0], out Version? low) && Version.TryParse(range[1], out Version? high))
+            return Version.TryParse(client, out Version? version) && version >= low && version <= high;
+        return entry == client;
+    }
 
     public byte[]? ThumbnailBytes()
     {

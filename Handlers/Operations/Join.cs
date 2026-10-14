@@ -1,6 +1,7 @@
 using OpenKogama.Game;
 using OpenKogama.Kogama;
 using OpenKogama.Photon;
+using OpenKogama.Web;
 
 namespace OpenKogama.Handlers.Operations;
 
@@ -27,8 +28,10 @@ public sealed class Join(Session session) : IOperationHandler
         }
         if (request[(byte)ParameterKey.GameMode] is { } mode) player.Mode = (GameMode)Convert.ToInt32(mode);
         if (request[(byte)ParameterKey.ClientBuildTarget] is byte target) player.BuildTarget = target;
-        if (int.TryParse(request[(byte)ParameterKey.Token] as string, out int profile) && profile > 0)
-            player.ProfileId = profile;
+        (int profile, string? nickname) = SessionToken.Parse(request[(byte)ParameterKey.Token] as string);
+        if (profile > 0) player.ProfileId = profile;
+        if (nickname is not null)
+            player.Nickname = session.Players.Any(other => other != player && other.Username == nickname) ? $"{nickname} {player.Actor}" : nickname;
         player.Unity = ClientEngines.Of(player.ProfileId);
         if (player.SpawnRoles && player.Mode is GameMode.Edit or GameMode.CharacterEditor) session.AddBuildAvatar(player);
 
@@ -52,10 +55,10 @@ public sealed class Join(Session session) : IOperationHandler
                 [(byte)ParameterKey.MarketPlaceLevel] = 0,
                 [(byte)ParameterKey.PublishLevel] = 0,
                 [(byte)ParameterKey.Format] = SecurityHelper.Encrypt("openkogama"),
-                [(byte)ParameterKey.APIUrl] = "http://127.0.0.1:8080/api/",
-                [(byte)ParameterKey.AssetBundleRootUrl] = peer.Translator is Kogama.Protocols.LegacyTranslator ? "http://127.0.0.1:8080/bundles/" : BundleSets.Url(player.Build, peer.IsWebSocket, player.Unity),
+                [(byte)ParameterKey.APIUrl] = $"{SessionLocator.PublicUrl}/api/",
+                [(byte)ParameterKey.AssetBundleRootUrl] = peer.Translator is Kogama.Protocols.LegacyTranslator ? $"{SessionLocator.PublicUrl}/bundles/" : BundleSets.Url(player.Build, peer.IsWebSocket, player.Unity),
                 [(byte)ParameterKey.LevelingSilentMode] = false,
-                [(byte)ParameterKey.SentryUrl] = "http://openkogama:openkogama@127.0.0.1:8080/sentry/1",
+                [(byte)ParameterKey.SentryUrl] = SessionLocator.PublicUrl.Replace("://", "://openkogama:openkogama@") + "/sentry/1",
                 [(byte)ParameterKey.AntiCheatData] = NoBannedTools,
                 [(byte)ParameterKey.IsAdmin] = false,
                 [(byte)ParameterKey.Region] = Www,

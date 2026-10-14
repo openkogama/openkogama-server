@@ -77,12 +77,37 @@ public sealed class SqliteWorldStore(Database database) : IWorldStore
     {
         using SqliteConnection connection = database.Open();
         using SqliteCommand command = connection.CreateCommand();
-        command.CommandText = "UPDATE worlds SET published_data = $data, published_at = $publishedAt WHERE id = $id";
+        command.CommandText = "UPDATE worlds SET published_data = $data, published_at = $publishedAt, play_data = NULL, play_backup = NULL WHERE id = $id";
         command.Parameters.AddWithValue("$id", id);
         command.Parameters.AddWithValue("$data", data);
         command.Parameters.AddWithValue("$publishedAt", DateTime.UtcNow.ToString("O"));
         command.ExecuteNonQuery();
         Revision.Bump();
+    }
+
+    public List<byte[]> PlayStates(int id)
+    {
+        using SqliteConnection connection = database.Open();
+        using SqliteCommand command = connection.CreateCommand();
+        command.CommandText = "SELECT play_data, play_backup FROM worlds WHERE id = $id";
+        command.Parameters.AddWithValue("$id", id);
+        using SqliteDataReader reader = command.ExecuteReader();
+
+        var states = new List<byte[]>();
+        if (reader.Read())
+            for (int i = 0; i < 2; i++)
+                if (!reader.IsDBNull(i)) states.Add((byte[])reader[i]);
+        return states;
+    }
+
+    public void SavePlayState(int id, byte[] data)
+    {
+        using SqliteConnection connection = database.Open();
+        using SqliteCommand command = connection.CreateCommand();
+        command.CommandText = "UPDATE worlds SET play_backup = play_data, play_data = $data WHERE id = $id";
+        command.Parameters.AddWithValue("$id", id);
+        command.Parameters.AddWithValue("$data", data);
+        command.ExecuteNonQuery();
     }
 
     public void MarkPlayed(int id)

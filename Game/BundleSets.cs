@@ -1,4 +1,5 @@
 using System.Text.Json;
+using OpenKogama.Web;
 
 namespace OpenKogama.Game;
 
@@ -48,6 +49,6 @@ public static class BundleSets
     public const string Legacy = "2015";
 
     public static string Url(string build, bool webgl = false, string? unity = null) =>
-        For(build, unity) is string set ? $"http://127.0.0.1:8080/bundles-{set}{(webgl ? WebGL : "")}/"
-            : webgl ? $"http://127.0.0.1:8080/bundles-{Legacy}{WebGL}/" : "http://127.0.0.1:8080/bundles/";
+        For(build, unity) is string set ? $"{SessionLocator.PublicUrl}/bundles-{set}{(webgl ? WebGL : "")}/"
+            : webgl ? $"{SessionLocator.PublicUrl}/bundles-{Legacy}{WebGL}/" : $"{SessionLocator.PublicUrl}/bundles/";
 }

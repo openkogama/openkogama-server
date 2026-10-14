@@ -25,7 +25,8 @@ public sealed class Player(PhotonPeer peer, int actor, int avatarId)
     public DateTime? BoostSince { get; set; }
     public long? NextFreeSpin { get; set; }
     public int? PendingReward { get; set; }
-    public string Username => $"Player{actor}";
+    public string? Nickname { get; set; }
+    public string Username => Nickname ?? $"Player{actor}";
     public string Region => "en_US";
 
     const int MaxUpload = 16 * 1024 * 1024;
