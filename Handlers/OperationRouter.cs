@@ -159,11 +159,23 @@ public sealed class OperationRouter
 
     void Register(IOperationHandler handler) => _handlers[handler.Code] = handler;
 
+    static string Describe(object? value) => value switch
+    {
+        null => "null",
+        Dictionary<byte, object?> table => "{" + string.Join(", ", table.Select(pair => $"{(Kogama.ParameterKey)pair.Key}={Describe(pair.Value)}")) + "}",
+        PhotonDictionary table => "{" + string.Join(", ", table.Entries.Select(pair => $"{pair.Key}={Describe(pair.Value)}")) + "}",
+        Dictionary<object, object?> table => "{" + string.Join(", ", table.Select(pair => $"{pair.Key}={Describe(pair.Value)}")) + "}",
+        byte[] bytes => $"byte[{bytes.Length}]",
+        string text => $"\"{(text.Length > 40 ? text[..40] + "…" : text)}\"",
+        Array items => $"{value.GetType().Name}[{items.Length}]",
+        _ => $"{value.GetType().Name}:{value}",
+    };
+
     static readonly bool Trace = Environment.GetEnvironmentVariable("OPENKOGAMA_TRACE") == "1";
 
     public void Handle(PhotonPeer peer, OperationRequest request)
     {
-        if (Trace) _log?.Invoke($"peer {peer.Id}: op {(Kogama.OperationCode)request.OperationCode}");
+        if (Trace) _log?.Invoke($"peer {peer.Id}: op {(Kogama.OperationCode)request.OperationCode} {Describe(request.Parameters)}");
         if (!_handlers.TryGetValue(request.OperationCode, out IOperationHandler? handler))
         {
             _log?.Invoke($"peer {peer.Id}: no handler for {request}");

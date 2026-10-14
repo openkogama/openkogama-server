@@ -121,9 +121,7 @@ class Client:
         await self.page.screenshot(path=os.path.join(out, f"{self.name}-{label}.png"))
 
     async def keys(self, *keys, hold=0):
-        box = await self.canvas()
-        if box:
-            await self.page.mouse.click(box[0] + box[2] / 2, box[1] + box[3] / 2)
+        await self.page.evaluate("document.querySelector('canvas')?.focus()")
         for key in keys:
             if hold:
                 await self.page.keyboard.down(key)

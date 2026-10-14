@@ -14,7 +14,7 @@ public sealed class GetPlanetOwnerships(Session session) : IOperationHandler
         var entries = session.Players.Select(player => new { profileID = player.ProfileId, planetOwnership = (int)session.OwnershipOf(player) }).ToList();
         peer.Send(new OperationResponse(request)
         {
-            Parameters = { [(byte)ParameterKey.PlanetOwnershipType] = JsonSerializer.Serialize(new { planetOwnerships = entries }) },
+            Parameters = { [(byte)ParameterKey.Data] = JsonSerializer.Serialize(new { planetOwnerships = entries }) },
         });
     }
 }
@@ -30,7 +30,7 @@ public sealed class GetAllPlanetPermissions(Session session) : IOperationHandler
             .ToDictionary(group => group.Key.ToString(), group => session.OwnershipOf(group.First()) == PlanetOwnership.None ? Array.Empty<int>() : Join.AllPermissions);
         peer.Send(new OperationResponse(request)
         {
-            Parameters = { [(byte)ParameterKey.PlanetPermissions] = JsonSerializer.Serialize(permissions) },
+            Parameters = { [(byte)ParameterKey.Data] = JsonSerializer.Serialize(permissions) },
         });
     }
 }
