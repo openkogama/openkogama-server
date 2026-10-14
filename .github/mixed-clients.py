@@ -175,7 +175,7 @@ async def enter(client, server, mark):
         return mark
     client.peer = re.search(r"peer (\d+): joined", server.log()[joined - 1]).group(1)
     client.stage = "joined"
-    synced = await server.wait(f"peer {client.peer}: synchronized", joined, LIMIT - (time.time() - start))
+    synced = await server.wait(f"peer {client.peer}: world sent", joined, LIMIT - (time.time() - start))
     if synced is None:
         client.stage = "no sync"
         return joined
