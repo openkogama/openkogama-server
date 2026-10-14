@@ -9,17 +9,22 @@ public static class Pickup
 {
     const int RespawnMs = 3000;
 
-    public static void Take(Session session, Player player, WorldObject pickup)
+    public static void Take(Session session, Player player, WorldObject pickup, int instigator)
     {
         AvatarItemType? item = pickup.Type == WorldObjectType.PickupCubeGun
             ? AvatarItemType.CubeGun
             : pickup.Data.Find(pair => pair.Key == "itemType").Value is int type ? (AvatarItemType)type : null;
 
         if (item is AvatarItemType weapon && weapon is not (AvatarItemType.Health or AvatarItemType.Mutant or AvatarItemType.NinjaRun))
-            Equip(session, player, pickup, weapon);
+            Equip(session, player, pickup, weapon, Holder(session, player, instigator));
 
         Respawn(session, pickup.Id, player.Actor);
     }
+
+    static int Holder(Session session, Player player, int instigator) =>
+        session.World.Find(instigator) is { } obj && obj.Owner == player.Actor && obj.Runtime.Exists(pair => pair.Key == "currentItem")
+            ? instigator
+            : player.PlayAvatar;
 
     public static void Respawn(Session session, int pickupId, int actor)
     {
@@ -30,7 +35,7 @@ public static class Pickup
             SendState(session, pickupId, actor, PickupItemState.Listening));
     }
 
-    static void Equip(Session session, Player player, WorldObject pickup, AvatarItemType weapon)
+    static void Equip(Session session, Player player, WorldObject pickup, AvatarItemType weapon, int holderId)
     {
         int variant = pickup.Data.Find(pair => pair.Key == "variantId").Value as int? ?? 0;
         List<(string Key, PackedType Type, object Value)> currentItem =
@@ -41,8 +46,7 @@ public static class Pickup
         var itemData = pickup.Data.Find(pair => pair.Key == "itemData");
         if (itemData.Key is not null) currentItem.Add(itemData);
 
-        int avatarId = player.PlayAvatar;
-        session.World.Modify(avatarId, avatar => avatar.SetRuntime("currentItem", PackedType.Hashtable, currentItem));
+        session.World.Modify(holderId, holder => holder.SetRuntime("currentItem", PackedType.Hashtable, currentItem));
 
         var runtime = new Dictionary<object, object?> { ["currentItem"] = PackedData.ToPhoton(currentItem) };
         foreach (Player other in session.Players)
@@ -52,7 +56,7 @@ public static class Pickup
                 Parameters =
                 {
                     [(byte)ParameterKey.ActorNr] = other == player ? 0 : player.Actor,
-                    [(byte)ParameterKey.WorldObjectID] = avatarId,
+                    [(byte)ParameterKey.WorldObjectID] = holderId,
                     [(byte)ParameterKey.WorldObjectRunTimeData] = runtime,
                 },
             });

@@ -1,10 +1,12 @@
+using System.Net;
 using System.Text.Json;
 
 namespace OpenKogama.Web;
 
 public sealed class AssetCache(string remoteRoot, string folder)
 {
-    static readonly HttpClient Http = new();
+    static readonly HttpClient Http = new() { DefaultRequestVersion = HttpVersion.Version20, DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrLower };
+    const int ParallelDownloads = 32;
 
     public static bool Offline { get; set; }
 
@@ -89,25 +91,31 @@ public sealed class AssetCache(string remoteRoot, string folder)
         }
         long total = files.Sum(file => file.Size), done = 0;
         int failed = 0;
+        object sync = new();
 
-        foreach ((AssetCache cache, string path, long size) in files)
+        await Parallel.ForEachAsync(files, new ParallelOptions { MaxDegreeOfParallelism = ParallelDownloads }, async (file, _) =>
         {
-            string local = cache.LocalPath(path);
-            if (!File.Exists(local) || new FileInfo(local).Length != size)
+            bool ok = true;
+            string local = file.Cache.LocalPath(file.Path);
+            if (!File.Exists(local) || new FileInfo(local).Length != file.Size)
             {
                 try
                 {
-                    await cache.DownloadAsync(path);
+                    await file.Cache.DownloadAsync(file.Path);
                 }
                 catch (Exception error)
                 {
-                    failed++;
-                    Console.WriteLine($"install: {path}: {error.Message}");
+                    ok = false;
+                    Console.WriteLine($"install: {file.Path}: {error.Message}");
                 }
             }
-            done += size;
-            Console.WriteLine($"progress {done} {total}");
-        }
+            lock (sync)
+            {
+                if (!ok) failed++;
+                done += file.Size;
+                Console.WriteLine($"progress {done} {total}");
+            }
+        });
 
         Console.WriteLine(failed == 0 ? $"install: {label} ready" : $"install: {label} missing {failed} files");
         return failed == 0;

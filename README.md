@@ -3,6 +3,24 @@
   <img src=".github/logo-light.png" alt="OpenKogama Server" width="400">
 </picture>
 
+## Launcher servers
+
+An optional `server.json` in the server working directory configures its launcher tile and the world opened by Join:
+
+```json
+{
+  "title": "My KoGaMa server",
+  "thumbnail": "server.png",
+  "joinWorld": 1,
+  "publicUrl": "http://example.com:8080",
+  "listenHost": "+"
+}
+```
+
+Without this file the server keeps its local addresses. `joinWorld` defaults to the first saved world. Set `publicUrl` to the HTTP/HTTPS address players use, and `listenHost` to the HTTP listener hostname (`+` accepts all hostnames); hosting requires HTTP port 8080 and Photon port 5055 to be reachable. On Windows the listener prefixes may require an HTTP URL reservation for the account running the server. Session responses use the public hostname for Photon and the public base URL for callbacks.
+
+`GET /api/server` exposes only `title` (up to 40 characters) and an optional `/api/server/thumbnail` path. The image endpoint serves the configured file up to 256 KB; PNG, JPEG and WebP are accepted by the launcher. `GET /session?mode=play` opens the configured entry world. Lists, map selection and hubs belong inside the game; the launcher never reads a remote server's world or avatar lists.
+
 ## Plugins
 
 A plugin is a .NET class library that references `api/openkogama-api.csproj` and implements `IPlugin`. Put the dll in the `plugins` folder next to the server and it loads on start. `examples/` has three plugins: `welcome`, `xp` and `sandbox`.

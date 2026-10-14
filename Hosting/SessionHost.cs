@@ -14,6 +14,7 @@ namespace OpenKogama.Hosting;
 
 public sealed class SessionHost(PhotonServer server, bool mixedClients)
 {
+    public Func<int> EntryWorld { get; init; } = () => 0;
     sealed record Entry(Session Session, OperationRouter? Router, bool Editor, string Client = "", Router2012? Classic = null);
 
     readonly object _sync = new();
@@ -125,6 +126,7 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
         if (!int.TryParse(join[(byte)Key2012.PlanetName] as string, out int id)) return null;
 
         bool play = join[(byte)Key2012.JoinEditMode] is not true;
+        if (play && id == 0) id = EntryWorld();
         if (_worlds.TryGetValue((id, play, Client), out Entry? open)) return open;
         if (!play && EditLocked(id)) return null;
         if (Session.Open(id, play) is not { } session) return null;

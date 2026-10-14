@@ -6,12 +6,20 @@ public static class BlueprintMaps
 {
     const string BlueprintData = "BlueprintData";
     const string ChildrenMap = "ChildrenMap";
+    const string ItemData = "itemData";
+    const string CubeModelId = "CubeModelId";
+    const string ItemBase = "ItemBase";
+    const string ItemCubeModel = "ItemCubeModel";
 
     public static Pairs Remap(Pairs data, IReadOnlyDictionary<int, int> ids) =>
-        [.. data.Select(pair => pair.Key == BlueprintData && pair.Value is Pairs blueprint
-            ? (pair.Key, pair.Type, (object)Children(blueprint, children => [.. children.Select(child =>
-                child.Value is int id && ids.TryGetValue(id, out int mapped) ? (child.Key, child.Type, (object)mapped) : child)]))
-            : pair)];
+        [.. data.Select(pair => pair switch
+        {
+            (BlueprintData, _, Pairs blueprint) =>
+                (pair.Key, pair.Type, (object)Children(blueprint, children => [.. children.Select(child => Mapped(child, ids))])),
+            (ItemData, _, Pairs item) =>
+                (pair.Key, pair.Type, (object)item.Select(entry => entry.Key == CubeModelId ? Mapped(entry, ids) : entry).ToList()),
+            _ => pair,
+        })];
 
     public static int Repair(IReadOnlyList<WorldObject> objects)
     {
@@ -46,8 +54,33 @@ public static class BlueprintMaps
             obj.Data[index] = (BlueprintData, obj.Data[index].Type, Children(blueprint, _ => fixedMap));
             repaired++;
         }
+        return repaired + RepairItemModels(objects, byId);
+    }
+
+    static int RepairItemModels(IReadOnlyList<WorldObject> objects, Dictionary<int, WorldObject> byId)
+    {
+        int repaired = 0;
+        foreach (WorldObject obj in objects)
+        {
+            if (obj.Data.Find(pair => pair.Key == BlueprintData).Value is not Pairs blueprint
+                || blueprint.Find(pair => pair.Key == ChildrenMap).Value is not Pairs map
+                || map.Find(entry => entry.Key == ItemBase).Value is not int itemId
+                || map.Find(entry => entry.Key == ItemCubeModel).Value is not int modelId
+                || !byId.TryGetValue(itemId, out WorldObject? item)) continue;
+
+            int index = item.Data.FindIndex(pair => pair.Key == ItemData);
+            if (index < 0 || item.Data[index].Value is not Pairs itemData) continue;
+            int model = itemData.FindIndex(entry => entry.Key == CubeModelId);
+            if (model < 0 || itemData[model].Value is int current && current == modelId) continue;
+
+            itemData[model] = (CubeModelId, itemData[model].Type, modelId);
+            repaired++;
+        }
         return repaired;
     }
+
+    static (string Key, PackedType Type, object Value) Mapped((string Key, PackedType Type, object Value) entry, IReadOnlyDictionary<int, int> ids) =>
+        entry.Value is int id && ids.TryGetValue(id, out int mapped) ? (entry.Key, entry.Type, mapped) : entry;
 
     static Pairs Children(Pairs blueprint, Func<Pairs, Pairs> change) =>
         [.. blueprint.Select(entry => entry.Key == ChildrenMap && entry.Value is Pairs children ? (entry.Key, entry.Type, (object)change(children)) : entry)];

@@ -68,15 +68,19 @@ public sealed class GameStats
         lock (_sync) _counters.Clear();
     }
 
-    public byte[] ToBytes()
+    public byte[] ToBytes(string clientVersion)
     {
         lock (_sync)
         {
+            var known = _counters
+                .Select(pair => (Code: StatCounters.ToClient(pair.Key, clientVersion), Teams: pair.Value))
+                .Where(pair => pair.Code is not null)
+                .ToList();
             var writer = new BytePackerWriter();
-            writer.WriteInt32(_counters.Count);
-            foreach ((GameStatCounterType type, var teams) in _counters)
+            writer.WriteInt32(known.Count);
+            foreach ((byte? code, var teams) in known)
             {
-                writer.WriteByte((byte)type);
+                writer.WriteByte(code!.Value);
                 writer.WriteInt32(teams.Count);
                 foreach ((Team team, TeamCounter counter) in teams)
                 {

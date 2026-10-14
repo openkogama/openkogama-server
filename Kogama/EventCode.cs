@@ -87,6 +87,7 @@ public enum EventCode : byte
     PlayerPlanetData = 132,
     SetSpawnRoleBody = 133,
     XPRewardedAdReady = 134,
+    VehicleGotEnergy = 135,
     Leave = 254,
     Join = 255,
 }

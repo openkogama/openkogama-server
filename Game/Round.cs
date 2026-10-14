@@ -89,17 +89,27 @@ public sealed class Round(Session session)
         return count;
     }
 
-    void SendStat(int actor, Team team, GameStatCounterType type, int value, bool increment) =>
-        Broadcast(EventCode.UpdateGameStat, new()
+    void SendStat(int actor, Team team, GameStatCounterType type, int value, bool increment)
+    {
+        foreach (Player player in session.Players)
         {
-            [(byte)ParameterKey.ActorNr] = actor,
-            [(byte)ParameterKey.TeamID] = (int)team,
-            [(byte)ParameterKey.StatCounterType] = (byte)type,
-            [(byte)ParameterKey.GameStatValue] = value,
-            [(byte)ParameterKey.GameStatOtherID] = -1,
-            [(byte)ParameterKey.GameStatUpdateTeamScore] = true,
-            [(byte)ParameterKey.GameStatIncrement] = increment,
-        });
+            if (player.Peer.Protocol == PhotonProtocol.Protocol15 || StatCounters.ToClient(type, player.ClientVersion) is not byte code)
+                continue;
+            player.Peer.Send(new EventData((byte)EventCode.UpdateGameStat)
+            {
+                Parameters =
+                {
+                    [(byte)ParameterKey.ActorNr] = actor,
+                    [(byte)ParameterKey.TeamID] = (int)team,
+                    [(byte)ParameterKey.StatCounterType] = code,
+                    [(byte)ParameterKey.GameStatValue] = value,
+                    [(byte)ParameterKey.GameStatOtherID] = -1,
+                    [(byte)ParameterKey.GameStatUpdateTeamScore] = true,
+                    [(byte)ParameterKey.GameStatIncrement] = increment,
+                },
+            });
+        }
+    }
 
     public void Start()
     {

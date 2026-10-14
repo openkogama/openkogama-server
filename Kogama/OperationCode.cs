@@ -140,6 +140,7 @@ public enum OperationCode : byte
     TogglePreviewTierOperation = 139,
     ClaimPlayingNewGameRewardedGold = 140,
     IncrementStatRequest = 141,
+    VehicleEnergyUse = 142,
     Leave = 254,
     Join = 255,
 }

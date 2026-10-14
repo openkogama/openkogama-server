@@ -2,7 +2,7 @@ namespace OpenKogama.World;
 
 public static class RuntimeDefaults
 {
-    const int LongAgo = -60_000;
+    const int LongAgo = -300_000;
 
     public static void Apply(WorldObject obj)
     {
@@ -48,7 +48,7 @@ public static class RuntimeDefaults
             ("deathTime", PackedType.Int32, LongAgo),
             ("modifiers", PackedType.Hashtable, Empty()),
         ],
-        WorldObjectType.WorldObjectSpawnerVehicle =>
+        WorldObjectType.WorldObjectSpawnerVehicle or WorldObjectType.WorldObjectSpawnerVehicleEnergy =>
         [
             ("UseTime", PackedType.Int32, LongAgo),
         ],

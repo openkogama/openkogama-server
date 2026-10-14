@@ -207,6 +207,8 @@ public sealed class GameWorld
         {
             ("protoTypeID", PackedType.Int32, int id) when prototypeIds.TryGetValue(id, out int newId) =>
                 (pair.Key, pair.Type, (object)newId),
+            ("CubeModelId", PackedType.Int32, int modelId) when objectIds.TryGetValue(modelId, out int newModelId) =>
+                (pair.Key, pair.Type, (object)newModelId),
             ("ChildrenMap", PackedType.Hashtable, List<(string, PackedType, object)> children) =>
                 (pair.Key, pair.Type, (object)children.Select(child => child is (_, PackedType.Int32, int childId)
                     ? (child.Item1, child.Item2, (object)objectIds.GetValueOrDefault(childId, childId))
@@ -436,8 +438,18 @@ public sealed class GameWorld
             world._objectLinks.AddRange(snapshot.ObjectLinks);
         }
 
+        foreach (WorldObject obj in objects.Where(obj => obj.Type == WorldObjectType.SpawnPoint))
+            obj.Type = WorldObjectType.SpawnPointBlue;
+
+        foreach (WorldObject obj in objects.Where(obj => obj.Type == WorldObjectType.PointLight))
+        {
+            int halo = obj.Data.FindIndex(pair => pair.Key == "halo");
+            if (halo >= 0 && obj.Data[halo].Value is int value && value is < 1 or > 3)
+                obj.Data[halo] = ("halo", obj.Data[halo].Type, 1);
+        }
+
         world.Spawn = spawn
-            ?? objects.Find(obj => obj.Type is WorldObjectType.SpawnPointBlue or WorldObjectType.SpawnPoint)?.Position
+            ?? objects.Find(obj => obj.Type == WorldObjectType.SpawnPointBlue)?.Position
             ?? world.Spawn;
 
         var kept = new HashSet<int>();

@@ -31,6 +31,6 @@ public sealed class UpdatePrototypeScale(Session session) : IOperationHandler
             },
         };
         foreach (Player player in session.Players)
-            if (player.Peer != peer) player.Peer.Send(evt);
+            player.Peer.Send(evt);
     }
 }
