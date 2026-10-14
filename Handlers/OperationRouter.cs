@@ -48,6 +48,8 @@ public sealed class OperationRouter
         Register(new GetResetAvatar(session));
         Register(new PostChatMsg(session));
         Register(new JoinNotification());
+        Register(new GetPlanetOwnerships(session));
+        Register(new GetAllPlanetPermissions(session));
         Register(new GetRewardList());
         Register(new GetRewardIndex(session));
         Register(new ClaimReward(session));
@@ -161,7 +163,7 @@ public sealed class OperationRouter
 
     public void Handle(PhotonPeer peer, OperationRequest request)
     {
-        if (Trace) _log?.Invoke($"peer {peer.Id}: op {(OperationCode)request.OperationCode}");
+        if (Trace) _log?.Invoke($"peer {peer.Id}: op {(Kogama.OperationCode)request.OperationCode}");
         if (!_handlers.TryGetValue(request.OperationCode, out IOperationHandler? handler))
         {
             _log?.Invoke($"peer {peer.Id}: no handler for {request}");

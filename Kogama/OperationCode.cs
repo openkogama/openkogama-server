@@ -126,6 +126,8 @@ public enum OperationCode : byte
     SetActiveSpawnRole = 125,
     StartSessionTime = 126,
     ResetPlayerPlanetData = 127,
+    GetPlanetOwnerships = 143,
+    GetAllPlanetPermissions = 144,
     GetHighScoreList = 128,
     GetTopHighScoreList = 129,
     ClaimGamePointWelcomeReward = 130,

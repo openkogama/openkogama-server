@@ -11,7 +11,7 @@ public sealed class Join(Session session) : IOperationHandler
     const int SpinEnabled = 0x10;
     static readonly Version MovedFlagsVersion = new(1, 74);
     const byte Www = 4;
-    static readonly int[] AllPermissions = [14, 15, 16, 17, 18, 19, 20, 22];
+    internal static readonly int[] AllPermissions = [14, 15, 16, 17, 18, 19, 20, 22];
     const string NoBannedTools = """{"ApplicationDescs":[],"applicationDescFactoryBase":{"ApplicationDescs":[]}}""";
 
     public byte Code => (byte)OperationCode.Join;
