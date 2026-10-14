@@ -1,0 +1,71 @@
+name: mixed clients
+
+on:
+  push:
+    branches: [mixed-clients]
+  workflow_dispatch:
+    inputs:
+      pairs:
+        description: "version pairs to put in one world, version@unity, pairs separated by spaces"
+        default: "2.30.63@2022,3.5.25 2.0.1,3.5.25 1.47.4,2.30.63@2022 1.26.20.293,2.30.63@2022"
+
+env:
+  PAIRS: ${{ inputs.pairs || '2.30.63@2022,3.5.25 2.0.1,3.5.25 1.47.4,2.30.63@2022 1.26.20.293,2.30.63@2022' }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      pairs: ${{ steps.plan.outputs.pairs }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: openkogama-server
+      - uses: actions/checkout@v4
+        with:
+          repository: openkogama/openkogama-photon
+          path: openkogama-photon
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet publish openkogama-server/openkogama-server.csproj -c Release -o app -p:UseAppHost=false
+      - uses: actions/upload-artifact@v4
+        with:
+          name: server-app
+          path: app
+      - id: plan
+        run: echo "pairs=$(python3 -c 'import json, sys; print(json.dumps(sys.argv[1].split()))' "$PAIRS")" >> "$GITHUB_OUTPUT"
+
+  play:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        pair: ${{ fromJSON(needs.build.outputs.pairs) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: server-app
+          path: app
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: |
+          pip install playwright
+          python -m playwright install --with-deps chromium
+      - run: python .github/mixed-clients.py app "${{ matrix.pair }}" out
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mixed-${{ matrix.pair }}
+          path: |
+            out/*.png
+            out/result.json
+            out/data/server.log
+            out/data/logs
