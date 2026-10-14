@@ -140,7 +140,9 @@ class Client:
             box = await self.canvas()
             point = find_word(path, "PLAY") or (box and find_button(path, box))
             if point:
-                await self.page.mouse.click(*point)
+                await self.page.mouse.move(*point)
+                await self.page.wait_for_timeout(200)
+                await self.page.mouse.click(*point, delay=120)
                 self.logs.append(f"openkogama: test clicked play at {point}")
                 return True
             await self.page.wait_for_timeout(5000)
