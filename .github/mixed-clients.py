@@ -117,6 +117,9 @@ class Client:
     async def error(self):
         return await self.page.evaluate("document.getElementById('error')?.textContent || ''")
 
+    async def progress(self):
+        return await self.page.evaluate("[document.getElementById('progress-text')?.textContent, document.getElementById('status')?.textContent, document.getElementById('error')?.textContent].filter(Boolean).join(' | ')")
+
     async def shot(self, out, label):
         await self.page.screenshot(path=os.path.join(out, f"{self.name}-{label}.png"))
 
@@ -156,13 +159,17 @@ class Client:
         await self.page.keyboard.press("Enter")
 
     def result(self):
-        return {"name": self.name, "version": self.entry["version"], "unity": self.entry["unity"], "stage": self.stage, "peer": self.peer,
-                "log": [line for line in self.logs if "rror" in line or "ailed" in line or "openkogama" in line][-30:]}
+        lines = self.logs if self.stage not in ("playing", "world") else [line for line in self.logs if "rror" in line or "ailed" in line or "openkogama" in line]
+        return {"name": self.name, "version": self.entry["version"], "unity": self.entry["unity"], "stage": self.stage, "peer": self.peer, "log": lines[-40:]}
 
 
-async def enter(client, server, mark, out):
+async def enter(client, server, mark):
     start = time.time()
-    joined = await server.wait("joined", mark, LIMIT)
+    joined = None
+    while joined is None and time.time() - start < LIMIT:
+        joined = await server.wait("joined", mark, 15)
+        if joined is None:
+            client.logs.append("openkogama: test page says " + await client.progress())
     if joined is None:
         client.stage = "no join"
         return mark
@@ -173,10 +180,6 @@ async def enter(client, server, mark, out):
         client.stage = "no sync"
         return joined
     client.stage = "world"
-    await asyncio.sleep(6)
-    if await client.press_play(out):
-        client.stage = "playing"
-        await asyncio.sleep(6)
     return synced
 
 
@@ -197,10 +200,18 @@ async def main(app, wanted, out):
             for index, client in enumerate(clients):
                 context = await browser.new_context(viewport={"width": 1100, "height": 700})
                 await client.open(context, 1, index + 1)
-                mark = await enter(client, server, mark, out)
+                mark = await enter(client, server, mark)
                 print(json.dumps({k: v for k, v in client.result().items() if k != "log"}), flush=True)
-                if client.stage != "playing":
+                if client.stage != "world":
                     await client.shot(out, "stuck")
+            if all(client.stage == "world" for client in clients):
+                await asyncio.sleep(6)
+                for client in clients:
+                    if await client.press_play(out):
+                        client.stage = "playing"
+                    else:
+                        await client.shot(out, "stuck")
+                await asyncio.sleep(8)
             inside = [client for client in clients if client.stage == "playing"]
             if len(inside) == len(clients):
                 await asyncio.sleep(SETTLE / 1000)
