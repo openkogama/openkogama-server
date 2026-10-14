@@ -107,6 +107,7 @@ public sealed class GetNextGameBatch(Session session) : IOperationHandler
                 Parameters = { [(byte)ParameterKey.ActorNr] = me.Actor },
             };
             foreach ((ParameterKey key, object value) in me.Info()) join.Parameters[(byte)key] = value;
+            join.Parameters[(byte)ParameterKey.Bool] = false;
             other.Peer.Send(join);
             other.Sees(me.Actor);
             if (other.Peer.Translator is Kogama.Protocols.OperationRemap)
