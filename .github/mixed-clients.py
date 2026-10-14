@@ -43,7 +43,7 @@ def find_button(path, box):
     rows = []
     for y in range(small.height):
         filled = sum(1 for x in range(left, right) if sum(abs(pixels[x, y][i] - background[i]) for i in range(3)) > 90)
-        rows.append(filled >= (right - left) * 0.9)
+        rows.append(filled >= (right - left) * 0.75)
     start = None
     for y, filled in enumerate(rows + [False]):
         if filled and start is None:
@@ -221,8 +221,9 @@ async def main(app, wanted, out):
                 for client in clients:
                     await client.shot(out, "4-jump")
                 before = len(server.log())
+                gone = any(f"peer {last.peer}: gone" in line for line in server.log())
                 await last.page.close()
-                result["checks"]["leave"] = await server.wait(f"peer {last.peer}: gone", before, 90) is not None
+                result["checks"]["leave"] = not gone and await server.wait(f"peer {last.peer}: gone", before, 90) is not None
                 await asyncio.sleep(3)
                 for client in clients[:-1]:
                     await client.shot(out, "5-left")

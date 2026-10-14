@@ -121,7 +121,7 @@ public static class Avatar
             ("avatarModeTypes", PackedType.Int32, 1),
             ("animation", PackedType.Hashtable, new List<(string, PackedType, object)>()),
             ("seat", PackedType.Int32, -1),
-            ("maxHealth", PackedType.Single, 100f),
+            ("maxHealth", PackedType.Int32, 100),
             ("spawnRoleModeType", PackedType.Int32, Playing),
             ("headRotationYaw", PackedType.Single, 0f),
             ("headRotationPitch", PackedType.Single, 0f),

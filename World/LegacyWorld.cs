@@ -112,6 +112,22 @@ public static class LegacyWorld
             .Select(c => c < 128 ? c : '?')]);
     }
 
+    public static WorldObject Retyped(WorldObject obj, Dictionary<string, ProtocolTable.StateType> types) => new()
+    {
+        Id = obj.Id,
+        ParentId = obj.ParentId,
+        ItemId = obj.ItemId,
+        Type = obj.Type,
+        Position = obj.Position,
+        Rotation = obj.Rotation,
+        Scale = obj.Scale,
+        Data = Retype(obj.Data, types),
+        Owner = obj.Owner,
+        PreviewOwner = obj.PreviewOwner,
+        Runtime = Retype(obj.Runtime, types),
+        Transient = obj.Transient,
+    };
+
     static List<(string Key, PackedType Type, object Value)> Retype(List<(string Key, PackedType Type, object Value)> values, Dictionary<string, ProtocolTable.StateType> types) =>
         [.. values.Select(pair =>
             types.TryGetValue(pair.Key, out ProtocolTable.StateType? type) && Packed(type.Client) is PackedType packed

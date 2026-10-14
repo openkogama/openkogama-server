@@ -64,8 +64,22 @@ public sealed class OperationRemap(ProtocolTable client) : IMessageTranslator
 
     public OperationRequest? Incoming(OperationRequest request) =>
         _in.Map(request.OperationCode) is int code
-            ? new OperationRequest { OperationCode = (byte)code, Parameters = Queries(Keys(request.Parameters, _keysIn, outgoing: false)) }
+            ? new OperationRequest { OperationCode = (byte)code, Parameters = Typed(Queries(Keys(request.Parameters, _keysIn, outgoing: false)), toClient: false) }
             : null;
+
+    Dictionary<byte, object?> Typed(Dictionary<byte, object?> parameters, bool toClient)
+    {
+        if (client.StateTypes.Count == 0) return parameters;
+        Dictionary<byte, object?>? converted = null;
+        foreach ((byte key, object? value) in parameters)
+        {
+            object? result = StateTypes.Convert(value, client.StateTypes, toClient);
+            if (ReferenceEquals(result, value)) continue;
+            converted ??= new Dictionary<byte, object?>(parameters);
+            converted[key] = result;
+        }
+        return converted ?? parameters;
+    }
 
     Dictionary<byte, object?> Queries(Dictionary<byte, object?> parameters)
     {
@@ -99,7 +113,7 @@ public sealed class OperationRemap(ProtocolTable client) : IMessageTranslator
     }
 
     Dictionary<byte, object?> Out(Dictionary<byte, object?> parameters, bool rowsInData = false) =>
-        Keys(Rows(States(parameters), rowsInData), _keysOut, outgoing: true);
+        Keys(Rows(Typed(States(parameters), toClient: true), rowsInData), _keysOut, outgoing: true);
 
     Dictionary<byte, object?> Rows(Dictionary<byte, object?> parameters, bool rowsInData)
     {

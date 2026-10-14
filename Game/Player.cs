@@ -156,6 +156,8 @@ public sealed class Player(PhotonPeer peer, int actor, int avatarId)
         else if (Mode == GameMode.CharacterEditor) snapshot = Without(snapshot, obj => obj.Type == World.WorldObjectType.Avatar);
         else snapshot = snapshot with { Objects = [.. snapshot.Objects.Select(WithoutLaser)] };
         snapshot = snapshot with { Objects = [.. snapshot.Objects.Select(obj => Accessories.For(this, obj))] };
+        if (peer.Translator is Kogama.Protocols.OperationRemap && Kogama.Protocols.ProtocolTable.For(ClientVersion).StateTypes is { Count: > 0 } types)
+            snapshot = snapshot with { Objects = [.. snapshot.Objects.Select(obj => World.LegacyWorld.Retyped(obj, types))] };
         return World.WorldSerializer.Write(snapshot, linkState: LinkState, objectLinkState: ObjectLinkState, events: !package);
     }
 

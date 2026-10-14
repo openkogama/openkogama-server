@@ -71,6 +71,7 @@ public sealed class ProtocolTable
 
             string path = Path.Combine(AppContext.BaseDirectory, "data", "protocols", version + ".json");
             table = JsonSerializer.Deserialize<ProtocolTable>(File.ReadAllText(path), Options) ?? new();
+            table.StateTypes = RuntimeTypes.For(version);
 
             if (LegacyRules(version)?.Deserialize<Legacy>(Options) is { } legacy)
             {
