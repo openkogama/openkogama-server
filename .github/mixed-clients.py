@@ -27,6 +27,7 @@ def find_word(path, word):
     for index, text in enumerate(data["text"]):
         if text.strip().upper() == word:
             return data["left"][index] + data["width"][index] / 2, data["top"][index] + data["height"][index] / 2
+    print("ocr saw:", " ".join(text for text in data["text"] if text.strip())[:200], flush=True)
     return None
 
 
@@ -107,16 +108,16 @@ class Client:
             else:
                 await self.page.keyboard.press(key)
 
-    async def press_play(self):
-        for attempt in range(4):
-            path = os.path.join(os.path.dirname(self.page.video.path()) if self.page.video else ".", f"menu-{self.name}.png")
+    async def press_play(self, out):
+        for attempt in range(10):
+            path = os.path.join(out, f"{self.name}-menu.png")
             await self.page.screenshot(path=path)
             point = find_word(path, "PLAY")
             if point:
                 await self.page.mouse.click(*point)
                 self.logs.append(f"openkogama: test clicked play at {point}")
                 return True
-            await self.page.wait_for_timeout(4000)
+            await self.page.wait_for_timeout(5000)
         self.logs.append("openkogama: test found no play button")
         return False
 
@@ -131,7 +132,7 @@ class Client:
                 "log": [line for line in self.logs if "rror" in line or "ailed" in line or "openkogama" in line][-30:]}
 
 
-async def enter(client, server, mark):
+async def enter(client, server, mark, out):
     start = time.time()
     joined = await server.wait("joined", mark, LIMIT)
     if joined is None:
@@ -145,7 +146,7 @@ async def enter(client, server, mark):
         return joined
     client.stage = "world"
     await asyncio.sleep(6)
-    if await client.press_play():
+    if await client.press_play(out):
         client.stage = "playing"
         await asyncio.sleep(6)
     return synced
@@ -168,7 +169,7 @@ async def main(app, wanted, out):
             for index, client in enumerate(clients):
                 context = await browser.new_context(viewport={"width": 1100, "height": 700})
                 await client.open(context, 1, index + 1)
-                mark = await enter(client, server, mark)
+                mark = await enter(client, server, mark, out)
                 print(json.dumps({k: v for k, v in client.result().items() if k != "log"}), flush=True)
                 if client.stage != "playing":
                     await client.shot(out, "stuck")
