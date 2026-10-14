@@ -131,7 +131,8 @@ async def main(app, wanted, out):
         if await server.wait("http 8080", 0, 120) is None:
             raise SystemExit("server did not start")
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True, args=["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"])
+            browser = await p.chromium.launch(headless=True, args=["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist",
+                "--disable-features=LocalNetworkAccessChecks,LocalNetworkAccessForWorkers,PrivateNetworkAccessSendPreflights,PrivateNetworkAccessRespectPreflightResults,BlockInsecurePrivateNetworkRequests"])
             mark = len(server.log())
             for index, client in enumerate(clients):
                 context = await browser.new_context(viewport={"width": 1100, "height": 700})
