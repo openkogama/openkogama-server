@@ -157,8 +157,11 @@ public sealed class OperationRouter
 
     void Register(IOperationHandler handler) => _handlers[handler.Code] = handler;
 
+    static readonly bool Trace = Environment.GetEnvironmentVariable("OPENKOGAMA_TRACE") == "1";
+
     public void Handle(PhotonPeer peer, OperationRequest request)
     {
+        if (Trace) _log?.Invoke($"peer {peer.Id}: op {(OperationCode)request.OperationCode}");
         if (!_handlers.TryGetValue(request.OperationCode, out IOperationHandler? handler))
         {
             _log?.Invoke($"peer {peer.Id}: no handler for {request}");

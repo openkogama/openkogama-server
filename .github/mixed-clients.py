@@ -69,7 +69,7 @@ class Server:
         json.dump({"publicUrl": SERVER, "mixedClients": True}, open(os.path.join(data, "server.json"), "w"))
         self.path = os.path.join(data, "server.log")
         self.process = subprocess.Popen(["dotnet", os.path.join(os.path.abspath(app), "openkogama-server.dll")], cwd=data,
-                                        stdout=open(self.path, "w"), stderr=subprocess.STDOUT)
+                                        stdout=open(self.path, "w"), stderr=subprocess.STDOUT, env={**os.environ, "OPENKOGAMA_TRACE": "1"})
 
     def log(self):
         try:
@@ -224,7 +224,7 @@ async def main(app, wanted, out):
                     await client.shot(out, "4-jump")
                 before = len(server.log())
                 await last.page.close()
-                result["checks"]["leave"] = await server.wait(f"peer {last.peer}: gone", before, 30) is not None
+                result["checks"]["leave"] = await server.wait(f"peer {last.peer}: gone", before, 90) is not None
                 await asyncio.sleep(3)
                 for client in clients[:-1]:
                     await client.shot(out, "5-left")

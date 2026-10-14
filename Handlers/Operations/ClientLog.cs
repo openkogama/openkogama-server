@@ -14,8 +14,8 @@ public sealed class ClientLog : IOperationHandler
         int type = request.Parameters.TryGetValue((byte)ParameterKey.LogType, out object? value) ? Convert.ToInt32(value) : 3;
         string kind = type >= 0 && type < Types.Length ? Types[type] : type.ToString();
         string message = request[(byte)ParameterKey.LogString] as string ?? "";
-        string stack = (request[(byte)ParameterKey.StackTrace] as string ?? "").Split('\n', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "";
+        string stack = string.Join(" | ", (request[(byte)ParameterKey.StackTrace] as string ?? "").Split('\n', StringSplitOptions.RemoveEmptyEntries).Take(type == 4 ? 4 : 1).Select(line => line.Trim()));
 
-        Console.WriteLine($"peer {peer.Id} client {kind}: {message}" + (stack.Length > 0 ? $" | {stack.Trim()}" : ""));
+        Console.WriteLine($"peer {peer.Id} client {kind}: {message}" + (stack.Length > 0 ? $" | {stack}" : ""));
     }
 }
