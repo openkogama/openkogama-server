@@ -16,7 +16,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\**\*.cs" Exclude="..\browser\**;..\api\**;..\examples\**;..\bin\**;..\obj\**;..\Program.cs;..\Web\HttpServer.cs;..\Web\NullProxy.cs;..\Web\SocketPolicyServer.cs" />
+    <Compile Include="..\**\*.cs" Exclude="..\browser\**;..\api\**;..\examples\**;..\tests\**;..\bin\**;..\obj\**;..\Program.cs;..\Web\HttpServer.cs;..\Web\NullProxy.cs;..\Web\SocketPolicyServer.cs" />
   </ItemGroup>
 
   <ItemGroup>
