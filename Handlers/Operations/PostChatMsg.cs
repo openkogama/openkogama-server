@@ -17,5 +17,6 @@ public sealed class PostChatMsg(Session session) : IOperationHandler
 
         int type = request[(byte)ParameterKey.GameMsgType] is { } value ? Convert.ToInt32(value) : 0;
         ServerChat.Relay(session, sender, ServerChat.KindOf(sender, type), data);
+        Console.WriteLine($"{sender.Username}: {data.GetValueOrDefault(Legacy.SendChatMsg.Text)}");
     }
 }
