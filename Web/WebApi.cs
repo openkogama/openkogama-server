@@ -20,6 +20,9 @@ public sealed record ApiResponse(int Status, string? ContentType, byte[] Body)
 public sealed class WebApi
 {
     static readonly JsonSerializerOptions WorldJson = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+    static readonly byte[] PngSignature = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+    const int PlanetImage = 0;
+    const int MaxThumbnail = 2 * 1024 * 1024;
 
     public Func<int, GameMode, int, string?, string> SessionJson { get; set; } = (_, _, _, _) => "{}";
     public AssetCache? Assets { get; set; }
@@ -104,6 +107,13 @@ public sealed class WebApi
         {
             string name = query["name"] is { Length: > 0 } given ? given : "Imported World";
             return ApiResponse.Json(JsonSerializer.Serialize(new { id = Session.ImportWorld(name, request.Body, query["client"]) }));
+        }
+
+        if (path.TrimEnd('/') == "/api/worlds/thumbnail" && request.Method == "POST")
+        {
+            bool saved = int.TryParse(query["id"], out int id) && Stores.Worlds.World(id) is not null && IsPng(request.Body);
+            if (saved) Stores.Images.SaveImage(PlanetImage, id, request.Body);
+            return ApiResponse.Json("{}", saved ? 200 : 400);
         }
 
         if (path.TrimEnd('/') == "/api/avatars")
@@ -207,6 +217,8 @@ public sealed class WebApi
 
         return ApiResponse.NotFound;
     }
+
+    static bool IsPng(byte[] data) => data.Length <= MaxThumbnail && data.AsSpan().StartsWith(PngSignature);
 
     static int ProfileOf(NameValueCollection query) =>
         int.TryParse(query["profile"], out int profile) && profile > 0 ? profile : 1;
