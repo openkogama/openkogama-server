@@ -1,6 +1,6 @@
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/openkogama/openkogama-site/main/.github/logo/server-dark.png">
-  <img src="https://raw.githubusercontent.com/openkogama/openkogama-site/main/.github/logo/server-light.png" alt="OpenKogama Server" width="400">
+  <source media="(prefers-color-scheme: dark)" srcset=".github/logo-dark.png">
+  <img src=".github/logo-light.png" alt="OpenKogama Server" width="400">
 </picture>
 
 ## Plugins
