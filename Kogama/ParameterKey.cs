@@ -198,6 +198,7 @@ public enum ParameterKey : byte
     CustomTouristPromotionURL = 240,
     CustomTouristPromotionAssetURL = 241,
     CustomTouristPromotionFrequencyPercent = 242,
+    AvatarStatus = 243,
     Data = 245,
     ActorNr = 254,
 }

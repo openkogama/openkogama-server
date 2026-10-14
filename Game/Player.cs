@@ -78,6 +78,7 @@ public sealed class Player(PhotonPeer peer, int actor, int avatarId)
         (Kogama.ParameterKey.Level, Level),
         (Kogama.ParameterKey.ClientBuildTarget, BuildTarget),
         (Kogama.ParameterKey.IsActorReady, Ready),
+        (Kogama.ParameterKey.AvatarStatus, (byte)Kogama.PlayerGameState.Normal),
         (Kogama.ParameterKey.UserProfileData, ProfileData()),
         (Kogama.ParameterKey.PlayerPlanetData, PlanetSummary),
     ];

@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -13,6 +14,20 @@ SERVER = "http://127.0.0.1:8080"
 LIMIT = 600
 SETTLE = 8000
 REPORTS = ("not known", "no equivalent", "dropped", "rejected", "failed", "no server operation", "hid ", "unsupported", "exception", "error")
+
+
+def find_word(path, word):
+    try:
+        import pytesseract
+        from PIL import Image
+        data = pytesseract.image_to_data(Image.open(path), output_type=pytesseract.Output.DICT)
+    except Exception as error:
+        print("ocr failed:", error, flush=True)
+        return None
+    for index, text in enumerate(data["text"]):
+        if text.strip().upper() == word:
+            return data["left"][index] + data["width"][index] / 2, data["top"][index] + data["height"][index] / 2
+    return None
 
 
 def pick(versions, wanted):
@@ -92,6 +107,19 @@ class Client:
             else:
                 await self.page.keyboard.press(key)
 
+    async def press_play(self):
+        for attempt in range(4):
+            path = os.path.join(os.path.dirname(self.page.video.path()) if self.page.video else ".", f"menu-{self.name}.png")
+            await self.page.screenshot(path=path)
+            point = find_word(path, "PLAY")
+            if point:
+                await self.page.mouse.click(*point)
+                self.logs.append(f"openkogama: test clicked play at {point}")
+                return True
+            await self.page.wait_for_timeout(4000)
+        self.logs.append("openkogama: test found no play button")
+        return False
+
     async def say(self, text):
         await self.keys("Enter")
         await self.page.wait_for_timeout(500)
@@ -109,14 +137,17 @@ async def enter(client, server, mark):
     if joined is None:
         client.stage = "no join"
         return mark
-    line = server.log()[joined - 1]
-    client.peer = line.split(":")[0]
+    client.peer = re.search(r"peer (\d+): joined", server.log()[joined - 1]).group(1)
     client.stage = "joined"
-    synced = await server.wait(f"{client.peer}: synchronized", joined, LIMIT - (time.time() - start))
+    synced = await server.wait(f"peer {client.peer}: synchronized", joined, LIMIT - (time.time() - start))
     if synced is None:
         client.stage = "no sync"
         return joined
     client.stage = "world"
+    await asyncio.sleep(6)
+    if await client.press_play():
+        client.stage = "playing"
+        await asyncio.sleep(6)
     return synced
 
 
@@ -139,9 +170,9 @@ async def main(app, wanted, out):
                 await client.open(context, 1, index + 1)
                 mark = await enter(client, server, mark)
                 print(json.dumps({k: v for k, v in client.result().items() if k != "log"}), flush=True)
-                if client.stage != "world":
+                if client.stage != "playing":
                     await client.shot(out, "stuck")
-            inside = [client for client in clients if client.stage == "world"]
+            inside = [client for client in clients if client.stage == "playing"]
             if len(inside) == len(clients):
                 await asyncio.sleep(SETTLE / 1000)
                 for client in clients:
@@ -174,7 +205,7 @@ async def main(app, wanted, out):
     lines = server.log()
     result["clients"] = [client.result() for client in clients]
     result["checks"]["one world"] = sum("play opened" in line for line in lines) == 1
-    result["checks"]["all in"] = all(client.stage == "world" for client in clients)
+    result["checks"]["all in"] = all(client.stage == "playing" for client in clients)
     result["reports"] = [line for line in lines if any(word in line.lower() for word in REPORTS)][:80]
     json.dump(result, open(os.path.join(out, "result.json"), "w"), indent=1)
     print(json.dumps(result["checks"]), flush=True)

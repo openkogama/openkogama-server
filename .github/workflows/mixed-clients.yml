@@ -57,7 +57,8 @@ jobs:
         with:
           python-version: "3.12"
       - run: |
-          pip install playwright
+          sudo apt-get install -y -qq tesseract-ocr > /dev/null
+          pip install playwright pytesseract pillow
           python -m playwright install --with-deps chromium
       - run: python .github/mixed-clients.py app "${{ matrix.pair }}" out
       - uses: actions/upload-artifact@v4
