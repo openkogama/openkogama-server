@@ -31,6 +31,30 @@ def find_word(path, word):
     return None
 
 
+def find_button(path, box):
+    from PIL import Image
+    x0, y0, width, height = [int(value) for value in box]
+    canvas = Image.open(path).convert("RGB").crop((x0, y0, x0 + width, y0 + height))
+    small = canvas.resize((canvas.width // 2, canvas.height // 2))
+    coarse = small.point(lambda value: value // 32 * 32 + 16)
+    background = max(coarse.getcolors(small.width * small.height), key=lambda item: item[0])[1]
+    pixels = small.load()
+    left, right = int(small.width * 0.42), int(small.width * 0.58)
+    rows = []
+    for y in range(small.height):
+        filled = sum(1 for x in range(left, right) if sum(abs(pixels[x, y][i] - background[i]) for i in range(3)) > 90)
+        rows.append(filled >= (right - left) * 0.9)
+    start = None
+    for y, filled in enumerate(rows + [False]):
+        if filled and start is None:
+            start = y
+        elif not filled and start is not None:
+            if y - start >= 12:
+                return x0 + width / 2, y0 + start + y
+            start = None
+    return None
+
+
 def pick(versions, wanted):
     version, _, unity = wanted.partition("@")
     for entry in versions:
@@ -97,9 +121,9 @@ class Client:
         await self.page.screenshot(path=os.path.join(out, f"{self.name}-{label}.png"))
 
     async def keys(self, *keys, hold=0):
-        box = await self.page.evaluate("(() => { const c = document.querySelector('canvas'); if (!c) return null; const r = c.getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; })()")
+        box = await self.canvas()
         if box:
-            await self.page.mouse.click(box[0], box[1])
+            await self.page.mouse.click(box[0] + box[2] / 2, box[1] + box[3] / 2)
         for key in keys:
             if hold:
                 await self.page.keyboard.down(key)
@@ -108,11 +132,15 @@ class Client:
             else:
                 await self.page.keyboard.press(key)
 
+    async def canvas(self):
+        return await self.page.evaluate("(() => { const c = document.querySelector('canvas'); if (!c) return null; const r = c.getBoundingClientRect(); return [r.x, r.y, r.width, r.height]; })()")
+
     async def press_play(self, out):
         for attempt in range(10):
             path = os.path.join(out, f"{self.name}-menu.png")
             await self.page.screenshot(path=path)
-            point = find_word(path, "PLAY")
+            box = await self.canvas()
+            point = find_word(path, "PLAY") or (box and find_button(path, box))
             if point:
                 await self.page.mouse.click(*point)
                 self.logs.append(f"openkogama: test clicked play at {point}")
