@@ -35,7 +35,7 @@ public sealed class WebApi
 
     public ApiResponse Route(ApiRequest request)
     {
-        string path = request.Path;
+        string path = Regex.Replace(request.Path, "/{2,}", "/");
         NameValueCollection query = request.Query;
 
         if (path.TrimEnd('/') == "/api/server")
@@ -61,14 +61,16 @@ public sealed class WebApi
             if (!ServerInfo.Allows(query["client"]))
                 return ApiResponse.Json(JsonSerializer.Serialize(new { error = $"This server accepts {string.Join(", ", ServerInfo.Clients)}" }), 403);
             int profile = int.TryParse(query["profile"], out int requested) && requested > 0 ? requested : 1;
+            if (ServerInfo.Accounts && SessionToken.Clean(query["name"]) is string name) profile = Stores.Profiles.ForName(name);
+            bool join = query["mode"] == "play";
             GameMode mode = query["mode"] switch
             {
-                "play" => GameMode.Play,
+                "play" => ServerInfo.BuildJoin ? GameMode.Edit : GameMode.Play,
                 "avatar" => GameMode.CharacterEditor,
                 _ => GameMode.Edit,
             };
             int world = int.TryParse(query["world"], out int chosen) ? chosen : 0;
-            if (world == 0 && mode == GameMode.Play) world = ServerInfo.EntryWorld();
+            if (world == 0 && join) world = ServerInfo.EntryWorld();
             ClientEngines.Remember(profile, query["unity"]);
             string session = SessionJson(profile, mode, world, query["client"]);
             if (query["name"] is not null && System.Text.Json.Nodes.JsonNode.Parse(session) is System.Text.Json.Nodes.JsonObject named)

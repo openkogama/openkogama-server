@@ -10,9 +10,16 @@ public sealed class ServerInfo
     public int JoinWorld { get; init; }
     public string PublicUrl { get; init; } = "http://127.0.0.1:8080";
     public string ListenHost { get; init; } = "127.0.0.1";
+    public int HttpPort { get; init; } = 8080;
+    public int PhotonPort { get; init; } = 5055;
+    public string JoinMode { get; init; } = "play";
+
+    public bool BuildJoin => JoinMode.Equals("build", StringComparison.OrdinalIgnoreCase);
     public string[] Clients { get; init; } = [];
     public bool MixedClients { get; init; }
     public bool KeepPlayChanges { get; init; }
+
+    public bool Accounts => Uri.TryCreate(PublicUrl, UriKind.Absolute, out Uri? url) && !url.IsLoopback;
 
     public static ServerInfo Load(string path) => File.Exists(path)
         ? JsonSerializer.Deserialize<ServerInfo>(File.ReadAllText(path), new JsonSerializerOptions { PropertyNameCaseInsensitive = true })

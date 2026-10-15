@@ -25,7 +25,7 @@ public static class SessionToken
         }
     }
 
-    static string? Clean(string? name)
+    public static string? Clean(string? name)
     {
         if (name is null) return null;
         string clean = string.Concat(name.Where(c => !char.IsControl(c))).Trim();

@@ -22,6 +22,7 @@ ApiRequest Get(string path, params (string Key, string Value)[] parameters)
 var worlds = new TestWorlds();
 Stores.Worlds = worlds;
 string image = Path.Combine(Path.GetTempPath(), "openkogama-contract-" + Guid.NewGuid() + ".png");
+string accounts = Path.Combine(Path.GetTempPath(), "openkogama-contract-" + Guid.NewGuid() + ".db");
 try
 {
     File.WriteAllBytes(image, [137, 80, 78, 71]);
@@ -56,6 +57,18 @@ try
     api.Route(Get("/session", ("mode", "edit")));
     Check(selectedWorld == 0 && selectedMode == GameMode.Edit, "entry world does not override editor requests");
     Check(new ServerInfo().EntryWorld() == 9, "default entry uses the first saved world");
+    var builder = new WebApi
+    {
+        ServerInfo = new ServerInfo { JoinWorld = 7, JoinMode = "build" },
+        SessionJson = (_, mode, world, _) =>
+        {
+            selectedWorld = world;
+            selectedMode = mode;
+            return "{}";
+        },
+    };
+    builder.Route(Get("/session", ("mode", "play")));
+    Check(selectedWorld == 7 && selectedMode == GameMode.Edit, "joinMode build opens the entry world in the editor");
     SessionLocator.EntryWorld = info.EntryWorld;
     SessionLocator.GameServer = "example.com";
     string? legacy = SessionLocator.Answer("/PHP/GameSessionLocator.php", Get("/", ("PlanetName", "0")).Query);
@@ -70,11 +83,18 @@ try
     Check(gated.Route(Get("/session", ("mode", "play"), ("client", "3.5.25"))).Status == 403, "session refuses versions outside clients");
     Check(SessionToken.Parse(SessionToken.Create(4, " nightus ")) == (4, "nightus") && SessionToken.Parse("4") == (4, null),
         "session token carries the nickname");
+    var profiles = new SqliteProfileStore(new Database(accounts, writeAhead: false));
+    int first = profiles.ForName("Nightus");
+    Check(profiles.ForName("nightus") == first && profiles.ForName("Other") != first && profiles.Name(first) == "Nightus",
+        "every nickname gets one profile, letter case aside");
+    Check(new ServerInfo { PublicUrl = "https://example.com" }.Accounts && !new ServerInfo().Accounts, "accounts only on a public server");
     Console.WriteLine($"{checks} contract checks passed.");
 }
 finally
 {
     File.Delete(image);
+    Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+    File.Delete(accounts);
 }
 
 sealed class TestWorlds : IWorldStore

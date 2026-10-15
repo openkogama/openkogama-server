@@ -11,7 +11,10 @@ public sealed class GetPlanetOwnerships(Session session) : IOperationHandler
 
     public void Handle(PhotonPeer peer, OperationRequest request)
     {
-        var entries = session.Players.Select(player => new { profileID = player.ProfileId, planetOwnership = (int)session.OwnershipOf(player) }).ToList();
+        var entries = session.Players
+            .GroupBy(player => player.ProfileId)
+            .Select(group => new { profileID = group.Key, planetOwnership = (int)session.OwnershipOf(group.First()) })
+            .ToList();
         peer.Send(new OperationResponse(request)
         {
             Parameters = { [(byte)ParameterKey.Data] = JsonSerializer.Serialize(new { planetOwnerships = entries }) },

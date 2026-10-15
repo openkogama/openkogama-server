@@ -25,7 +25,7 @@ if (publicUrl.Scheme is not ("http" or "https") || publicUrl.AbsolutePath != "/"
     throw new ArgumentException("server.json publicUrl must be an HTTP/HTTPS server address.");
 string publicBase = publicUrl.GetLeftPart(UriPartial.Authority);
 string photonHost = publicUrl.Host;
-string photonAddress = (photonHost.Contains(':') ? $"[{photonHost.Trim('[', ']')}]" : photonHost) + ":5055";
+string photonAddress = (photonHost.Contains(':') ? $"[{photonHost.Trim('[', ']')}]" : photonHost) + $":{serverInfo.PhotonPort}";
 SessionLocator.GameServer = photonHost;
 SessionLocator.PublicUrl = publicBase;
 SessionLocator.EntryWorld = serverInfo.EntryWorld;
@@ -39,7 +39,7 @@ Stores.Market = new SqliteMarketStore(database);
 Session.EnsureDefaultWorld();
 Session.KeepPlayChanges = serverInfo.KeepPlayChanges;
 
-var server = new PhotonServer(5055) { Log = Console.WriteLine };
+var server = new PhotonServer(serverInfo.PhotonPort) { Log = Console.WriteLine };
 bool mixedClients = args.Contains("--mixed-clients") || serverInfo.MixedClients;
 var host = new SessionHost(server, mixedClients) { EntryWorld = serverInfo.EntryWorld, Allows = serverInfo.Allows };
 PluginHost.LoadAll("plugins", host.Sessions);
@@ -54,9 +54,9 @@ server.Disconnected += (peer, reason) =>
 server.Operation = host.Handle;
 
 _ = server.RunAsync();
-Console.WriteLine("udp 5055");
-_ = server.RunWebSocketsAsync($"http://{serverInfo.ListenHost}:5055/");
-Console.WriteLine("websocket 5055");
+Console.WriteLine($"udp {serverInfo.PhotonPort}");
+_ = server.RunWebSocketsAsync($"http://{serverInfo.ListenHost}:{serverInfo.PhotonPort}/");
+Console.WriteLine($"websocket {serverInfo.PhotonPort}");
 
 _ = Task.Run(async () =>
 {
@@ -124,7 +124,7 @@ var api = new WebApi
     ExportWorld = host.ExportWorld,
     Shutdown = () => _ = Task.Delay(100).ContinueWith(_ => Environment.Exit(0)),
 };
-var web = new HttpServer($"http://{serverInfo.ListenHost}:8080/", api);
-Console.WriteLine("http 8080");
+var web = new HttpServer($"http://{serverInfo.ListenHost}:{serverInfo.HttpPort}/", api);
+Console.WriteLine($"http {serverInfo.HttpPort}");
 web.Run();
 return 0;

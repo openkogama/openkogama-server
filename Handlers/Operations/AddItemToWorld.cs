@@ -38,7 +38,7 @@ public sealed class AddItemToWorld(Session session) : IOperationHandler
         }
         session.World.MarkChanged();
         session.Teams.Update();
-        if (root.Type == WorldObjectType.RoundCube) session.Round.Start();
+        if (root.Type == WorldObjectType.RoundCube && session.Play) session.Round.Start();
 
         GetNextGameBatch.SendAdded(session, owner?.Actor ?? peer.Id, added);
         if (session.World.Find(added.Objects[0].Id) is WorldObject placed) Plugins.PluginHost.Added(session, placed, owner);

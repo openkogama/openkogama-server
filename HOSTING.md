@@ -8,7 +8,7 @@ Anyone can host an OpenKogama server and let others join it from the Servers tab
 - These ports open to the internet: TCP 80 and 443 for HTTPS, UDP 5055 for the game, and TCP 843 for the 2012 to 2014 web player builds. At home, forward them on your router.
 - An HTTPS address. Builds made with Unity 2022 or newer, such as 3.5.x, refuse plain HTTP to anything but localhost. Without a domain, `<your-ip-with-dashes>.sslip.io` (for example `203-0-113-7.sslip.io`) points at your IP and works with Caddy below.
 
-The server always uses ports 8080, 5055, 843 to 845 and 8081 on its machine, the same as the launcher's own local server, so don't play local worlds in the launcher on that PC while it runs.
+By default the server uses ports 8080, 5055, 843 to 845 and 8081 on its machine, the same as the launcher's own local server, so don't play local worlds in the launcher on that PC while it runs.
 
 ## 1. Get the server
 
@@ -43,6 +43,8 @@ The server reads its program files from `app` and keeps everything else in the f
 | `clients` | Versions you accept, exact like `"3.5.20"` or ranges like `"1.25.12.280-1.32.10.547"`. Leave it out to accept all. |
 | `mixedClients` | `true` puts every version into the same world. Checked with builds from 2012 to 3.5 playing together. |
 | `keepPlayChanges` | `true` keeps the cubes, vehicles and other changes players make, after they leave and after restarts. |
+| `joinMode` | `"build"` puts everyone who joins straight into the editor of the join world, and their changes are saved into the world itself. The default is `"play"`. |
+| `httpPort`, `photonPort` | Ports for HTTP and the game, 8080 and 5055 by default. Change them to run a second server on the same machine; the 2012 build always connects to 5055. |
 
 To bring your own worlds, close the launcher and copy `%LocalAppData%\OpenKogama\OpenKogama Launcher\server\server.db` into the data folder.
 
@@ -105,7 +107,7 @@ In the launcher, open Servers, click **Add server...** and enter your `https://`
 
 ## Good to know
 
-- There are no accounts yet, so everyone who joins plays as the same profile.
+- Every nickname set in the launcher gets its own profile, with its own level, gold and avatars. There are no passwords yet, so anyone can join under any nickname, and players without a nickname share one profile.
 - So far only the 3.5.x builds have been tested on a remote server.
 - Back up `server.db` now and then. It holds every world and profile.
 - Plugins go in the `plugins` folder inside the data folder, see the [README](README.md#plugins).

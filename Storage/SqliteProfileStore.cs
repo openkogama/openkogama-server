@@ -5,6 +5,23 @@ namespace OpenKogama.Storage;
 
 public sealed class SqliteProfileStore(Database database) : IProfileStore
 {
+    public int ForName(string name)
+    {
+        using SqliteConnection connection = database.Open();
+        using SqliteCommand command = Command(connection, """
+            INSERT OR IGNORE INTO profiles (name) VALUES ($name);
+            SELECT id FROM profiles WHERE name = $name COLLATE NOCASE
+            """, ("$name", name));
+        return (int)(long)command.ExecuteScalar()!;
+    }
+
+    public string? Name(int profile)
+    {
+        using SqliteConnection connection = database.Open();
+        using SqliteCommand command = Command(connection, "SELECT name FROM profiles WHERE id = $profile", ("$profile", profile));
+        return command.ExecuteScalar() as string;
+    }
+
     public int Xp(int profile)
     {
         using SqliteConnection connection = database.Open();

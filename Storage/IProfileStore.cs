@@ -10,6 +10,8 @@ public sealed record PlanetScore(int Profile, string? Name, int Points);
 
 public interface IProfileStore
 {
+    int ForName(string name);
+    string? Name(int profile);
     int Xp(int profile);
     int AddXp(int profile, int amount);
     int Gold(int profile);

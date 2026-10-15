@@ -55,7 +55,7 @@ public sealed partial class Session
     public void Begin(Func<int> clock)
     {
         Clock = clock;
-        if (World.FindFirst(WorldObjectType.RoundCube) is not null) Round.Start();
+        if (Play && World.FindFirst(WorldObjectType.RoundCube) is not null) Round.Start();
     }
 
     public Player Add(PhotonPeer peer, bool buildAvatar = true)

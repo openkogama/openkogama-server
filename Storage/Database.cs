@@ -151,6 +151,9 @@ public sealed class Database
         ALTER TABLE worlds ADD COLUMN play_data BLOB;
         ALTER TABLE worlds ADD COLUMN play_backup BLOB;
         """,
+        """
+        CREATE UNIQUE INDEX profiles_name ON profiles (name COLLATE NOCASE) WHERE name IS NOT NULL;
+        """,
     ];
 
     readonly string _connectionString;
