@@ -225,13 +225,13 @@ async def enter(client, server, mark):
 async def rejoin(last, clients, server, browser, world, out, result, suffix):
     before = len(server.log())
     gone = any(f"peer {last.peer}: gone" in line for line in server.log())
+    context = last.page.context
     await last.page.close()
     result["checks"]["leave" + suffix] = not gone and await server.wait(f"peer {last.peer}: gone", before, 90) is not None
     await asyncio.sleep(3)
     for client in clients[:-1]:
         await client.shot(out, "6-left" if not suffix else "10-left")
     mark = len(server.log())
-    context = await browser.new_context(viewport={"width": 1100, "height": 700})
     await last.open(context, world, len(clients))
     await enter(last, server, mark)
     result["checks"]["rejoin" + suffix] = last.stage == "world"
@@ -333,7 +333,7 @@ async def main(app, wanted, out):
                         await client.shot(out, "14-respawned")
                     lines = server.log()[before:]
                     result["checks"]["hurt clean"] = not any("exception" in line or "failed" in line for line in lines)
-                    result["checks"]["died"] = any("killed" in line or "died" in line for line in lines)
+                    result["checks"]["died"] = any("health=Single:0" in line or "health=Int32:0" in line or "Dead" in line for line in lines)
                     await rejoin(last, clients, server, browser, world, out, result, " again")
             await browser.close()
     finally:
