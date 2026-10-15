@@ -83,7 +83,7 @@ public sealed class Npc(int actor, int avatarId, string name, float[] position, 
         (ParameterKey.RegionCode, "en_US"),
         (ParameterKey.TeamID, NoTeam),
         (ParameterKey.Level, Level),
-        (ParameterKey.ClientBuildTarget, (byte)0),
+        (ParameterKey.ClientBuildTarget, (byte)1),
         (ParameterKey.IsActorReady, true),
         (ParameterKey.AvatarStatus, (byte)PlayerGameState.Normal),
         (ParameterKey.UserProfileData, System.Text.Json.JsonSerializer.Serialize(new
