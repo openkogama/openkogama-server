@@ -1,3 +1,4 @@
+using OpenKogama.Game;
 using OpenKogama.Handlers;
 using OpenKogama.Kogama.Protocols;
 using OpenKogama.Photon;
@@ -35,6 +36,50 @@ public static class WorldObjects2012
         }
         return data;
     }
+
+    // Newer clients build avatars from a blueprint body; the 2012 client knows only a bare avatar object.
+    public static Snapshot WithClassicAvatars(Snapshot snapshot, IEnumerable<Player> players)
+    {
+        var roots = players.Where(player => player.Peer.Protocol != PhotonProtocol.Protocol15 && player.AvatarId >= 0).ToDictionary(player => player.AvatarId, player => player.Actor);
+        if (roots.Count == 0) return snapshot;
+        var dropped = new HashSet<int>();
+        bool grew = true;
+        while (grew)
+        {
+            grew = false;
+            foreach (WorldObject obj in snapshot.Objects)
+                if ((roots.ContainsKey(obj.ParentId) || dropped.Contains(obj.ParentId)) && dropped.Add(obj.Id))
+                    grew = true;
+        }
+        return snapshot with
+        {
+            Objects = [.. snapshot.Objects.Where(obj => !dropped.Contains(obj.Id)).Select(obj => roots.TryGetValue(obj.Id, out int actor) ? ClassicAvatar(obj, actor) : obj)],
+            Links = [.. snapshot.Links.Where(link => !dropped.Contains(link.From) && !dropped.Contains(link.To))],
+            ObjectLinks = [.. snapshot.ObjectLinks.Where(link => !dropped.Contains(link.From) && !dropped.Contains(link.To))],
+        };
+    }
+
+    static WorldObject ClassicAvatar(WorldObject native, int actor) => new()
+    {
+        Id = native.Id,
+        ParentId = native.ParentId,
+        Type = WorldObjectType.Avatar,
+        Position = native.Position,
+        Rotation = native.Rotation,
+        Scale = native.Scale,
+        Owner = actor,
+        Runtime =
+        [
+            ("animation", PackedType.String, "Idle"),
+            ("health", PackedType.Single, native.Runtime.Find(pair => pair.Key == "health").Value is { } health ? Convert.ToSingle(health) : 100f),
+            ("rightSlot", PackedType.String, ""),
+            ("aboveSlot", PackedType.String, ""),
+            ("centerSlot", PackedType.String, ""),
+            ("isFiring", PackedType.Bool, false),
+            ("leftSlot", PackedType.String, ""),
+            ("iH", PackedType.Bool, false),
+        ],
+    };
 
     public static List<Dictionary<object, object?>> Describe(IReadOnlyList<WorldObject> objects, ProtocolTable client)
     {

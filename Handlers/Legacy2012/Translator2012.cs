@@ -102,9 +102,11 @@ public sealed class Translator2012 : IMessageTranslator
             Console.WriteLine($"peer {Peer.Id}: 2012 client cannot read added objects, {error.Message}");
             return;
         }
-        var built = Session?.Players.Where(player => player.Peer.Protocol == PhotonProtocol.Protocol15).Select(player => player.AvatarId).ToHashSet() ?? [];
-        IReadOnlyList<WorldObject> objects = [.. snapshot.Objects.Where(obj => !built.Contains(obj.Id))];
-        foreach (Dictionary<object, object?> described in WorldObjects2012.Describe(objects, Table))
+        var hidden = Session?.Players.Where(player => player.Peer.Protocol == PhotonProtocol.Protocol15).Select(player => player.AvatarId)
+            .Concat(Session.Npcs.Select(npc => npc.AvatarId)).ToHashSet() ?? [];
+        snapshot = snapshot with { Objects = [.. snapshot.Objects.Where(obj => !hidden.Contains(obj.Id) && !(obj.Owner is int owner && Session?.Npcs.Any(npc => npc.Actor == owner) == true))] };
+        if (Session is not null) snapshot = WorldObjects2012.WithClassicAvatars(snapshot, Session.Players);
+        foreach (Dictionary<object, object?> described in WorldObjects2012.Describe(snapshot.Objects, Table))
         {
             var registered = new EventData((byte)Event2012.RegisterWorldObject);
             foreach ((object key, object? value) in described) registered.Parameters[(byte)key] = value;
