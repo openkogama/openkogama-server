@@ -11,6 +11,7 @@ public enum NpcMode { Playing = 1, Dead = 2, Hidden = 4 }
 public sealed class Npc(int actor, int avatarId, string name, float[] position, float yaw)
 {
     public const int NoTeam = 5;
+    const int ProfileOffset = 900_000_000;
     public const float ArriveDistance = 0.5f;
     public const float DefaultMaxHealth = 100f;
     public const float MinSize = 0.01f;
@@ -78,7 +79,7 @@ public sealed class Npc(int actor, int avatarId, string name, float[] position, 
 
     public IEnumerable<(ParameterKey Key, object Value)> Info() =>
     [
-        (ParameterKey.ProfileID, 0),
+        (ParameterKey.ProfileID, ProfileOffset + Actor),
         (ParameterKey.Username, Name),
         (ParameterKey.RegionCode, "en_US"),
         (ParameterKey.TeamID, NoTeam),
