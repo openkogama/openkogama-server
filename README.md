@@ -43,6 +43,8 @@ public sealed class MyPlugin : IPlugin
 }
 ```
 
+Players type commands as `/hello` or `!hello`. Game versions from 3.0 on keep slash commands to themselves, so `!hello` is the one that works everywhere.
+
 | Area | What you get |
 |---|---|
 | Server | `Chat`, `PlayerJoined`, `PlayerLeft`, `Tick` every second, `Update` every server tick (50 ms) with the seconds since the last one, `PlayerKilled`, `ItemCollected`, `RoundStarted`, `ObjectAdded`, `ObjectRemoved`, `NpcDamaged`, `NpcKilled`, `Players`, `Worlds`, `Broadcast`, `Notify`, `Announce`, `AddIcon` (a png shown as the badge of an announcement, registered before players join), `AddCommand`, `Storage`, `Templates` |

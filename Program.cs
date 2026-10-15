@@ -42,7 +42,7 @@ var server = new PhotonServer(5055) { Log = Console.WriteLine };
 bool mixedClients = args.Contains("--mixed-clients") || serverInfo.MixedClients;
 var host = new SessionHost(server, mixedClients) { EntryWorld = serverInfo.EntryWorld, Allows = serverInfo.Allows };
 PluginHost.LoadAll("plugins", host.Sessions);
-if (mixedClients) Console.WriteLine("mixed client versions enabled, unsupported");
+if (mixedClients) Console.WriteLine("mixed client versions enabled");
 
 server.Connected += peer => Console.WriteLine($"peer {peer.Id}: photon init done");
 server.Disconnected += (peer, reason) =>
