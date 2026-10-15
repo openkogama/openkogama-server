@@ -4,13 +4,14 @@ using OpenKogama.Photon;
 
 namespace OpenKogama.Handlers.Operations;
 
-public sealed class AvatarGesture(Session session, OperationCode code, EventCode relay, bool reliable) : IOperationHandler
+public sealed class AvatarGesture(Session session, OperationCode code, EventCode relay, bool reliable, string? gesture = null) : IOperationHandler
 {
     public byte Code => (byte)code;
 
     public void Handle(PhotonPeer peer, OperationRequest request)
     {
         if (session.For(peer) is not Player player) return;
+        if (gesture is not null) Plugins.PluginHost.Gesture(session, player, gesture);
 
         var evt = new EventData((byte)relay)
         {

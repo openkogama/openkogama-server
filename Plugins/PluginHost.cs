@@ -159,6 +159,8 @@ public static class PluginHost
 
     public static void RoundStarted(Session session) => Server.OnRoundStarted(WorldOf(session));
 
+    public static void Gesture(Session session, Player player, string name) => Server.OnGesture(PlayerOf(session, player), name);
+
     public static void NpcDamaged(Session session, Npc npc, Player? by, float amount) =>
         Server.OnNpcDamaged(new PluginNpc(session, npc), by is null ? null : PlayerOf(session, by), amount);
 
@@ -195,6 +197,7 @@ public static class PluginHost
         public event Action<IWorld, int, IPlayer?>? ObjectRemoved;
         public event Action<INpc, IPlayer?, float>? NpcDamaged;
         public event Action<INpc, IPlayer?>? NpcKilled;
+        public event Action<IPlayer, string>? Gesture;
 
         readonly Dictionary<string, Action<IPlayer, string[]>> _commands = new(StringComparer.OrdinalIgnoreCase);
         readonly Dictionary<string, PluginStorage> _storage = [];
@@ -308,6 +311,12 @@ public static class PluginHost
         public void OnJoined(IPlayer player) => Raise(PlayerJoined, player);
 
         public void OnLeft(IPlayer player) => Raise(PlayerLeft, player);
+
+        public void OnGesture(IPlayer player, string name)
+        {
+            foreach (Action<IPlayer, string> handler in Handlers(Gesture))
+                Guard(() => handler(player, name));
+        }
 
         public void OnUpdate(float seconds) => Raise(Update, seconds);
 
