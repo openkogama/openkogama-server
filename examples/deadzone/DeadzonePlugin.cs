@@ -45,6 +45,9 @@ public sealed class DeadzonePlugin : IPlugin
         server.AddCommand("announce", (player, arguments) =>
             player.Announce(arguments.Length > 0 ? string.Join(' ', arguments) : "Night 3 - survive until dawn!", "test"));
 
+        server.AddCommand("hurt", (player, arguments) =>
+            player.Damage(arguments.Length > 0 && float.TryParse(arguments[0], out float amount) ? amount : 30f, null, new System.Numerics.Vector3(0f, 6f, 4f)));
+
         server.AddCommand("pos", (player, _) => player.Message(player.Position is System.Numerics.Vector3 position
             ? $"You are at {position.X:0.0}, {position.Y:0.0}, {position.Z:0.0}"
             : "Move a bit first"));

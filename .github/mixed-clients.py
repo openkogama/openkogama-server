@@ -319,6 +319,21 @@ async def main(app, wanted, out):
                     lines = server.log()[before:]
                     result["checks"]["npc clean"] = not any("exception" in line or "failed" in line for line in lines)
                     result["checks"]["npc spawned"] = any("spawned" in line for line in lines)
+                    before = len(server.log())
+                    await mover.say("!hurt")
+                    await asyncio.sleep(4)
+                    for client in clients:
+                        await client.shot(out, "12-hurt")
+                    await mover.say("!hurt 200")
+                    await asyncio.sleep(4)
+                    for client in clients:
+                        await client.shot(out, "13-dead")
+                    await asyncio.sleep(10)
+                    for client in clients:
+                        await client.shot(out, "14-respawned")
+                    lines = server.log()[before:]
+                    result["checks"]["hurt clean"] = not any("exception" in line or "failed" in line for line in lines)
+                    result["checks"]["died"] = any("killed" in line or "died" in line for line in lines)
                     await rejoin(last, clients, server, browser, world, out, result, " again")
             await browser.close()
     finally:
