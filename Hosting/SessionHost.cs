@@ -143,6 +143,7 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
         }
         if (!play && EditLocked(id)) return null;
         if (Session.Open(id, play) is not { } session) return null;
+        session.Primary = client == "";
 
         Console.WriteLine($"world {id} {(play ? "play" : "edit")} opened{(client == "" ? "" : $" for {client}")}");
         Entry entry = mixedClients ? Create(session, editor: false) : new Entry(session, null, false, client);
@@ -350,6 +351,7 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
             return null;
         }
         if (Session.Open(id, play) is not { } session) return null;
+        session.Primary = client == "";
 
         Console.WriteLine($"world {id} {(play ? "play" : "edit")} opened{(client == "" ? "" : $" for {client}")}");
         return _worlds[(id, play, client)] = Create(session, editor: false, client);

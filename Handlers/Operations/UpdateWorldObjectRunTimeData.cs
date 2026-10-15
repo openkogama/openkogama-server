@@ -13,6 +13,7 @@ public sealed class UpdateWorldObjectRunTimeData(Session session) : IOperationHa
     {
         int objectId = Convert.ToInt32(request[(byte)ParameterKey.WorldObjectID]);
         EventData? withHand = null;
+        EventData? limited = null;
         if (PhotonValues.Normalize(request[(byte)ParameterKey.WorldObjectRunTimeData]) is Dictionary<object, object?> changes)
         {
             if (changes.GetValueOrDefault("currentItem") is Dictionary<object, object?> item
@@ -27,6 +28,18 @@ public sealed class UpdateWorldObjectRunTimeData(Session session) : IOperationHa
                         {
                             ["currentItem"] = new Dictionary<object, object?> { ["type"] = (int)AvatarItemType.Hand },
                         },
+                        [(byte)ParameterKey.ActorNr] = (int)peer.Id,
+                    },
+                };
+            }
+
+            if (AvatarModifiers.Without(changes) is { } known)
+            {
+                limited = new EventData((byte)EventCode.UpdateWorldObjectRunTimeData)
+                {
+                    Parameters = new Dictionary<byte, object?>(request.Parameters)
+                    {
+                        [(byte)ParameterKey.WorldObjectRunTimeData] = known,
                         [(byte)ParameterKey.ActorNr] = (int)peer.Id,
                     },
                 };
@@ -51,6 +64,7 @@ public sealed class UpdateWorldObjectRunTimeData(Session session) : IOperationHa
         bool builder = session.Players.Any(player => player.ExtraRole(objectId));
         foreach (Player player in session.Players)
             if (player.Peer != peer && (!builder || player.SpawnRoles))
-                player.Peer.Send(withHand is not null && player.SpawnRoles ? withHand : evt);
+                player.Peer.Send(withHand is not null && player.SpawnRoles ? withHand
+                    : limited is not null && AvatarModifiers.Limited(player) ? limited : evt);
     }
 }

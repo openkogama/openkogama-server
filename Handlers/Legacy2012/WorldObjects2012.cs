@@ -84,7 +84,8 @@ public static class WorldObjects2012
     public static List<Dictionary<object, object?>> Describe(IReadOnlyList<WorldObject> objects, ProtocolTable client)
     {
         var types = new CodeMap(OperationRemap.ServerCodes<WorldObjectType>(ProtocolTable.For(ClientProtocols.ServerVersion).WorldObjectType), client.WorldObjectType);
-        int? Type(WorldObject obj) => types.Map((int)Fallbacks.GetValueOrDefault(obj.Type, obj.Type));
+        var supported = client.WorldObjectType.Values.ToHashSet();
+        int? Type(WorldObject obj) => types.Map((int)Fallbacks.GetValueOrDefault(obj.Type, obj.Type)) is int type && supported.Contains(type) ? type : null;
         var removed = objects.Where(obj => Type(obj) is null || Data(obj) is null).Select(obj => obj.Id).ToHashSet();
         bool grew = removed.Count > 0;
         while (grew)

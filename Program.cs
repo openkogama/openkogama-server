@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using OpenKogama.Game;
 using OpenKogama.Hosting;
@@ -65,7 +66,17 @@ _ = Task.Run(async () =>
         host.SaveAll();
     }
 });
-AppDomain.CurrentDomain.ProcessExit += (_, _) => host.SaveAll(force: true);
+int stopping = 0;
+void SaveBeforeExit()
+{
+    if (Interlocked.Exchange(ref stopping, 1) == 1) return;
+    Console.WriteLine("stopping, saving worlds");
+    host.SaveAll(force: true);
+}
+AppDomain.CurrentDomain.ProcessExit += (_, _) => SaveBeforeExit();
+using var sigterm = PosixSignalRegistration.Create(PosixSignal.SIGTERM, _ => SaveBeforeExit());
+using var sigint = PosixSignalRegistration.Create(PosixSignal.SIGINT, _ => SaveBeforeExit());
+using var sighup = PosixSignalRegistration.Create(PosixSignal.SIGHUP, _ => SaveBeforeExit());
 
 _ = Task.Run(async () =>
 {

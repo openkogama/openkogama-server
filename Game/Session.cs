@@ -40,6 +40,7 @@ public sealed partial class Session
     public int? WorldId => _worldId;
     public bool Play { get; }
     public static bool KeepPlayChanges { get; set; }
+    public bool Primary { get; set; } = true;
     public bool Published => _worldId is int id && Stores.Worlds.Published(id) is not null;
     public Func<int> Clock { get; private set; } = () => Environment.TickCount;
     public Logic Logic { get; }
@@ -230,7 +231,7 @@ public sealed partial class Session
         if (_worldId is not int id) return;
         if (Play)
         {
-            if (!KeepPlayChanges || !force && Environment.TickCount64 - _playSavedAt < PlaySaveInterval) return;
+            if (!KeepPlayChanges || !Primary || !force && Environment.TickCount64 - _playSavedAt < PlaySaveInterval) return;
             _playSavedAt = Environment.TickCount64;
         }
         if (!World.TakeChanged()) return;
