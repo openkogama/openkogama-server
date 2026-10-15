@@ -122,6 +122,10 @@ class Client:
 
     async def open(self, context, world, profile):
         self.page = await context.new_page()
+        self.pending = {}
+        self.page.on("request", lambda request: self.pending.__setitem__(request.url, time.time()))
+        self.page.on("requestfinished", lambda request: self.pending.pop(request.url, None))
+        self.page.on("requestfailed", lambda request: self.pending.pop(request.url, None))
         self.page.on("console", lambda message: self.logs.append(message.text[:300]))
         self.page.on("pageerror", lambda error: self.logs.append("pageerror " + str(error)[:300]))
         query = f"v={self.entry['id']}&mode=play&world={world}&profile={profile}&server={SERVER}"
@@ -134,7 +138,13 @@ class Client:
         return await self.page.evaluate("document.getElementById('error')?.textContent || ''")
 
     async def progress(self):
-        return await self.page.evaluate("[document.getElementById('progress-text')?.textContent, document.getElementById('status')?.textContent, document.getElementById('error')?.textContent].filter(Boolean).join(' | ')")
+        text = await self.page.evaluate("[document.getElementById('progress-text')?.textContent, document.getElementById('status')?.textContent, document.getElementById('error')?.textContent].filter(Boolean).join(' | ')")
+        now = time.time()
+        stale = sorted((now - started, url) for url, started in self.pending.items() if now - started > 20)[-3:]
+        if stale:
+            text += " | waiting " + ", ".join(f"{int(age)}s {url.split('/')[-1][:50]}" for age, url in stale)
+        worker = await self.page.evaluate("navigator.serviceWorker ? navigator.serviceWorker.getRegistration().then(r => (r?.active?.state || 'none') + (navigator.serviceWorker.controller ? ' controlling' : ' uncontrolled')) : 'unsupported'")
+        return text + " | sw " + worker
 
     async def shot(self, out, label):
         try:
@@ -221,13 +231,9 @@ async def rejoin(last, clients, server, browser, world, out, result, suffix):
     for client in clients[:-1]:
         await client.shot(out, "6-left" if not suffix else "10-left")
     mark = len(server.log())
-    for client in clients[:-1]:
-        await client.throttle(8)
     context = await browser.new_context(viewport={"width": 1100, "height": 700})
     await last.open(context, world, len(clients))
     await enter(last, server, mark)
-    for client in clients[:-1]:
-        await client.throttle(1)
     result["checks"]["rejoin" + suffix] = last.stage == "world"
     if last.stage == "world" and await last.press_play(out):
         last.stage = "playing"
