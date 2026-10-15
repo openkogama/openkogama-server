@@ -99,6 +99,7 @@ public sealed partial class Session
             Parameters = { [(byte)ParameterKey.ActorNr] = npc.Actor },
         };
         foreach ((ParameterKey key, object value) in npc.Info()) join.Parameters[(byte)key] = value;
+        join.Parameters[(byte)ParameterKey.Bool] = false;
         player.Peer.Send(join);
         player.Sees(npc.Actor);
         lock (npc.SeenAt)
