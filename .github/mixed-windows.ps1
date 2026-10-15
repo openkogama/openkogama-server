@@ -218,7 +218,7 @@ function Say($client, $text) {
     [Win]::Click($client.window, $bitmap.Width / 2, $bitmap.Height / 2)
     $bitmap.Dispose()
     Start-Sleep -Milliseconds 500
-    [System.Windows.Forms.SendKeys]::SendWait($(if ($client.unity.StartsWith("3.")) { "t" } else { "{ENTER}" }))
+    [System.Windows.Forms.SendKeys]::SendWait($(if ($client.unity.StartsWith("3.4")) { "t" } else { "{ENTER}" }))
     Start-Sleep -Milliseconds 1200
     foreach ($char in $text.ToCharArray()) {
         $key = if ("+^%~(){}[]".Contains([string]$char)) { "{$char}" } else { [string]$char }
