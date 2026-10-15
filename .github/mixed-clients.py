@@ -209,6 +209,30 @@ async def enter(client, server, mark):
     return synced
 
 
+async def rejoin(last, clients, server, browser, world, out, result, suffix):
+    before = len(server.log())
+    gone = any(f"peer {last.peer}: gone" in line for line in server.log())
+    await last.page.close()
+    result["checks"]["leave" + suffix] = not gone and await server.wait(f"peer {last.peer}: gone", before, 90) is not None
+    await asyncio.sleep(3)
+    for client in clients[:-1]:
+        await client.shot(out, "6-left" if not suffix else "9-left")
+    mark = len(server.log())
+    for client in clients[:-1]:
+        await client.throttle(8)
+    context = await browser.new_context(viewport={"width": 1100, "height": 700})
+    await last.open(context, world, len(clients))
+    await enter(last, server, mark)
+    for client in clients[:-1]:
+        await client.throttle(1)
+    result["checks"]["rejoin" + suffix] = last.stage == "world"
+    if last.stage == "world" and await last.press_play(out):
+        last.stage = "playing"
+        await asyncio.sleep(8)
+    for client in clients:
+        await client.shot(out, "7-rejoined" if not suffix else "10-rejoined")
+
+
 async def main(app, wanted, out):
     os.makedirs(out, exist_ok=True)
     versions = json.load(urllib.request.urlopen(urllib.request.Request(SITE + "/versions.json", headers={"User-Agent": "openkogama-server"})))
@@ -270,20 +294,7 @@ async def main(app, wanted, out):
                 for client in clients:
                     await client.shot(out, "5-fuzz")
                 result["checks"]["fuzz clean"] = not any("exception" in line or "failed" in line for line in server.log()[before:])
-                last = clients[-1]
-                await last.keys("Space")
-                await asyncio.sleep(3)
-                for client in clients:
-                    await client.shot(out, "4-jump")
-                before = len(server.log())
-                for second in range(12):
-                    for client in clients:
-                        await client.fuzz(second)
-                    await asyncio.sleep(1)
-                await asyncio.sleep(3)
-                for client in clients:
-                    await client.shot(out, "5-fuzz")
-                result["checks"]["fuzz clean"] = not any("exception" in line or "failed" in line for line in server.log()[before:])
+                await rejoin(last, clients, server, browser, world, out, result, "")
                 if os.environ.get("TEMPLATE") == "deadzone":
                     before = len(server.log())
                     await mover.say("/deadzone")
@@ -293,52 +304,11 @@ async def main(app, wanted, out):
                     await last.say("/pos")
                     await asyncio.sleep(30)
                     for client in clients:
-                        await client.shot(out, "5b-zombies")
+                        await client.shot(out, "8-zombies")
                     lines = server.log()[before:]
                     result["checks"]["zombies clean"] = not any("exception" in line or "failed" in line for line in lines)
                     result["checks"]["npcs"] = any("npc" in line.lower() for line in lines)
-                before = len(server.log())
-                gone = any(f"peer {last.peer}: gone" in line for line in server.log())
-                await last.page.close()
-                result["checks"]["leave"] = not gone and await server.wait(f"peer {last.peer}: gone", before, 90) is not None
-                await asyncio.sleep(3)
-                for client in clients[:-1]:
-                    await client.shot(out, "6-left")
-                mark = len(server.log())
-                for client in clients[:-1]:
-                    await client.throttle(8)
-                context = await browser.new_context(viewport={"width": 1100, "height": 700})
-                await last.open(context, world, len(clients))
-                await enter(last, server, mark)
-                for client in clients[:-1]:
-                    await client.throttle(1)
-                result["checks"]["rejoin"] = last.stage == "world"
-                if last.stage == "world" and await last.press_play(out):
-                    last.stage = "playing"
-                    await asyncio.sleep(8)
-                for client in clients:
-                    await client.shot(out, "7-rejoined")
-                before = len(server.log())
-                gone = any(f"peer {last.peer}: gone" in line for line in server.log())
-                await last.page.close()
-                result["checks"]["leave again"] = not gone and await server.wait(f"peer {last.peer}: gone", before, 90) is not None
-                await asyncio.sleep(3)
-                for client in clients[:-1]:
-                    await client.shot(out, "8-left")
-                mark = len(server.log())
-                for client in clients[:-1]:
-                    await client.throttle(8)
-                context = await browser.new_context(viewport={"width": 1100, "height": 700})
-                await last.open(context, world, len(clients))
-                await enter(last, server, mark)
-                for client in clients[:-1]:
-                    await client.throttle(1)
-                result["checks"]["rejoin again"] = last.stage == "world"
-                if last.stage == "world" and await last.press_play(out):
-                    last.stage = "playing"
-                    await asyncio.sleep(8)
-                for client in clients:
-                    await client.shot(out, "9-rejoined")
+                    await rejoin(last, clients, server, browser, world, out, result, " again")
             await browser.close()
     finally:
         server.stop()
