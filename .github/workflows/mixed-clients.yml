@@ -63,7 +63,8 @@ jobs:
           python -m playwright install --with-deps chromium
       - run: python .github/mixed-clients.py app "${{ matrix.pair }}" out
         env:
-          TEMPLATE: deadzone
+          TEMPLATE: city
+          NPCS: "1"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

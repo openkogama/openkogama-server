@@ -137,7 +137,10 @@ class Client:
         return await self.page.evaluate("[document.getElementById('progress-text')?.textContent, document.getElementById('status')?.textContent, document.getElementById('error')?.textContent].filter(Boolean).join(' | ')")
 
     async def shot(self, out, label):
-        await self.page.screenshot(path=os.path.join(out, f"{self.name}-{label}.png"))
+        try:
+            await self.page.screenshot(path=os.path.join(out, f"{self.name}-{label}.png"), timeout=120000)
+        except Exception as error:
+            self.logs.append(f"openkogama: test screenshot {label} failed: {str(error)[:120]}")
 
     async def keys(self, *keys, hold=0):
         await self.page.evaluate("document.querySelector('canvas')?.focus()")
@@ -216,7 +219,7 @@ async def rejoin(last, clients, server, browser, world, out, result, suffix):
     result["checks"]["leave" + suffix] = not gone and await server.wait(f"peer {last.peer}: gone", before, 90) is not None
     await asyncio.sleep(3)
     for client in clients[:-1]:
-        await client.shot(out, "6-left" if not suffix else "9-left")
+        await client.shot(out, "6-left" if not suffix else "10-left")
     mark = len(server.log())
     for client in clients[:-1]:
         await client.throttle(8)
@@ -230,7 +233,7 @@ async def rejoin(last, clients, server, browser, world, out, result, suffix):
         last.stage = "playing"
         await asyncio.sleep(8)
     for client in clients:
-        await client.shot(out, "7-rejoined" if not suffix else "10-rejoined")
+        await client.shot(out, "7-rejoined" if not suffix else "11-rejoined")
 
 
 async def main(app, wanted, out):
@@ -295,19 +298,21 @@ async def main(app, wanted, out):
                     await client.shot(out, "5-fuzz")
                 result["checks"]["fuzz clean"] = not any("exception" in line or "failed" in line for line in server.log()[before:])
                 await rejoin(last, clients, server, browser, world, out, result, "")
-                if os.environ.get("TEMPLATE") == "deadzone":
+                if os.environ.get("NPCS"):
                     before = len(server.log())
-                    await mover.say("/deadzone")
-                    await asyncio.sleep(2)
-                    await mover.say("/time night")
+                    await mover.say("/npc")
+                    await asyncio.sleep(6)
+                    for client in clients:
+                        await client.shot(out, "8-npc")
+                    await mover.say("/npc follow")
                     await asyncio.sleep(2)
                     await last.say("/pos")
-                    await asyncio.sleep(30)
+                    await asyncio.sleep(12)
                     for client in clients:
-                        await client.shot(out, "8-zombies")
+                        await client.shot(out, "9-npc-follow")
                     lines = server.log()[before:]
-                    result["checks"]["zombies clean"] = not any("exception" in line or "failed" in line for line in lines)
-                    result["checks"]["npcs"] = any("npc" in line.lower() for line in lines)
+                    result["checks"]["npc clean"] = not any("exception" in line or "failed" in line for line in lines)
+                    result["checks"]["npc spawned"] = any("spawned" in line for line in lines)
                     await rejoin(last, clients, server, browser, world, out, result, " again")
             await browser.close()
     finally:
