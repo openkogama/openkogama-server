@@ -112,6 +112,16 @@ class Client:
         self.stage = "new"
         self.peer = None
 
+    async def nudge(self):
+        try:
+            box = await self.canvas()
+            if box:
+                await self.page.mouse.move(box[0] + box[2] * 0.5 + (time.time() % 2) * 20, box[1] + box[3] * 0.5)
+            await self.page.evaluate("document.querySelector('canvas')?.focus()")
+            await self.page.keyboard.press("q")
+        except Exception as error:
+            self.logs.append(f"openkogama: test nudge failed {str(error)[:80]}")
+
     async def throttle(self, rate):
         try:
             session = await self.page.context.new_cdp_session(self.page)
@@ -202,13 +212,15 @@ class Client:
         return {"name": self.name, "version": self.entry["version"], "unity": self.entry["unity"], "stage": self.stage, "peer": self.peer, "log": lines[-40:]}
 
 
-async def enter(client, server, mark, limit=LIMIT):
+async def enter(client, server, mark, limit=LIMIT, others=()):
     start = time.time()
     joined = None
     while joined is None and time.time() - start < limit:
         joined = await server.wait("joined", mark, 15)
         if joined is None:
             client.logs.append("openkogama: test page says " + await client.progress())
+            for other in others:
+                await other.nudge()
     if joined is None:
         client.stage = "no join"
         return mark
@@ -225,15 +237,15 @@ async def enter(client, server, mark, limit=LIMIT):
 async def rejoin(last, clients, server, browser, world, out, result, suffix):
     before = len(server.log())
     gone = any(f"peer {last.peer}: gone" in line for line in server.log())
-    context = last.page.context
     await last.page.close()
     result["checks"]["leave" + suffix] = not gone and await server.wait(f"peer {last.peer}: gone", before, 90) is not None
     await asyncio.sleep(3)
     for client in clients[:-1]:
         await client.shot(out, "6-left" if not suffix else "10-left")
     mark = len(server.log())
+    context = await browser.new_context(viewport={"width": 1100, "height": 700})
     await last.open(context, world, len(clients))
-    await enter(last, server, mark, 1200)
+    await enter(last, server, mark, 1200, clients[:-1])
     result["checks"]["rejoin" + suffix] = last.stage == "world"
     if last.stage == "world" and await last.press_play(out):
         last.stage = "playing"
