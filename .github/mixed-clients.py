@@ -116,7 +116,11 @@ class Client:
         try:
             box = await self.canvas()
             if box:
-                await self.page.mouse.move(box[0] + box[2] * 0.5 + (time.time() % 2) * 20, box[1] + box[3] * 0.5)
+                x, y = box[0] + box[2] * 0.5, box[1] + box[3] * 0.5
+                await self.page.mouse.move(x - 60, y - 30, steps=6)
+                await self.page.mouse.move(x + 60, y + 30, steps=6)
+                await self.page.mouse.wheel(0, 40)
+                await self.page.mouse.wheel(0, -40)
             await self.page.evaluate("document.querySelector('canvas')?.focus()")
             await self.page.keyboard.down("a")
             await self.page.wait_for_timeout(300)
