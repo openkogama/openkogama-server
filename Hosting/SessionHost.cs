@@ -141,7 +141,8 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
             if (peer.Translator is Translator2012 shared) shared.Session = open.Session;
             return open;
         }
-        if (!play && EditLocked(id)) return null;
+        int profile = int.TryParse(join[(byte)Key2012.Username] as string, out int parsed) ? parsed : 0;
+        if (!play && EditLocked(id) && !TakeOver(id, peer, profile)) return null;
         if (Session.Open(id, play) is not { } session) return null;
         session.Primary = client == "";
 
@@ -345,7 +346,8 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
         bool play = mode == (int)GameMode.Play;
         string client = mixedClients ? "" : (peer.Translator as LegacyTranslator)?.Version ?? "";
         if (_worlds.TryGetValue((id, play, client), out Entry? open)) return open;
-        if (!play && EditLocked(id))
+        int requester = SessionToken.Parse(request.Parameters.GetValueOrDefault((byte)ParameterKey.Token) as string).Profile;
+        if (!play && EditLocked(id) && !TakeOver(id, peer, requester))
         {
             Console.WriteLine($"peer {peer.Id}: world {id} is already edited by another client version");
             return null;
@@ -358,6 +360,21 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
     }
 
     bool EditLocked(int id) => _worlds.Keys.Any(key => key.Id == id && !key.Play);
+
+    bool TakeOver(int id, PhotonPeer peer, int profile)
+    {
+        List<Entry> rivals = [.. _worlds.Where(pair => pair.Key.Id == id && !pair.Key.Play).Select(pair => pair.Value)];
+        List<Player> editors = [.. rivals.SelectMany(rival => rival.Session.Players)];
+        if (editors.Any(editor => editor.ProfileId != profile || !editor.Peer.EndPoint.Address.Equals(peer.EndPoint.Address))) return false;
+
+        foreach (Player editor in editors)
+        {
+            Console.WriteLine($"peer {peer.Id}: takes world {id} over from peer {editor.Peer.Id}, the same player on another client version");
+            editor.Peer.Disconnect();
+        }
+        foreach (Entry rival in rivals) Close(rival);
+        return !EditLocked(id);
+    }
 
     Entry Create(Session session, bool editor, string client = "")
     {
