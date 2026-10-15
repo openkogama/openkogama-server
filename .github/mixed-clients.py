@@ -306,13 +306,13 @@ async def main(app, wanted, out):
                 await rejoin(last, clients, server, browser, world, out, result, "")
                 if os.environ.get("NPCS"):
                     before = len(server.log())
-                    await mover.say("/npc")
+                    await mover.say("!npc")
                     await asyncio.sleep(6)
                     for client in clients:
                         await client.shot(out, "8-npc")
-                    await mover.say("/npc follow")
+                    await mover.say("!npc follow")
                     await asyncio.sleep(2)
-                    await last.say("/pos")
+                    await last.say("!pos")
                     await asyncio.sleep(12)
                     for client in clients:
                         await client.shot(out, "9-npc-follow")

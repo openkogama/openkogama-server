@@ -181,7 +181,7 @@ public static class PluginHost
 
         (Action<IPlayer, string[]>, string[])? Command(string text)
         {
-            if (!text.StartsWith('/')) return null;
+            if (!text.StartsWith('/') && !text.StartsWith('!')) return null;
             string[] parts = text[1..].Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length == 0) return null;
             lock (_commands)
