@@ -119,10 +119,10 @@ class Client:
                 await self.page.mouse.move(box[0] + box[2] * 0.5 + (time.time() % 2) * 20, box[1] + box[3] * 0.5)
             await self.page.evaluate("document.querySelector('canvas')?.focus()")
             await self.page.keyboard.down("a")
-            await self.page.wait_for_timeout(80)
+            await self.page.wait_for_timeout(300)
             await self.page.keyboard.up("a")
             await self.page.keyboard.down("d")
-            await self.page.wait_for_timeout(80)
+            await self.page.wait_for_timeout(300)
             await self.page.keyboard.up("d")
             self.nudges = getattr(self, "nudges", 0) + 1
         except Exception as error:
@@ -249,7 +249,7 @@ async def rejoin(last, clients, server, browser, world, out, result, suffix):
     for client in clients[:-1]:
         await client.shot(out, "6-left" if not suffix else "10-left")
     mark = len(server.log())
-    context = await browser.new_context(viewport={"width": 800, "height": 500})
+    context = await browser.new_context(viewport={"width": 640, "height": 400})
     await last.open(context, world, len(clients))
     await enter(last, server, mark, 1200, clients[:-1])
     result["checks"]["rejoin" + suffix] = last.stage == "world"
@@ -277,7 +277,7 @@ async def main(app, wanted, out):
                 "--disable-features=LocalNetworkAccessChecks,LocalNetworkAccessForWorkers,PrivateNetworkAccessSendPreflights,PrivateNetworkAccessRespectPreflightResults,BlockInsecurePrivateNetworkRequests"])
             mark = len(server.log())
             for index, client in enumerate(clients):
-                context = await browser.new_context(viewport={"width": 800, "height": 500})
+                context = await browser.new_context(viewport={"width": 640, "height": 400})
                 await client.open(context, world, index + 1)
                 mark = await enter(client, server, mark)
                 print(json.dumps({k: v for k, v in client.result().items() if k != "log"}), flush=True)
