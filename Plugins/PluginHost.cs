@@ -1,3 +1,4 @@
+using System.Net;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
@@ -12,7 +13,11 @@ public static class PluginHost
     const byte ChatText = 5;
     const int TickMs = 1000;
 
-    static readonly PluginServer Server = new();
+    static PluginServer Server = new();
+    static readonly object Sync = new();
+    static readonly List<AssemblyLoadContext> Contexts = [];
+    static readonly List<IPlugin> Loaded = [];
+    static string _folder = "plugins";
     static readonly ConditionalWeakTable<Player, PluginPlayer> Players = new();
     static readonly ConditionalWeakTable<Session, PluginWorld> Worlds = new();
     static readonly HashSet<Player> Present = [];
@@ -21,27 +26,84 @@ public static class PluginHost
     static long _lastTick;
     static long _lastUpdate = Environment.TickCount64;
 
+    public static IReadOnlyCollection<string> Admins { get; set; } = [];
+
     public static void LoadAll(string folder, Func<IReadOnlyList<Session>> sessions)
     {
         _sessions = sessions;
+        _folder = folder;
         _dataFolder = Path.Combine(folder, "data");
         Directory.CreateDirectory(folder);
-        foreach (string path in Directory.GetFiles(folder, "*.dll"))
+        lock (Sync) Load();
+    }
+
+    public static int Reload()
+    {
+        lock (Sync)
         {
+            foreach (IPlugin plugin in Loaded)
+            {
+                try
+                {
+                    plugin.Unload();
+                }
+                catch (Exception error)
+                {
+                    Console.WriteLine($"plugin {plugin.GetType().FullName} failed to unload: {error}");
+                }
+            }
+            Loaded.Clear();
+            Server = new PluginServer();
+            foreach (AssemblyLoadContext context in Contexts) context.Unload();
+            Contexts.Clear();
+
+            int count = Load();
+            lock (Present)
+                foreach (Player player in Present)
+                    if (Players.TryGetValue(player, out PluginPlayer? wrapper)) Server.OnJoined(wrapper);
+            return count;
+        }
+    }
+
+    static int Load()
+    {
+        foreach (string path in Directory.GetFiles(_folder, "*.dll"))
+        {
+            var context = new AssemblyLoadContext(Path.GetFileNameWithoutExtension(path), isCollectible: true);
+            context.Resolving += (resolver, name) =>
+                File.Exists(Path.Combine(_folder, name.Name + ".dll")) ? FromFile(resolver, Path.Combine(_folder, name.Name + ".dll")) : null;
             try
             {
-                Assembly assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(Path.GetFullPath(path));
+                Assembly assembly = FromFile(context, path);
                 foreach (Type type in assembly.GetTypes().Where(type => typeof(IPlugin).IsAssignableFrom(type) && !type.IsAbstract))
                 {
-                    ((IPlugin)Activator.CreateInstance(type)!).Load(Server);
+                    var plugin = (IPlugin)Activator.CreateInstance(type)!;
+                    plugin.Load(Server);
+                    Loaded.Add(plugin);
                     Console.WriteLine($"plugin {type.FullName} loaded from {Path.GetFileName(path)}");
                 }
+                Contexts.Add(context);
             }
             catch (Exception error)
             {
                 Console.WriteLine($"plugin {Path.GetFileName(path)} failed to load: {error}");
+                context.Unload();
             }
         }
+        return Loaded.Count;
+    }
+
+    static Assembly FromFile(AssemblyLoadContext context, string path)
+    {
+        using var stream = new MemoryStream(File.ReadAllBytes(path));
+        return context.LoadFromStream(stream);
+    }
+
+    static bool Admin(Player player)
+    {
+        IPAddress address = player.Peer.EndPoint.Address;
+        if (address.IsIPv4MappedToIPv6) address = address.MapToIPv4();
+        return IPAddress.IsLoopback(address) || Admins.Contains(address.ToString());
     }
 
     internal static PluginPlayer PlayerOf(Session session, Player player) => Players.GetValue(player, _ => new PluginPlayer(player, session));
@@ -73,7 +135,21 @@ public static class PluginHost
         Server.OnTick();
     }
 
-    public static string? Chat(Session session, Player player, string text) => Server.OnChat(PlayerOf(session, player), text);
+    public static string? Chat(Session session, Player player, string text)
+    {
+        if (text.Trim() is not ("/reload" or "!reload")) return Server.OnChat(PlayerOf(session, player), text);
+
+        PluginPlayer me = PlayerOf(session, player);
+        if (!Admin(player))
+        {
+            me.Message("Only the server's admins can reload plugins");
+            return null;
+        }
+        int count = Reload();
+        me.Message($"{count} plugins reloaded");
+        Console.WriteLine($"{player.Username} reloaded {count} plugins");
+        return null;
+    }
 
     public static void Killed(Session session, Player victim, Player killer) =>
         Server.OnKilled(PlayerOf(session, victim), PlayerOf(session, killer));

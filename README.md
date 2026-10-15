@@ -30,7 +30,7 @@ Without this file the server keeps its local addresses. `joinWorld` defaults to 
 
 ## Plugins
 
-A plugin is a .NET class library that references `api/openkogama-api.csproj` and implements `IPlugin`. Put the dll in the `plugins` folder next to the server and it loads on start. `examples/` has three plugins: `welcome`, `xp` and `sandbox`.
+A plugin is a .NET class library that references `api/openkogama-api.csproj` and implements `IPlugin`. Put the dll in the `plugins` folder next to the server and it loads on start. To try a new build without restarting, replace the dll and type `!reload` in chat (`/reload` on clients before 3.0): every plugin is unloaded and loaded again. Only players on the server's own machine or from an IP listed in `admins` in `server.json` can reload. A plugin that starts its own timers or threads stops them in `Unload`. `examples/` has three plugins: `welcome`, `xp` and `sandbox`.
 
 ```csharp
 public sealed class MyPlugin : IPlugin

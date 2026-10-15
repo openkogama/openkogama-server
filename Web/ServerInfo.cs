@@ -13,6 +13,7 @@ public sealed class ServerInfo
     public int HttpPort { get; init; } = 8080;
     public int PhotonPort { get; init; } = 5055;
     public string JoinMode { get; init; } = "play";
+    public string[] Admins { get; init; } = [];
 
     public bool BuildJoin => JoinMode.Equals("build", StringComparison.OrdinalIgnoreCase);
     public string[] Clients { get; init; } = [];

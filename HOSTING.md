@@ -44,6 +44,7 @@ The server reads its program files from `app` and keeps everything else in the f
 | `mixedClients` | `true` puts every version into the same world. Checked with builds from 2012 to 3.5 playing together. |
 | `keepPlayChanges` | `true` keeps the cubes, vehicles and other changes players make, after they leave and after restarts. |
 | `joinMode` | `"build"` puts everyone who joins straight into the editor of the join world, and their changes are saved into the world itself. The default is `"play"`. |
+| `admins` | IP addresses that may type `!reload` to load changed plugins without a restart. Players on the server's own machine always can. |
 | `httpPort`, `photonPort` | Ports for HTTP and the game, 8080 and 5055 by default. Change them to run a second server on the same machine; the 2012 build always connects to 5055. |
 
 To bring your own worlds, close the launcher and copy `%LocalAppData%\OpenKogama\OpenKogama Launcher\server\server.db` into the data folder.
