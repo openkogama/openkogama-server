@@ -18,7 +18,7 @@ public sealed class UpdateWorldObjectRunTimeData(Session session) : IOperationHa
         {
             if (changes.GetValueOrDefault("animation") is { } animation && session.For(peer) is Player mover && mover.Owns(objectId)
                 && (animation is Dictionary<object, object?> table ? table.GetValueOrDefault("state") : animation) is string state)
-                Plugins.PluginHost.Animation(session, mover, state);
+                Plugins.PluginHost.Animated(session, mover, state);
             if (changes.GetValueOrDefault("currentItem") is Dictionary<object, object?> item
                 && item.GetValueOrDefault("type") is { } type && Convert.ToInt32(type) == (int)AvatarItemType.LaserPointer
                 && session.World.Find(objectId) is { Type: WorldObjectType.Avatar })

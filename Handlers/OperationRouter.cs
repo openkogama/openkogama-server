@@ -62,9 +62,9 @@ public sealed class OperationRouter
         Register(new ResetFirstTimeEvents(session));
         Register(new AvatarGesture(session, Kogama.OperationCode.UpdateHeadRotation, Kogama.EventCode.UpdateHeadRotation, reliable: false));
         Register(new AvatarGesture(session, Kogama.OperationCode.UpdatePointingAndHeadRotation, Kogama.EventCode.UpdatePointingAndHeadRotation, reliable: false));
-        Register(new AvatarGesture(session, Kogama.OperationCode.StartHeadShake, Kogama.EventCode.StartHeadShake, reliable: false, "headshake"));
-        Register(new AvatarGesture(session, Kogama.OperationCode.StartHeadNod, Kogama.EventCode.StartHeadNod, reliable: false, "nod"));
-        Register(new AvatarGesture(session, Kogama.OperationCode.StartWave, Kogama.EventCode.StartWave, reliable: false, "wave"));
+        Register(new AvatarGesture(session, Kogama.OperationCode.StartHeadShake, Kogama.EventCode.StartHeadShake, reliable: false, Api.Gesture.HeadShake));
+        Register(new AvatarGesture(session, Kogama.OperationCode.StartHeadNod, Kogama.EventCode.StartHeadNod, reliable: false, Api.Gesture.Nod));
+        Register(new AvatarGesture(session, Kogama.OperationCode.StartWave, Kogama.EventCode.StartWave, reliable: false, Api.Gesture.Wave));
         Register(new AvatarGesture(session, Kogama.OperationCode.SetSayChatBubbleVisible, Kogama.EventCode.SetSayChatBubbleVisible, reliable: true));
         Register(new ReportReachedFinishLine(session));
         Register(new GetThemesData());

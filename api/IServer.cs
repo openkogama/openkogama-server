@@ -14,8 +14,8 @@ public interface IServer
     event Action<IWorld, int, IPlayer?>? ObjectRemoved;
     event Action<INpc, IPlayer?, float>? NpcDamaged;
     event Action<INpc, IPlayer?>? NpcKilled;
-    event Action<IPlayer, string>? Gesture;
-    event Action<IPlayer, string>? Animation;
+    event Action<IPlayer, Gesture>? PlayerGestured;
+    event Action<IPlayer, AvatarAnimation>? PlayerAnimated;
     ITemplates Templates { get; }
 
     IReadOnlyList<IPlayer> Players { get; }

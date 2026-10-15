@@ -10,6 +10,7 @@ public interface INpc
     Vector3 Position { get; }
     float Yaw { get; }
     string Animation { get; }
+    AvatarAnimation AnimationState => Enum.TryParse(Animation, ignoreCase: true, out AvatarAnimation state) ? state : AvatarAnimation.Unknown;
     float Speed { get; set; }
     float Size { get; }
     int Level { get; }
@@ -29,6 +30,7 @@ public interface INpc
     void Face(float yaw);
     void Shoot(Vector3 direction);
     void PlayAnimation(string? state);
+    void PlayAnimation(AvatarAnimation state) => PlayAnimation(state == AvatarAnimation.Unknown ? null : state.ToString());
     void Damage(float amount, IPlayer? by = null);
     void Respawn(Vector3 position);
     void Remove();
