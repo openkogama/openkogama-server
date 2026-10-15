@@ -152,6 +152,16 @@ class Client:
         self.logs.append("openkogama: test found no play button")
         return False
 
+    async def fuzz(self, step):
+        await self.page.evaluate("document.querySelector('canvas')?.focus()")
+        key = ["w", "a", "s", "d", "Space", "w"][step % 6]
+        await self.page.keyboard.down(key)
+        await self.page.wait_for_timeout(400)
+        await self.page.keyboard.up(key)
+        box = await self.canvas()
+        if box and step % 3 == 0:
+            await self.page.mouse.click(box[0] + box[2] * (0.3 + 0.1 * (step % 4)), box[1] + box[3] * 0.5, delay=60)
+
     async def say(self, text):
         await self.keys("Enter")
         await self.page.wait_for_timeout(500)
@@ -234,12 +244,30 @@ async def main(app, wanted, out):
                 for client in clients:
                     await client.shot(out, "4-jump")
                 before = len(server.log())
+                for second in range(12):
+                    for client in clients:
+                        await client.fuzz(second)
+                    await asyncio.sleep(1)
+                await asyncio.sleep(3)
+                for client in clients:
+                    await client.shot(out, "5-fuzz")
+                result["checks"]["fuzz clean"] = not any("exception" in line or "failed" in line for line in server.log()[before:])
+                before = len(server.log())
                 gone = any(f"peer {last.peer}: gone" in line for line in server.log())
                 await last.page.close()
                 result["checks"]["leave"] = not gone and await server.wait(f"peer {last.peer}: gone", before, 90) is not None
                 await asyncio.sleep(3)
                 for client in clients[:-1]:
-                    await client.shot(out, "5-left")
+                    await client.shot(out, "6-left")
+                mark = len(server.log())
+                context = await browser.new_context(viewport={"width": 1100, "height": 700})
+                await last.open(context, 1, len(clients))
+                await enter(last, server, mark)
+                result["checks"]["rejoin"] = last.stage == "world"
+                if last.stage == "world" and await last.press_play(out):
+                    await asyncio.sleep(8)
+                for client in clients:
+                    await client.shot(out, "7-rejoined")
             await browser.close()
     finally:
         server.stop()
