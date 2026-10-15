@@ -210,9 +210,12 @@ function Say($client, $text) {
     $bitmap.Dispose()
     Start-Sleep -Milliseconds 500
     [System.Windows.Forms.SendKeys]::SendWait("{ENTER}")
-    Start-Sleep -Milliseconds 600
-    [System.Windows.Forms.SendKeys]::SendWait($text)
-    Start-Sleep -Milliseconds 300
+    Start-Sleep -Milliseconds 1200
+    foreach ($char in $text.ToCharArray()) {
+        [System.Windows.Forms.SendKeys]::SendWait([regex]::Escape([string]$char) -replace '\\(.)', '{$1}')
+        Start-Sleep -Milliseconds 60
+    }
+    Start-Sleep -Milliseconds 500
     [System.Windows.Forms.SendKeys]::SendWait("{ENTER}")
     Start-Sleep -Milliseconds 500
     $bitmap = [Win]::Capture($client.window)

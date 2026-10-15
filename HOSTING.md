@@ -41,7 +41,7 @@ The server reads its program files from `app` and keeps everything else in the f
 | `publicUrl` | The HTTPS address players use. |
 | `joinWorld` | Id of the world players join. Leave it out to use the world played last. |
 | `clients` | Versions you accept, exact like `"3.5.20"` or ranges like `"1.25.12.280-1.32.10.547"`. Leave it out to accept all. |
-| `mixedClients` | `true` puts every version into the same world. Checked with versions from 1.26 to 3.5 playing together; the 2012 build stays on its own. |
+| `mixedClients` | `true` puts every version into the same world. Checked with builds from 2012 to 3.5 playing together. |
 | `keepPlayChanges` | `true` keeps the cubes, vehicles and other changes players make, after they leave and after restarts. |
 
 To bring your own worlds, close the launcher and copy `%LocalAppData%\OpenKogama\OpenKogama Launcher\server\server.db` into the data folder.
