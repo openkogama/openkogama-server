@@ -42,19 +42,7 @@ public static class PluginHost
     {
         lock (Sync)
         {
-            foreach (IPlugin plugin in Loaded)
-            {
-                try
-                {
-                    plugin.Unload();
-                }
-                catch (Exception error)
-                {
-                    Console.WriteLine($"plugin {plugin.GetType().FullName} failed to unload: {error}");
-                }
-            }
-            Loaded.Clear();
-            Server = new PluginServer();
+            UnloadPlugins();
             foreach (AssemblyLoadContext context in Contexts) context.Unload();
             Contexts.Clear();
 
@@ -64,6 +52,28 @@ public static class PluginHost
                     if (Players.TryGetValue(player, out PluginPlayer? wrapper)) Server.OnJoined(wrapper);
             return count;
         }
+    }
+
+    public static void Shutdown()
+    {
+        lock (Sync) UnloadPlugins();
+    }
+
+    static void UnloadPlugins()
+    {
+        foreach (IPlugin plugin in Loaded)
+        {
+            try
+            {
+                plugin.Unload();
+            }
+            catch (Exception error)
+            {
+                Console.WriteLine($"plugin {plugin.GetType().FullName} failed to unload: {error}");
+            }
+        }
+        Loaded.Clear();
+        Server = new PluginServer();
     }
 
     static int Load()

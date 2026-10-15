@@ -59,11 +59,13 @@ sealed class WorldEditor(GameWorld world, Session? session) : IWorldBuilder
         return true;
     }
 
-    public bool Move(int id, Vector3 position, Quaternion? rotation = null)
+    public bool Move(int id, Vector3 position, Quaternion? rotation = null, float seconds = 0)
     {
+        float[] from = [], turnedFrom = [];
         WorldObject? moved = null;
         bool found = world.Modify(id, obj =>
         {
+            (from, turnedFrom) = (obj.Position, obj.Rotation);
             obj.Position = [position.X, position.Y, position.Z];
             if (rotation is Quaternion turn) obj.Rotation = [turn.X, turn.Y, turn.Z, turn.W];
             moved = obj;
@@ -71,23 +73,28 @@ sealed class WorldEditor(GameWorld world, Session? session) : IWorldBuilder
         if (!found || moved is null) return false;
         world.MarkChanged();
 
-        Send(id, new EventData((byte)EventCode.UpdateWorldObject)
-        {
-            Parameters =
-            {
-                [(byte)ParameterKey.WorldObjectID] = id,
-                [(byte)ParameterKey.ActorNr] = 0,
-                [(byte)ParameterKey.PosX] = moved.Position[0],
-                [(byte)ParameterKey.PosY] = moved.Position[1],
-                [(byte)ParameterKey.PosZ] = moved.Position[2],
-                [(byte)ParameterKey.RotX] = moved.Rotation[0],
-                [(byte)ParameterKey.RotY] = moved.Rotation[1],
-                [(byte)ParameterKey.RotZ] = moved.Rotation[2],
-                [(byte)ParameterKey.RotW] = moved.Rotation[3],
-            },
-        });
+        if (session?.Players.FirstOrDefault() is not { } anyone) return true;
+        int now = anyone.Peer.ServerTime;
+        bool glide = seconds > 0;
+        if (glide) Send(id, Transform(id, from, turnedFrom, now, TransformPackage.Teleport));
+        Send(id, Transform(id, moved.Position, moved.Rotation, glide ? now + (int)(seconds * 1000) : now, glide ? TransformPackage.Stop : TransformPackage.Teleport));
         return true;
     }
+
+    static EventData Transform(int id, float[] position, float[] rotation, int time, TransformPackage type) => new((byte)EventCode.UpdateWorldObject)
+    {
+        Parameters =
+        {
+            [(byte)ParameterKey.WorldObjectID] = id,
+            [(byte)ParameterKey.ActorNr] = 0,
+            [(byte)ParameterKey.Timestamp] = time,
+            [(byte)ParameterKey.PosX] = position[0],
+            [(byte)ParameterKey.PosY] = position[1],
+            [(byte)ParameterKey.PosZ] = position[2],
+            [(byte)ParameterKey.ByteRotation] = QuaternionCompression.ToBytes(rotation[0], rotation[1], rotation[2], rotation[3]),
+            [(byte)ParameterKey.TransformPackageType] = (byte)type,
+        },
+    };
 
     public bool SetData(int id, string key, object value) => SetData(id, new Dictionary<string, object> { [key] = value });
 

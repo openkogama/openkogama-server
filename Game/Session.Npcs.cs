@@ -28,8 +28,6 @@ public sealed partial class Session
 
     static readonly HashSet<KilledBy> SilentKills = [KilledBy.Environmental, KilledBy.Crushed, KilledBy.FallOffWorld, KilledBy.Impact];
 
-    enum TransformPackage : byte { Teleport, Interpolate, Stop }
-
     readonly List<Npc> _npcs = [];
     int _nextNpcActor = FirstNpcActor;
     CollisionWorld? _collision;

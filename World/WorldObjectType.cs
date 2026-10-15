@@ -32,6 +32,7 @@ public enum WorldObjectType
     SpawnPointYellow = 41,
     SpawnPointBlue = 42,
     ModelToggle = 43,
+    WaterPlane = 44,
     Blueprint = 45,
     PulseBox = 46,
     RandomBox = 47,

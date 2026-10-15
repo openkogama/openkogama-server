@@ -72,6 +72,7 @@ void SaveBeforeExit()
 {
     if (Interlocked.Exchange(ref stopping, 1) == 1) return;
     Console.WriteLine("stopping, saving worlds");
+    PluginHost.Shutdown();
     host.SaveAll(force: true);
 }
 AppDomain.CurrentDomain.ProcessExit += (_, _) => SaveBeforeExit();

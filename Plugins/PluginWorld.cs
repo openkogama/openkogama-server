@@ -24,7 +24,7 @@ sealed class PluginWorld(Session session) : IWorld
 
     public bool Remove(int id) => _editor.Remove(id);
 
-    public bool Move(int id, Vector3 position, Quaternion? rotation = null) => _editor.Move(id, position, rotation);
+    public bool Move(int id, Vector3 position, Quaternion? rotation = null, float seconds = 0) => _editor.Move(id, position, rotation, seconds);
 
     public bool SetData(int id, string key, object value) => _editor.SetData(id, key, value);
 
