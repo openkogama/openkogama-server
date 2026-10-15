@@ -335,6 +335,8 @@ try {
     $result | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $Out "result.json")
     Copy-Item $serverLog (Join-Path $Out "server.log") -ErrorAction SilentlyContinue
     Get-ChildItem $work -Filter "*-client.log" -ErrorAction SilentlyContinue | Copy-Item -Destination $Out
-    Get-ChildItem (Join-Path $env:LOCALAPPDATA "Unity\WebPlayer\log") -Filter "*.txt" -ErrorAction SilentlyContinue | Copy-Item -Destination $Out
+    foreach ($logs in @((Join-Path $env:LOCALAPPDATA "Unity\WebPlayer\log"), (Join-Path $env:USERPROFILE "AppData\LocalLow\Unity\WebPlayer\log"))) {
+        Get-ChildItem $logs -Filter "*.txt" -ErrorAction SilentlyContinue | Copy-Item -Destination $Out
+    }
     Write-Host ($result.checks | ConvertTo-Json -Compress)
 }
