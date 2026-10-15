@@ -229,6 +229,7 @@ function Say($client, $text) {
     [System.Windows.Forms.SendKeys]::SendWait("{ENTER}")
     Start-Sleep -Milliseconds 500
     $bitmap = [Win]::Capture($client.window)
+    if ($client.unity.StartsWith("3.5")) { [Win]::Click($client.window, $bitmap.Width * 0.37, $bitmap.Height * 0.94); Start-Sleep -Milliseconds 500 }
     [Win]::Click($client.window, $bitmap.Width / 2, $bitmap.Height / 2)
     $bitmap.Dispose()
 }
