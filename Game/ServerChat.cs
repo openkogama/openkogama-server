@@ -14,6 +14,7 @@ public enum ChatKind
 
 public static class ServerChat
 {
+    static readonly System.Text.RegularExpressions.Regex RichTextTags = new("<[^>]*>");
     const int AdminMessage = 3;
     const int ModalNotification = 6;
     const int ShortNotification = 2;
@@ -46,7 +47,8 @@ public static class ServerChat
 
     public static void Message(Player player, string text, string? color = null)
     {
-        if (color is not null && player.RichText) text = $"<color={color}>{text}</color>";
+        if (!player.RichText) text = RichTextTags.Replace(text, "");
+        else if (color is not null) text = $"<color={color}>{text}</color>";
         if (player.Peer.Protocol == PhotonProtocol.Protocol15)
             player.Peer.Send(Chat2012(player.Actor, text));
         else if (player.AdminMessages)

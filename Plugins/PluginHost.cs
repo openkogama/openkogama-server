@@ -110,7 +110,7 @@ public static class PluginHost
         return context.LoadFromStream(stream);
     }
 
-    static bool Admin(Player player)
+    internal static bool Admin(Player player)
     {
         IPAddress address = player.Peer.EndPoint.Address;
         if (address.IsIPv4MappedToIPv6) address = address.MapToIPv4();
@@ -164,6 +164,9 @@ public static class PluginHost
 
     public static void Killed(Session session, Player victim, Player killer) =>
         Server.OnKilled(PlayerOf(session, victim), PlayerOf(session, killer));
+
+    public static void KilledByNpc(Session session, Player victim, Npc npc) =>
+        Server.OnKilledByNpc(PlayerOf(session, victim), new PluginNpc(session, npc));
 
     public static void Collected(Session session, Player player, WorldObject obj) =>
         Server.OnCollected(PlayerOf(session, player), new PluginObject(obj));
@@ -220,6 +223,7 @@ public static class PluginHost
         public event Action? Tick;
         public event Action<float>? Update;
         public event Action<IPlayer, IPlayer>? PlayerKilled;
+        public event Action<IPlayer, INpc>? PlayerKilledByNpc;
         public event Action<IPlayer, IWorldObject>? ItemCollected;
         public event Action<IWorld>? RoundStarted;
         public event Action<IWorld, IWorldObject, IPlayer?>? ObjectAdded;
@@ -302,6 +306,12 @@ public static class PluginHost
         public void OnKilled(IPlayer victim, IPlayer killer)
         {
             foreach (Action<IPlayer, IPlayer> handler in Handlers(PlayerKilled))
+                Guard(() => handler(victim, killer));
+        }
+
+        public void OnKilledByNpc(IPlayer victim, INpc killer)
+        {
+            foreach (Action<IPlayer, INpc> handler in Handlers(PlayerKilledByNpc))
                 Guard(() => handler(victim, killer));
         }
 

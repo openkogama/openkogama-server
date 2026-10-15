@@ -18,4 +18,5 @@ public enum AvatarItem
     SixShooter = 12,
     DoubleSixShooter = 13,
     NinjaRun = 14,
+    GodzillaLaser = 47,
 }

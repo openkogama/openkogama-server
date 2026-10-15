@@ -22,15 +22,21 @@ public sealed class SpawnVehicleWithDriver(PhotonServer server, Session session)
         Player? player = session.For(peer);
 
         WorldObject? spawner = session.World.Find(spawnerId);
-        if (player is null || spawner is null || TemplateOf(spawner) is not int templateId)
+        if (player is null || spawner is null || Spawn(session, player, driverId, spawner, seat, server.Now) is not int vehicleId)
         {
             Console.WriteLine($"peer {peer.Id}: cannot spawn vehicle from {spawnerId}");
             peer.Send(new OperationResponse(request) { ReturnCode = -1 });
             return;
         }
 
-        WorldObject vehicle = session.World.CloneTree(templateId)!;
-        int now = server.Now;
+        peer.Send(new OperationResponse(request));
+        Console.WriteLine($"peer {peer.Id}: spawned vehicle {vehicleId} from {spawnerId}");
+    }
+
+    public static int? Spawn(Session session, Player player, int driverId, WorldObject spawner, byte seat, int now)
+    {
+        if (TemplateOf(spawner) is not int templateId || session.World.CloneTree(templateId) is not { } vehicle) return null;
+        int spawnerId = spawner.Id;
 
         foreach (WorldObject part in session.World.Subtree(vehicle.Id))
             session.World.Modify(part.Id, obj => obj.Owner = player.Actor);
@@ -61,9 +67,7 @@ public sealed class SpawnVehicleWithDriver(PhotonServer server, Session session)
         };
         foreach (Player other in session.Players)
             other.Peer.Send(evt);
-
-        peer.Send(new OperationResponse(request));
-        Console.WriteLine($"peer {peer.Id}: spawned vehicle {vehicle.Id} from {spawnerId}");
+        return vehicle.Id;
     }
 
     static int? TemplateOf(WorldObject spawner) =>

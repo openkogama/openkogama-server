@@ -20,11 +20,12 @@ public sealed class UnregisterWorldObject(Session session) : IOperationHandler
             return;
         }
 
+        List<(int Id, bool ObjectLink)> links = session.World.LinksAround(objectId);
         List<int> removedPrototypes = session.World.RemoveTree(objectId);
         session.World.MarkChanged();
         session.Logic.Evaluate();
         session.Teams.Update();
-        Broadcast(session, objectId, removedPrototypes, peer);
+        Broadcast(session, objectId, removedPrototypes, peer, links);
 
         peer.Send(new OperationResponse(request)
         {
@@ -33,8 +34,18 @@ public sealed class UnregisterWorldObject(Session session) : IOperationHandler
         Plugins.PluginHost.Removed(session, objectId, session.For(peer));
     }
 
-    public static void Broadcast(Session session, int objectId, List<int> removedPrototypes, PhotonPeer? except)
+    public static void Broadcast(Session session, int objectId, List<int> removedPrototypes, PhotonPeer? except, List<(int Id, bool ObjectLink)> links)
     {
+        foreach ((int linkId, bool objectLink) in links)
+        {
+            var linkGone = new EventData((byte)(objectLink ? EventCode.RemoveObjectLink : EventCode.RemoveLink))
+            {
+                Parameters = { [(byte)ParameterKey.LinkID] = linkId },
+            };
+            foreach (Player player in session.Players)
+                player.Peer.Send(linkGone);
+        }
+
         foreach (int prototypeId in removedPrototypes)
         {
             var prototypeGone = new EventData((byte)EventCode.UnregisterPrototype)

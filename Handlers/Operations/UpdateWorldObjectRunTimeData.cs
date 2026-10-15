@@ -12,6 +12,7 @@ public sealed class UpdateWorldObjectRunTimeData(Session session) : IOperationHa
     public void Handle(PhotonPeer peer, OperationRequest request)
     {
         int objectId = Convert.ToInt32(request[(byte)ParameterKey.WorldObjectID]);
+        if (Teleports.IsPrivate(objectId)) return;
         EventData? withHand = null;
         EventData? limited = null;
         if (PhotonValues.Normalize(request[(byte)ParameterKey.WorldObjectRunTimeData]) is Dictionary<object, object?> changes)

@@ -1,6 +1,7 @@
 using System.Numerics;
 using OpenKogama.Api;
 using OpenKogama.Game;
+using OpenKogama.World;
 using OpenKogama.Kogama;
 
 namespace OpenKogama.Plugins;
@@ -11,6 +12,7 @@ sealed class PluginNpc(Session session, Npc npc) : INpc
     public int ObjectId => npc.AvatarId;
     public string Name => npc.Name;
     public Vector3 Position => new(npc.Position[0], npc.Position[1], npc.Position[2]);
+    public Vector3 EyePosition => Position + Vector3.UnitY * npc.EyeHeight;
     public float Yaw => npc.Yaw;
     public string Animation => npc.Animation;
     public bool Walking => npc.Target is not null;
@@ -46,7 +48,17 @@ sealed class PluginNpc(Session session, Npc npc) : INpc
         }
     }
 
-    public void Shoot(Vector3 direction) => npc.Shots.Enqueue(Vector3.Normalize(direction));
+    public void Shoot(Vector3 direction) => Shoot(direction, 0f);
+
+    public void Shoot(Vector3 direction, float holdSeconds) =>
+        npc.Shots.Enqueue((Vector3.Normalize(direction), (int)(Math.Max(0f, holdSeconds) * 1000f)));
+
+    public void Aim(Vector3 direction) => npc.Aims.Enqueue(Vector3.Normalize(direction));
+
+    public bool BecomeColossus(IWorldObject trigger) =>
+        session.World.Find(trigger.Id) is { Type: WorldObjectType.GodzillaTrigger } target && session.MakeColossus(npc, target);
+
+    public bool BecomeColossus(ColossusSize size) => session.MakeColossus(npc, Colossus.PackageOf((int)size));
 
     public float MaxHealth
     {

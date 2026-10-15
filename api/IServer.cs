@@ -8,6 +8,7 @@ public interface IServer
     event Action? Tick;
     event Action<float>? Update;
     event Action<IPlayer, IPlayer>? PlayerKilled;
+    event Action<IPlayer, INpc>? PlayerKilledByNpc;
     event Action<IPlayer, IWorldObject>? ItemCollected;
     event Action<IWorld>? RoundStarted;
     event Action<IWorld, IWorldObject, IPlayer?>? ObjectAdded;

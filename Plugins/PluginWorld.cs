@@ -19,6 +19,8 @@ sealed class PluginWorld(Session session) : IWorld
 
     public IWorldObject? Find(int id) => _editor.Find(id);
 
+    public IReadOnlyList<IWorldObject> Markers(string name) => _editor.Markers(name);
+
     public IWorldObject Add(string type, Vector3 position, IReadOnlyDictionary<string, object>? data = null, Quaternion? rotation = null, Vector3? scale = null, int? parentId = null) =>
         _editor.Add(type, position, data, rotation, scale, parentId);
 
@@ -39,6 +41,14 @@ sealed class PluginWorld(Session session) : IWorld
         List<WornAccessory>? accessories = skin?.Accessories.Select(worn => new WornAccessory(worn.Item, worn.Slot, worn.Offset, worn.Scale)).ToList();
         return new PluginNpc(session, session.AddNpc(name, [position.X, position.Y, position.Z], yaw, parts, accessories, size, level));
     }
+
+    public bool LineOfSight(Vector3 from, Vector3 to) => session.LineOfSight(from, to);
+
+    public bool? Toggled(int id) => session.Logic.Toggled(id);
+
+    public bool SetToggled(int id, bool on) => session.Logic.SetToggled(id, on);
+
+    public bool Press(int id) => session.Logic.Press(id);
 
     public void Announce(string text, string? icon = null) => session.Announce(text, icon, session.Players);
 

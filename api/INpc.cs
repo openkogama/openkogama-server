@@ -8,6 +8,7 @@ public interface INpc
     int ObjectId { get; }
     string Name { get; }
     Vector3 Position { get; }
+    Vector3 EyePosition { get; }
     float Yaw { get; }
     string Animation { get; }
     AvatarAnimation AnimationState => Enum.TryParse(Animation, ignoreCase: true, out AvatarAnimation state) ? state : AvatarAnimation.Unknown;
@@ -29,6 +30,10 @@ public interface INpc
     void Teleport(Vector3 position, float? yaw = null);
     void Face(float yaw);
     void Shoot(Vector3 direction);
+    void Shoot(Vector3 direction, float holdSeconds);
+    void Aim(Vector3 direction);
+    bool BecomeColossus(IWorldObject trigger);
+    bool BecomeColossus(ColossusSize size);
     void PlayAnimation(string? state);
     void PlayAnimation(AvatarAnimation state) => PlayAnimation(state == AvatarAnimation.Unknown ? null : state.ToString());
     void Damage(float amount, IPlayer? by = null);

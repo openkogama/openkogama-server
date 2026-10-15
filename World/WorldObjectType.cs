@@ -18,6 +18,7 @@ public enum WorldObjectType
     And = 22,
     TextMsg = 24,
     TimeTrigger = 27,
+    Teleporter = 28,
     CubeModelPrototypeTerrain = 8,
     Group = 9,
     Flag = 17,

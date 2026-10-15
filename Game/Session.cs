@@ -27,6 +27,7 @@ public sealed partial class Session
             World.Modify(obj.Id, RuntimeDefaults.Reset);
         _avatarPrototypes = Avatar.AddPrototypes(World);
         AvatarClasses.AddPreviews(World);
+        if (play) WorldMarkers.Hide(World);
         Logic = new Logic(this);
         Logic.ResetAll();
         Teams = new Teams(this);

@@ -27,6 +27,12 @@ public sealed class AttachWorldObjectToSeat(Session session) : IOperationHandler
             return;
         }
 
+        Seat(session, player, driverId, vehicleId, seat);
+        peer.Send(new OperationResponse(request));
+    }
+
+    public static void Seat(Session session, Player player, int driverId, int vehicleId, byte seat)
+    {
         foreach (WorldObject part in session.World.Subtree(vehicleId))
             session.World.Modify(part.Id, obj => obj.Owner = player.Actor);
         session.World.Modify(driverId, obj =>
@@ -50,7 +56,5 @@ public sealed class AttachWorldObjectToSeat(Session session) : IOperationHandler
         };
         foreach (Player other in session.Players)
             other.Peer.Send(evt);
-
-        peer.Send(new OperationResponse(request));
     }
 }

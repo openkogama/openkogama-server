@@ -37,6 +37,11 @@ public sealed class GameWorld
         lock (_sync) return _nextPrototypeId++;
     }
 
+    public int NewLinkId()
+    {
+        lock (_sync) return _nextLinkId++;
+    }
+
     public void Add(Prototype prototype)
     {
         lock (_sync)
@@ -94,6 +99,16 @@ public sealed class GameWorld
             foreach (int removed in ids) _byId.Remove(removed);
             _links.RemoveAll(link => ids.Contains(link.From) || ids.Contains(link.To));
             _objectLinks.RemoveAll(link => ids.Contains(link.From) || ids.Contains(link.To));
+        }
+    }
+
+    public List<(int Id, bool ObjectLink)> LinksAround(int id)
+    {
+        lock (_sync)
+        {
+            var ids = Subtree(id).Select(obj => obj.Id).ToHashSet();
+            bool Touches(Link link) => ids.Contains(link.From) || ids.Contains(link.To);
+            return [.. _links.Where(Touches).Select(link => (link.Id, false)), .. _objectLinks.Where(Touches).Select(link => (link.Id, true))];
         }
     }
 

@@ -11,6 +11,10 @@ public sealed class Logic(Session session)
     const int NoOutput = -1;
     public const int FrameInterval = 100;
     const int StepInterval = 1000;
+    const float DriverDepth = 10_000f;
+    const int DriverLinkDelayMs = 500;
+    const int ServerActor = 0;
+    const int PressMs = 300;
 
     sealed record Graph(
         int Version,
@@ -25,6 +29,14 @@ public sealed class Logic(Session session)
 
     enum TimerState { Listening, Counting, Firing, Resetting, Done }
 
+    sealed class Driver(int negate, int link, List<Player> players)
+    {
+        public int Negate => negate;
+        public int Link => link;
+        public List<Player> Players => players;
+        public bool Linked { get; set; }
+    }
+
     static readonly HashSet<WorldObjectType> Stateful =
         [WorldObjectType.ToggleBox, WorldObjectType.RandomBox, WorldObjectType.TimeTrigger, WorldObjectType.CountingCube];
 
@@ -33,6 +45,7 @@ public sealed class Logic(Session session)
     readonly Dictionary<int, int> _timerVersions = [];
     readonly Dictionary<int, (int Start, int Value)> _counts = [];
     readonly Dictionary<int, bool> _pulses = [];
+    readonly Dictionary<int, Driver> _drivers = [];
     readonly object _sync = new();
     readonly System.Diagnostics.Stopwatch _clock = System.Diagnostics.Stopwatch.StartNew();
     int _frame;
@@ -194,6 +207,109 @@ public sealed class Logic(Session session)
         }
 
         if (changed) Evaluate();
+    }
+
+    public bool? Toggled(int id) => session.World.Find(id) is { Type: WorldObjectType.ToggleBox } obj ? State(obj) : null;
+
+    public bool SetToggled(int id, bool on)
+    {
+        lock (_sync)
+        {
+            if (session.World.Find(id) is not { Type: WorldObjectType.ToggleBox } obj) return false;
+            if (State(obj) == on && _drivers.ContainsKey(id) == on) return true;
+            if (State(obj) != on) SetData(id, "state", on);
+            session.World.Modify(id, target => target.SetRuntime("toggled", PackedType.Bool, on));
+            Drive(id, on);
+        }
+        Evaluate();
+        return true;
+    }
+
+    void Drive(int toggle, bool on)
+    {
+        List<Player> players = [.. session.Players.Where(player => player.InWorld && player.LogicFrames)];
+        _drivers.Remove(toggle, out Driver? old);
+        if (old is not null) Unplug(old);
+        if (on)
+        {
+            Plug(toggle, players);
+            return;
+        }
+
+        var reset = new EventData((byte)EventCode.UpdateWorldObjectDataPartial)
+        {
+            Parameters =
+            {
+                [(byte)ParameterKey.WorldObjectID] = toggle,
+                [(byte)ParameterKey.WorldObjectData] = new Dictionary<object, object?> { ["state"] = false },
+            },
+        };
+        foreach (Player player in players.Where(player => old is null || !old.Linked || !old.Players.Contains(player)))
+            player.Peer.Send(reset);
+    }
+
+    void Plug(int toggle, List<Player> players)
+    {
+        if (players.Count == 0) return;
+        var negate = new WorldObject
+        {
+            Id = session.World.NewObjectId(),
+            ParentId = session.World.RootId,
+            Type = WorldObjectType.Negate,
+            Position = [0f, -DriverDepth, 0f],
+        };
+        RuntimeDefaults.Apply(negate);
+        var driver = new Driver(negate.Id, session.World.NewLinkId(), players);
+        _drivers[toggle] = driver;
+        Handlers.Operations.GetNextGameBatch.SendAdded(session, 0, new Snapshot([], [negate], [], []), players.Contains);
+
+        _ = Task.Delay(DriverLinkDelayMs).ContinueWith(_ =>
+        {
+            lock (_sync)
+            {
+                if (_drivers.GetValueOrDefault(toggle) != driver) return;
+                driver.Linked = true;
+                var link = new EventData((byte)EventCode.AddLink)
+                {
+                    Parameters =
+                    {
+                        [(byte)ParameterKey.LinkID] = driver.Link,
+                        [(byte)ParameterKey.LinkFromID] = driver.Negate,
+                        [(byte)ParameterKey.LinkToID] = toggle,
+                    },
+                };
+                foreach (Player player in Present(driver)) player.Peer.Send(link);
+            }
+        });
+    }
+
+    void Unplug(Driver driver)
+    {
+        var unlink = new EventData((byte)EventCode.RemoveLink) { Parameters = { [(byte)ParameterKey.LinkID] = driver.Link } };
+        var gone = new EventData((byte)EventCode.UnregisterWorldObject) { Parameters = { [(byte)ParameterKey.WorldObjectID] = driver.Negate } };
+        foreach (Player player in Present(driver))
+        {
+            if (driver.Linked) player.Peer.Send(unlink);
+            player.Peer.Send(gone);
+        }
+    }
+
+    IEnumerable<Player> Present(Driver driver) => driver.Players.Where(session.Players.Contains);
+
+    public bool Press(int id)
+    {
+        if (session.World.Find(id)?.Type is not (WorldObjectType.PressurePlate or WorldObjectType.TriggerCube or WorldObjectType.TriggerBox)) return false;
+        Hold(id, true);
+        _ = Task.Delay(PressMs).ContinueWith(_ => Hold(id, false));
+        return true;
+    }
+
+    void Hold(int id, bool pressed)
+    {
+        bool changed = pressed ? session.Triggers.Enter(id, ServerActor) : session.Triggers.Exit(id, ServerActor);
+        if (!changed) return;
+        Signal(id, ServerActor, pressed);
+        Evaluate();
     }
 
     public void ResetAll() => Reset(session.World.ToSnapshot().Objects.Where(obj => Stateful.Contains(obj.Type)).Select(obj => obj.Id));

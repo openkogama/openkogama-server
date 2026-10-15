@@ -19,11 +19,17 @@ public sealed class PostGameMsg(Session session) : IOperationHandler
             && PhotonValues.Normalize(request[(byte)ParameterKey.GameMsgData]) is Dictionary<object, object?> data
             && session.For(peer) is Player victim
             && Actor(data, Killer) is int killerActor
-            && session.Players.FirstOrDefault(player => player.Actor == killerActor) is Player killer
             && Actor(data, Victim) == victim.Actor)
         {
-            session.Round.ReportKill(killer, victim);
-            Plugins.PluginHost.Killed(session, victim, killer);
+            if (session.Players.FirstOrDefault(player => player.Actor == killerActor) is Player killer)
+            {
+                session.Round.ReportKill(killer, victim);
+                Plugins.PluginHost.Killed(session, victim, killer);
+            }
+            else if (session.Npcs.FirstOrDefault(npc => npc.Actor == killerActor) is Npc npc)
+            {
+                Plugins.PluginHost.KilledByNpc(session, victim, npc);
+            }
         }
 
         if (Convert.ToInt32(request[(byte)ParameterKey.GameMsgType]) == Chat && session.For(peer) is Player sender)

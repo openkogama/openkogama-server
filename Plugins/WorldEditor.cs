@@ -16,6 +16,8 @@ sealed class WorldEditor(GameWorld world, Session? session) : IWorldBuilder
 
     public IWorldObject? Find(int id) => world.Find(id) is { } obj ? new PluginObject(obj) : null;
 
+    public IReadOnlyList<IWorldObject> Markers(string name) => [.. WorldMarkers.Named(world, name).Select(obj => new PluginObject(obj))];
+
     public IWorldObject Add(string type, Vector3 position, IReadOnlyDictionary<string, object>? data = null, Quaternion? rotation = null, Vector3? scale = null, int? parentId = null)
     {
         if (!Enum.TryParse(type, ignoreCase: true, out WorldObjectType kind) || kind == WorldObjectType.Avatar)
@@ -48,11 +50,12 @@ sealed class WorldEditor(GameWorld world, Session? session) : IWorldBuilder
     {
         if (id == world.RootId || world.Find(id) is not { } obj || obj.Type == WorldObjectType.Avatar) return false;
 
+        List<(int Id, bool ObjectLink)> links = world.LinksAround(id);
         List<int> removedPrototypes = world.RemoveTree(id);
         world.MarkChanged();
         if (session is not null)
         {
-            UnregisterWorldObject.Broadcast(session, id, removedPrototypes, null);
+            UnregisterWorldObject.Broadcast(session, id, removedPrototypes, null, links);
             session.Logic.Evaluate();
             session.Teams.Update();
         }

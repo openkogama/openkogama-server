@@ -18,6 +18,7 @@ public sealed class Npc(int actor, int avatarId, string name, float[] position, 
     public const float MaxSize = 10f;
     const float ShrunkenSize = 0.25f;
     const float EnlargedSize = 2f;
+    const float ColossusEye = 1.9f;
 
     public int Actor => actor;
     public int AvatarId => avatarId;
@@ -37,6 +38,8 @@ public sealed class Npc(int actor, int avatarId, string name, float[] position, 
     public int Level { get; internal set; } = 1;
     public bool OnFire { get; set; }
     public string? SizeModifier => Size < 1f ? "_Shrunken" : Size > 1f ? "_Enlarged" : null;
+    public float? ColossusScale { get; internal set; }
+    public float EyeHeight => ColossusScale is float scale ? ColossusEye * scale : Size;
     public float AvatarScale => Size == 1f ? 1f : (Size < 1f ? ShrunkenSize : EnlargedSize) / Size;
     public NpcMode Mode { get; internal set; } = NpcMode.Playing;
     public bool Alive => Mode == NpcMode.Playing;
@@ -54,8 +57,10 @@ public sealed class Npc(int actor, int avatarId, string name, float[] position, 
     internal bool ModifiersChanged { get; set; }
     internal bool MaxHealthChanged { get; set; }
     internal int? HeldItem { get; set; }
+    internal Dictionary<object, object?>? HeldItemData { get; set; }
     internal bool HeldItemChanged { get; set; }
-    internal ConcurrentQueue<Vector3> Shots { get; } = new();
+    internal ConcurrentQueue<(Vector3 Direction, int HoldMs)> Shots { get; } = new();
+    internal ConcurrentQueue<Vector3> Aims { get; } = new();
     internal bool Firing { get; set; }
     internal long FiringUntil { get; set; }
     internal bool StateChanged => HealthChanged || ModeChanged || ModifiersChanged || MaxHealthChanged;

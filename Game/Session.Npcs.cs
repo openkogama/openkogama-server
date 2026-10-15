@@ -11,6 +11,8 @@ public sealed partial class Session
 {
     const int NpcSendIntervalMs = 200;
     const int CollisionRefreshMs = 1000;
+    const float SightStep = 8f;
+    static readonly Vector3 SightRadius = new(0.1f);
     const int FirstNpcActor = 10_000;
     const float MaxCatchUpSeconds = 0.25f;
     const int DeadToHiddenMs = 2500;
@@ -23,7 +25,6 @@ public sealed partial class Session
     const int ResizeDelayMs = 1000;
     const int SizeRenewMs = 20_000;
     const float AwayHeight = 5000f;
-    const float FireHeight = 1f;
     const int FirePulseMs = 100;
 
     static readonly HashSet<KilledBy> SilentKills = [KilledBy.Environmental, KilledBy.Crushed, KilledBy.FallOffWorld, KilledBy.Impact];
@@ -71,6 +72,7 @@ public sealed partial class Session
     {
         lock (_npcs)
             if (!_npcs.Remove(npc)) return false;
+        Colossus.Release(this, npc.AvatarId);
         World.RemoveTree(npc.AvatarId);
 
         var unregister = new EventData((byte)EventCode.UnregisterWorldObject)
@@ -90,6 +92,52 @@ public sealed partial class Session
         return true;
     }
 
+    public bool MakeColossus(Npc npc, WorldObject trigger)
+    {
+        if (npc.ColossusScale is not null || Colossus.Occupant(trigger) != Colossus.Empty) return false;
+        npc.Position = [.. trigger.Position];
+        npc.Teleported = true;
+        MakeColossus(npc, Colossus.PackageOf(trigger));
+        return Colossus.Enter(this, trigger, npc.AvatarId);
+    }
+
+    public bool MakeColossus(Npc npc, byte package)
+    {
+        if (npc.ColossusScale is not null) return false;
+        npc.ColossusScale = Colossus.ScaleOf(package);
+        npc.Speed = 0f;
+        npc.Target = null;
+        AddModifier(npc, Colossus.ModifierOf(package));
+        npc.HeldItem = (int)AvatarItemType.GodzillaLaser;
+        npc.HeldItemData = new Dictionary<object, object?> { ["avatarModifierPackageType"] = package };
+        npc.HeldItemChanged = true;
+        return true;
+    }
+
+    public bool LineOfSight(Vector3 from, Vector3 to)
+    {
+        Vector3 path = to - from;
+        float distance = path.Length();
+        if (distance < SightRadius.X) return true;
+
+        CollisionWorld collision = Collision(Environment.TickCount64);
+        Vector3 direction = path / distance;
+        for (float start = 0f; start < distance; start += SightStep)
+            if (collision.Cast(from + direction * start, direction, SightRadius, MathF.Min(SightStep, distance - start)) is not null)
+                return false;
+        return true;
+    }
+
+    CollisionWorld Collision(long now)
+    {
+        if (_collision is null || now - _collisionBuilt >= CollisionRefreshMs)
+        {
+            _collision = CollisionWorld.Build(World);
+            _collisionBuilt = now;
+        }
+        return _collision;
+    }
+
     public void Introduce(Player player, Npc npc)
     {
         var join = new EventData((byte)EventCode.Join)
@@ -99,6 +147,11 @@ public sealed partial class Session
         foreach ((ParameterKey key, object value) in npc.Info()) join.Parameters[(byte)key] = value;
         join.Parameters[(byte)ParameterKey.Bool] = false;
         player.Peer.Send(join);
+        if (player.ReadyEvents)
+            player.Peer.Send(new EventData((byte)EventCode.SetActorReady)
+            {
+                Parameters = { [(byte)ParameterKey.ActorNr] = npc.Actor, [(byte)ParameterKey.Bool] = false },
+            });
         player.Sees(npc.Actor);
         lock (npc.SeenAt)
         {
@@ -164,17 +217,13 @@ public sealed partial class Session
         }
 
         long now = Environment.TickCount64;
-        if (_collision is null || now - _collisionBuilt >= CollisionRefreshMs)
-        {
-            _collision = CollisionWorld.Build(World);
-            _collisionBuilt = now;
-        }
+        CollisionWorld collision = Collision(now);
 
         foreach (Npc npc in npcs)
         {
-            Combat(npc, _collision, now);
+            Combat(npc, collision, now);
             if (npc.Mode == NpcMode.Hidden) npc.LastStep = now;
-            else Simulate(npc, _collision, now);
+            else Simulate(npc, collision, now);
             bool urgent = npc.Teleported || npc.StateChanged;
             if (urgent || now - npc.LastSend >= NpcSendIntervalMs) SendNpc(npc, now);
             SendSize(npc, now);
@@ -189,18 +238,23 @@ public sealed partial class Session
 
     void SendWeapon(Npc npc, long now)
     {
-        if (!npc.HeldItemChanged && !npc.Firing && npc.Shots.IsEmpty) return;
+        if (!npc.HeldItemChanged && !npc.Firing && npc.Shots.IsEmpty && npc.Aims.IsEmpty) return;
         Player[] audience = [.. _players.Where(player => player.InWorld && player.Saw(npc.Actor) && Placed(npc, player))];
 
         if (npc.HeldItemChanged)
         {
             npc.HeldItemChanged = false;
-            var held = new Dictionary<object, object?>
-            {
-                ["currentItem"] = new Dictionary<object, object?> { ["type"] = npc.HeldItem ?? (int)AvatarItemType.Hand },
-            };
+            var item = new Dictionary<object, object?> { ["type"] = npc.HeldItem ?? (int)AvatarItemType.Hand };
+            if (npc.HeldItemData is { } data) item["itemData"] = data;
+            var held = new Dictionary<object, object?> { ["currentItem"] = item };
             World.Modify(npc.AvatarId, obj => PackedData.Merge(obj.Runtime, held));
             foreach (Player player in audience) player.Peer.Send(RuntimeEvent(npc, held));
+        }
+
+        while (npc.Aims.TryDequeue(out Vector3 aim))
+        {
+            EventData aimed = LineOfFire(npc, aim);
+            foreach (Player player in audience) player.Peer.Send(aimed);
         }
 
         if (npc.Firing)
@@ -210,29 +264,31 @@ public sealed partial class Session
             foreach (Player player in audience) player.Peer.Send(RuntimeEvent(npc, new Dictionary<object, object?> { ["isFiring"] = false }));
         }
 
-        if (!npc.Shots.TryDequeue(out Vector3 direction)) return;
-        var line = new EventData((byte)EventCode.UpdateLineOfFire)
-        {
-            Parameters =
-            {
-                [(byte)ParameterKey.WorldObjectID] = npc.AvatarId,
-                [(byte)ParameterKey.CamOriginX] = npc.Position[0],
-                [(byte)ParameterKey.CamOriginY] = npc.Position[1] + FireHeight * npc.Size,
-                [(byte)ParameterKey.CamOriginZ] = npc.Position[2],
-                [(byte)ParameterKey.CamDirX] = direction.X,
-                [(byte)ParameterKey.CamDirY] = direction.Y,
-                [(byte)ParameterKey.CamDirZ] = direction.Z,
-                [(byte)ParameterKey.ActorNr] = npc.Actor,
-            },
-        };
+        if (!npc.Shots.TryDequeue(out (Vector3 Direction, int HoldMs) shot)) return;
+        EventData line = LineOfFire(npc, shot.Direction);
         foreach (Player player in audience)
         {
             player.Peer.Send(line);
             player.Peer.Send(RuntimeEvent(npc, new Dictionary<object, object?> { ["isFiring"] = true }));
         }
         npc.Firing = true;
-        npc.FiringUntil = now + FirePulseMs;
+        npc.FiringUntil = now + Math.Max(FirePulseMs, shot.HoldMs);
     }
+
+    static EventData LineOfFire(Npc npc, Vector3 direction) => new((byte)EventCode.UpdateLineOfFire)
+    {
+        Parameters =
+        {
+            [(byte)ParameterKey.WorldObjectID] = npc.AvatarId,
+            [(byte)ParameterKey.CamOriginX] = npc.Position[0],
+            [(byte)ParameterKey.CamOriginY] = npc.Position[1] + npc.EyeHeight,
+            [(byte)ParameterKey.CamOriginZ] = npc.Position[2],
+            [(byte)ParameterKey.CamDirX] = direction.X,
+            [(byte)ParameterKey.CamDirY] = direction.Y,
+            [(byte)ParameterKey.CamDirZ] = direction.Z,
+            [(byte)ParameterKey.ActorNr] = npc.Actor,
+        },
+    };
 
     void SendSize(Npc npc, long now)
     {
@@ -445,7 +501,7 @@ public sealed partial class Session
         Plugins.PluginHost.NpcKilled(this, npc, killer);
     }
 
-    static void Respawn(Npc npc, Vector3 position)
+    void Respawn(Npc npc, Vector3 position)
     {
         npc.Health = npc.MaxHealth;
         npc.HealthChanged = true;
@@ -453,6 +509,14 @@ public sealed partial class Session
         npc.ModeChanged = true;
         npc.Modifiers.Clear();
         npc.ModifiersChanged = true;
+        if (npc.ColossusScale is not null)
+        {
+            Colossus.Release(this, npc.AvatarId);
+            npc.ColossusScale = null;
+            npc.HeldItem = null;
+            npc.HeldItemData = null;
+            npc.HeldItemChanged = true;
+        }
         npc.NoFrictionUntil = 0;
         npc.BurnUntil = 0;
         npc.Target = null;

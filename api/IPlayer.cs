@@ -13,6 +13,9 @@ public interface IPlayer
     int Gold { get; }
     AvatarSkin Skin { get; }
     Vector3? Position { get; }
+    bool Alive { get; }
+    bool IsAdmin { get; }
+    Team Team { get; }
     AvatarItem Holding { get; }
 
     int AddXp(int amount);
@@ -22,5 +25,9 @@ public interface IPlayer
     void Notify(string text, bool brief = false);
     void Announce(string text, string? icon = null);
     void Damage(float amount, INpc? by = null, System.Numerics.Vector3? impulse = null);
+    bool SetTeam(Team team);
+    bool Teleport(Vector3 position, TeleportMethod method);
+    bool EnterVehicle(IWorldObject vehicle);
+    bool BecomeColossus(IWorldObject trigger);
     void Kick();
 }

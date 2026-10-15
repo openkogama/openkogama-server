@@ -17,6 +17,7 @@ public enum AvatarItemType
     SixShooter = 12,
     DoubleSixShooter = 13,
     NinjaRun = 14,
+    GodzillaLaser = 47,
 }
 
 public enum PickupItemState

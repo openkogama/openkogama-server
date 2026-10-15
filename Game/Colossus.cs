@@ -9,16 +9,32 @@ public static class Colossus
     public const int Empty = -1;
     const string OccupantKey = "occupantWOID";
 
+    const byte SmallPackage = 17;
+    static readonly string[] Sizes = ["S", "M", "L", "XL"];
+    static readonly float[] Scales = [4f, 8f, 20f, 40f];
+
+    public static byte PackageOf(WorldObject trigger) => PackageOf(trigger.Data.Find(pair => pair.Key == "size").Value as int? ?? 0);
+
+    public static byte PackageOf(int size) => (byte)(SmallPackage + Math.Clamp(size, 0, Sizes.Length - 1));
+
+    public static float ScaleOf(byte package) => Scales[package - SmallPackage];
+
+    public static string ModifierOf(byte package) => "_Godzilla" + Sizes[package - SmallPackage];
+
     public static int Occupant(WorldObject obj) => obj.Runtime.Find(pair => pair.Key == OccupantKey).Value as int? ?? Empty;
 
-    public static void Enter(Session session, WorldObject obj, int avatar)
+    public static bool Supported(Player player) =>
+        player.Peer.Translator is Kogama.Protocols.OperationRemap remap && remap.Knows(EventCode.GodzillaEnter);
+
+    public static bool Enter(Session session, WorldObject obj, int avatar)
     {
-        if (Occupant(obj) != Empty) return;
+        if (Occupant(obj) != Empty) return false;
         Set(session, obj.Id, avatar);
         Send(session, new EventData((byte)EventCode.GodzillaEnter)
         {
             Parameters = { [(byte)ParameterKey.WorldObjectIDs] = new[] { obj.Id, avatar } },
         });
+        return true;
     }
 
     public static void Exit(Session session, WorldObject obj, int avatar)
@@ -47,7 +63,7 @@ public static class Colossus
     {
         evt.Parameters[(byte)ParameterKey.Timestamp] = session.Logic.Stamp();
         foreach (Player player in session.Players)
-            if (player.InWorld && player.Peer.Translator is Kogama.Protocols.OperationRemap remap && remap.Knows(EventCode.GodzillaEnter))
+            if (player.InWorld && Supported(player))
                 player.Peer.Send(evt);
     }
 }

@@ -88,6 +88,7 @@ public enum EventCode : byte
     SetSpawnRoleBody = 133,
     XPRewardedAdReady = 134,
     VehicleGotEnergy = 135,
+    ForceDetachWorldObjectFromVehicle = 136,
     Leave = 254,
     Join = 255,
 }

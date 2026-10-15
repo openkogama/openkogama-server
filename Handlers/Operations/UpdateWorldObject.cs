@@ -13,6 +13,7 @@ public sealed class UpdateWorldObject(Session session) : IOperationHandler
     {
         Player? sender = session.For(peer);
         int objectId = Convert.ToInt32(request[(byte)ParameterKey.WorldObjectID]);
+        if (Teleports.IsPrivate(objectId)) return;
         if (sender is not null
             && sender.Owns(objectId)
             && request.Parameters.TryGetValue((byte)ParameterKey.PosY, out object? y))
