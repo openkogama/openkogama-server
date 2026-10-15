@@ -913,6 +913,7 @@ public sealed class Router2012
         Broadcast(peer, registered);
         if (Shared(peer) && obj.Id != player.ClassicAvatarId) Operations.GetNextGameBatch.SendAdded(session, player.Actor, session.World.SubtreeSnapshot(obj.Id), other => other.Peer.Protocol != PhotonProtocol.Protocol15);
         Console.WriteLine($"peer {peer.Id}: 2012 client registered {obj.Type} as {obj.Id}");
+        if (OperationRouter.Trace) Console.WriteLine($"peer {peer.Id}: 2012 object data {OperationRouter.Describe(WorldObjects2012.Table(obj.Data))} runtime {OperationRouter.Describe(WorldObjects2012.Table(obj.Runtime))}");
     }
 
     void UnregisterWorldObject(PhotonPeer peer, OperationRequest request)
