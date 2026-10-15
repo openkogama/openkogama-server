@@ -1,0 +1,84 @@
+name: mixed clients windows
+
+on:
+  push:
+    branches: [mixed-clients]
+    paths: [.github/mixed-windows.ps1, .github/workflows/mixed-windows.yml, "**.cs"]
+  workflow_dispatch:
+    inputs:
+      pairs:
+        description: "version pairs in one world, version@unity, pairs separated by spaces, 2012 for the 2012 build"
+        default: "1.8.15.2,3.5.25 1.9.0.1,1.47.4 2012,2.30.63@2022 1.25.12.280,3.5.25 2.0.1,2.30.63@2022"
+
+env:
+  PAIRS: ${{ inputs.pairs || '1.8.15.2,3.5.25 1.9.0.1,1.47.4 2012,2.30.63@2022 1.25.12.280,3.5.25 2.0.1,2.30.63@2022' }}
+
+jobs:
+  build:
+    runs-on: windows-latest
+    outputs:
+      pairs: ${{ steps.plan.outputs.pairs }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: openkogama-server
+      - uses: actions/checkout@v4
+        with:
+          repository: openkogama/openkogama-photon
+          path: openkogama-photon
+      - uses: actions/checkout@v4
+        with:
+          repository: openkogama/openkogama-player
+          path: openkogama-player
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet publish openkogama-server/openkogama-server.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o server
+      - run: dotnet build openkogama-server/examples/deadzone/deadzone.csproj -c Release -o server/plugins
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x86
+      - run: |
+          cmake -S openkogama-player -B player-build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build player-build
+          New-Item -ItemType Directory player | Out-Null
+          Copy-Item player-build/openkogama-player.exe player/
+          Copy-Item -Recurse player-build/versions player/versions
+        shell: pwsh
+      - id: plan
+        shell: pwsh
+        run: '"pairs=$($env:PAIRS.Split(" ") | ConvertTo-Json -Compress -AsArray)" >> $env:GITHUB_OUTPUT'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: server
+          path: server
+      - uses: actions/upload-artifact@v4
+        with:
+          name: player
+          path: player
+
+  play:
+    needs: build
+    runs-on: windows-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        pair: ${{ fromJson(needs.build.outputs.pairs) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: server
+          path: server
+      - uses: actions/download-artifact@v4
+        with:
+          name: player
+          path: player
+      - run: ./.github/mixed-windows.ps1 -Pair "${{ matrix.pair }}" -Server server -Player player -Out out
+        shell: powershell
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-${{ matrix.pair }}
+          path: out

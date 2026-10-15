@@ -74,6 +74,7 @@ public sealed class Router2012
             case Op2012.SetActorReady:
                 if (session.For(peer) is Player ready) ready.InWorld = true;
                 Reply(peer, request);
+                Console.WriteLine($"peer {peer.Id}: 2012 actor ready");
                 if (session.For(peer) is Player joined) Plugins.PluginHost.Joined(session, joined);
                 break;
             case Op2012.RaiseEvent: RaiseEvent(peer, request); break;
