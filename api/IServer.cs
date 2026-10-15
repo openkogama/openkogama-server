@@ -16,6 +16,8 @@ public interface IServer
     event Action<INpc, IPlayer?>? NpcKilled;
     event Action<IPlayer, Gesture>? PlayerGestured;
     event Action<IPlayer, AvatarAnimation>? PlayerAnimated;
+    event Action<IPlayer, AvatarItem>? PlayerSwitchedItem;
+    event Action<IPlayer, AvatarItem>? PlayerPickedUp;
     ITemplates Templates { get; }
 
     IReadOnlyList<IPlayer> Players { get; }

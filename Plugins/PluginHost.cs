@@ -162,6 +162,13 @@ public static class PluginHost
 
     public static void Gestured(Session session, Player player, Gesture gesture) => Server.OnGestured(PlayerOf(session, player), gesture);
 
+    public static AvatarItem ItemOf(int type) => Enum.IsDefined((AvatarItem)type) ? (AvatarItem)type : AvatarItem.Unknown;
+
+    public static void SwitchedItem(Session session, Player player, int type) => Server.OnSwitchedItem(PlayerOf(session, player), ItemOf(type));
+
+    public static void PickedUp(Session session, Player player, int? type) =>
+        Server.OnPickedUp(PlayerOf(session, player), type is int known ? ItemOf(known) : AvatarItem.Unknown);
+
     public static void Animated(Session session, Player player, string state)
     {
         if (!Enum.TryParse(state, ignoreCase: true, out AvatarAnimation animation))
@@ -211,6 +218,8 @@ public static class PluginHost
         public event Action<INpc, IPlayer?>? NpcKilled;
         public event Action<IPlayer, Gesture>? PlayerGestured;
         public event Action<IPlayer, AvatarAnimation>? PlayerAnimated;
+        public event Action<IPlayer, AvatarItem>? PlayerSwitchedItem;
+        public event Action<IPlayer, AvatarItem>? PlayerPickedUp;
 
         readonly Dictionary<string, Action<IPlayer, string[]>> _commands = new(StringComparer.OrdinalIgnoreCase);
         readonly Dictionary<string, PluginStorage> _storage = [];
@@ -335,6 +344,18 @@ public static class PluginHost
         {
             foreach (Action<IPlayer, AvatarAnimation> handler in Handlers(PlayerAnimated))
                 Guard(() => handler(player, animation));
+        }
+
+        public void OnSwitchedItem(IPlayer player, AvatarItem item)
+        {
+            foreach (Action<IPlayer, AvatarItem> handler in Handlers(PlayerSwitchedItem))
+                Guard(() => handler(player, item));
+        }
+
+        public void OnPickedUp(IPlayer player, AvatarItem item)
+        {
+            foreach (Action<IPlayer, AvatarItem> handler in Handlers(PlayerPickedUp))
+                Guard(() => handler(player, item));
         }
 
         public void OnUpdate(float seconds) => Raise(Update, seconds);

@@ -15,8 +15,12 @@ public static class Pickup
             ? AvatarItemType.CubeGun
             : pickup.Data.Find(pair => pair.Key == "itemType").Value is int type ? (AvatarItemType)type : null;
 
+        Plugins.PluginHost.PickedUp(session, player, (int?)item);
         if (item is AvatarItemType weapon && weapon is not (AvatarItemType.Health or AvatarItemType.Mutant or AvatarItemType.NinjaRun))
+        {
             Equip(session, player, pickup, weapon, Holder(session, player, instigator));
+            Plugins.PluginHost.SwitchedItem(session, player, (int)weapon);
+        }
 
         Respawn(session, pickup.Id, player.Actor);
     }

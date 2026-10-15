@@ -13,6 +13,7 @@ public interface IPlayer
     int Gold { get; }
     AvatarSkin Skin { get; }
     Vector3? Position { get; }
+    AvatarItem Holding { get; }
 
     int AddXp(int amount);
     int AddGold(int amount);
