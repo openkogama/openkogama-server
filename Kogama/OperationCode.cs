@@ -128,6 +128,7 @@ public enum OperationCode : byte
     ResetPlayerPlanetData = 127,
     GetPlanetOwnerships = 143,
     GetAllPlanetPermissions = 144,
+    SetProfileSettings = 145,
     GetHighScoreList = 128,
     GetTopHighScoreList = 129,
     ClaimGamePointWelcomeReward = 130,

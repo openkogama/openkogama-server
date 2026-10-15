@@ -50,6 +50,7 @@ public sealed class OperationRouter
         Register(new JoinNotification());
         Register(new GetPlanetOwnerships(session));
         Register(new GetAllPlanetPermissions(session));
+        Register(new SetProfileSettings());
         Register(new GetRewardList());
         Register(new GetRewardIndex(session));
         Register(new ClaimReward(session));
