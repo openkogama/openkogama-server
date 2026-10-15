@@ -7,3 +7,4 @@ cache/
 bundles/
 server.db*
 logs/
+__pycache__/
