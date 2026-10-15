@@ -112,6 +112,14 @@ class Client:
         self.stage = "new"
         self.peer = None
 
+    async def throttle(self, rate):
+        try:
+            session = await self.page.context.new_cdp_session(self.page)
+            await session.send("Emulation.setCPUThrottlingRate", {"rate": rate})
+            await session.detach()
+        except Exception as error:
+            self.logs.append(f"openkogama: test throttle failed {error}")
+
     async def open(self, context, world, profile):
         self.page = await context.new_page()
         self.page.on("console", lambda message: self.logs.append(message.text[:300]))
@@ -283,9 +291,13 @@ async def main(app, wanted, out):
                 for client in clients[:-1]:
                     await client.shot(out, "6-left")
                 mark = len(server.log())
+                for client in clients[:-1]:
+                    await client.throttle(8)
                 context = await browser.new_context(viewport={"width": 1100, "height": 700})
                 await last.open(context, world, len(clients))
                 await enter(last, server, mark)
+                for client in clients[:-1]:
+                    await client.throttle(1)
                 result["checks"]["rejoin"] = last.stage == "world"
                 if last.stage == "world" and await last.press_play(out):
                     last.stage = "playing"
