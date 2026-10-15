@@ -5,6 +5,7 @@ import re
 import subprocess
 import sys
 import time
+import shutil
 import urllib.request
 
 from playwright.async_api import async_playwright
@@ -65,8 +66,11 @@ def pick(versions, wanted):
 
 class Server:
     def __init__(self, app, data):
-        os.makedirs(data, exist_ok=True)
+        os.makedirs(os.path.join(data, "plugins"), exist_ok=True)
         json.dump({"publicUrl": SERVER, "mixedClients": True}, open(os.path.join(data, "server.json"), "w"))
+        for name in os.listdir(os.path.join(app, "plugins")) if os.path.isdir(os.path.join(app, "plugins")) else []:
+            if name.endswith(".dll"):
+                shutil.copy(os.path.join(app, "plugins", name), os.path.join(data, "plugins", name))
         self.path = os.path.join(data, "server.log")
         self.process = subprocess.Popen(["dotnet", os.path.join(os.path.abspath(app), "openkogama-server.dll")], cwd=data,
                                         stdout=open(self.path, "w"), stderr=subprocess.STDOUT, env={**os.environ, "OPENKOGAMA_TRACE": "1"})
@@ -86,6 +90,10 @@ class Server:
                     return index + 1
             await asyncio.sleep(1)
         return None
+
+    def create_world(self, template):
+        request = urllib.request.Request(f"{SERVER}/api/worlds?name={template}&template={template}", method="POST", data=b"")
+        return json.load(urllib.request.urlopen(request))["id"]
 
     def stop(self):
         self.process.terminate()
@@ -203,13 +211,15 @@ async def main(app, wanted, out):
     try:
         if await server.wait("http 8080", 0, 120) is None:
             raise SystemExit("server did not start")
+        world = server.create_world(os.environ["TEMPLATE"]) if os.environ.get("TEMPLATE") else 1
+        result["world"] = world
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True, args=["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist",
                 "--disable-features=LocalNetworkAccessChecks,LocalNetworkAccessForWorkers,PrivateNetworkAccessSendPreflights,PrivateNetworkAccessRespectPreflightResults,BlockInsecurePrivateNetworkRequests"])
             mark = len(server.log())
             for index, client in enumerate(clients):
                 context = await browser.new_context(viewport={"width": 1100, "height": 700})
-                await client.open(context, 1, index + 1)
+                await client.open(context, world, index + 1)
                 mark = await enter(client, server, mark)
                 print(json.dumps({k: v for k, v in client.result().items() if k != "log"}), flush=True)
                 if client.stage != "world":
@@ -252,6 +262,19 @@ async def main(app, wanted, out):
                 for client in clients:
                     await client.shot(out, "5-fuzz")
                 result["checks"]["fuzz clean"] = not any("exception" in line or "failed" in line for line in server.log()[before:])
+                if os.environ.get("TEMPLATE") == "deadzone":
+                    before = len(server.log())
+                    await mover.say("/deadzone")
+                    await asyncio.sleep(2)
+                    await mover.say("/time night")
+                    await asyncio.sleep(2)
+                    await last.say("/pos")
+                    await asyncio.sleep(30)
+                    for client in clients:
+                        await client.shot(out, "5b-zombies")
+                    lines = server.log()[before:]
+                    result["checks"]["zombies clean"] = not any("exception" in line or "failed" in line for line in lines)
+                    result["checks"]["npcs"] = any("npc" in line.lower() for line in lines)
                 before = len(server.log())
                 gone = any(f"peer {last.peer}: gone" in line for line in server.log())
                 await last.page.close()
@@ -261,10 +284,11 @@ async def main(app, wanted, out):
                     await client.shot(out, "6-left")
                 mark = len(server.log())
                 context = await browser.new_context(viewport={"width": 1100, "height": 700})
-                await last.open(context, 1, len(clients))
+                await last.open(context, world, len(clients))
                 await enter(last, server, mark)
                 result["checks"]["rejoin"] = last.stage == "world"
                 if last.stage == "world" and await last.press_play(out):
+                    last.stage = "playing"
                     await asyncio.sleep(8)
                 for client in clients:
                     await client.shot(out, "7-rejoined")

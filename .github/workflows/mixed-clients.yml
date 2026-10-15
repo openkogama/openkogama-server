@@ -29,6 +29,7 @@ jobs:
         with:
           dotnet-version: 10.0.x
       - run: dotnet publish openkogama-server/openkogama-server.csproj -c Release -o app -p:UseAppHost=false
+      - run: dotnet build openkogama-server/examples/deadzone/deadzone.csproj -c Release -o app/plugins
       - uses: actions/upload-artifact@v4
         with:
           name: server-app
@@ -61,6 +62,8 @@ jobs:
           pip install playwright pytesseract pillow
           python -m playwright install --with-deps chromium
       - run: python .github/mixed-clients.py app "${{ matrix.pair }}" out
+        env:
+          TEMPLATE: deadzone
       - uses: actions/upload-artifact@v4
         if: always()
         with:
