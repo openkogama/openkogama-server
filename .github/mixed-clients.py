@@ -118,7 +118,13 @@ class Client:
             if box:
                 await self.page.mouse.move(box[0] + box[2] * 0.5 + (time.time() % 2) * 20, box[1] + box[3] * 0.5)
             await self.page.evaluate("document.querySelector('canvas')?.focus()")
-            await self.page.keyboard.press("q")
+            await self.page.keyboard.down("a")
+            await self.page.wait_for_timeout(80)
+            await self.page.keyboard.up("a")
+            await self.page.keyboard.down("d")
+            await self.page.wait_for_timeout(80)
+            await self.page.keyboard.up("d")
+            self.nudges = getattr(self, "nudges", 0) + 1
         except Exception as error:
             self.logs.append(f"openkogama: test nudge failed {str(error)[:80]}")
 
@@ -209,7 +215,7 @@ class Client:
 
     def result(self):
         lines = self.logs if self.stage not in ("playing", "world") else [line for line in self.logs if "rror" in line or "ailed" in line or "openkogama" in line]
-        return {"name": self.name, "version": self.entry["version"], "unity": self.entry["unity"], "stage": self.stage, "peer": self.peer, "log": lines[-40:]}
+        return {"name": self.name, "version": self.entry["version"], "unity": self.entry["unity"], "stage": self.stage, "peer": self.peer, "nudges": getattr(self, "nudges", 0), "log": lines[-40:]}
 
 
 async def enter(client, server, mark, limit=LIMIT, others=()):
@@ -243,7 +249,7 @@ async def rejoin(last, clients, server, browser, world, out, result, suffix):
     for client in clients[:-1]:
         await client.shot(out, "6-left" if not suffix else "10-left")
     mark = len(server.log())
-    context = await browser.new_context(viewport={"width": 1100, "height": 700})
+    context = await browser.new_context(viewport={"width": 800, "height": 500})
     await last.open(context, world, len(clients))
     await enter(last, server, mark, 1200, clients[:-1])
     result["checks"]["rejoin" + suffix] = last.stage == "world"
@@ -271,7 +277,7 @@ async def main(app, wanted, out):
                 "--disable-features=LocalNetworkAccessChecks,LocalNetworkAccessForWorkers,PrivateNetworkAccessSendPreflights,PrivateNetworkAccessRespectPreflightResults,BlockInsecurePrivateNetworkRequests"])
             mark = len(server.log())
             for index, client in enumerate(clients):
-                context = await browser.new_context(viewport={"width": 1100, "height": 700})
+                context = await browser.new_context(viewport={"width": 800, "height": 500})
                 await client.open(context, world, index + 1)
                 mark = await enter(client, server, mark)
                 print(json.dumps({k: v for k, v in client.result().items() if k != "log"}), flush=True)
