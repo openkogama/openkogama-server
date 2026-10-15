@@ -17,6 +17,7 @@ public sealed class SendChatMsg : ILegacyHandler
     {
         if (session.For(peer) is not Player sender || request[protocol.Key("ChatMsg")] is not string message) return;
         if (Plugins.PluginHost.Chat(session, sender, message) is not { } text) return;
+        Console.WriteLine($"{sender.Username}: {text}");
 
         var evt = new EventData((byte)EventCode.PostGameMsg)
         {
