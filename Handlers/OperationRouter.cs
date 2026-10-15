@@ -159,7 +159,7 @@ public sealed class OperationRouter
 
     void Register(IOperationHandler handler) => _handlers[handler.Code] = handler;
 
-    static string Describe(object? value) => value switch
+    internal static string Describe(object? value) => value switch
     {
         null => "null",
         Dictionary<byte, object?> table => "{" + string.Join(", ", table.Select(pair => $"{(Kogama.ParameterKey)pair.Key}={Describe(pair.Value)}")) + "}",
@@ -171,7 +171,7 @@ public sealed class OperationRouter
         _ => $"{value.GetType().Name}:{value}",
     };
 
-    static readonly bool Trace = Environment.GetEnvironmentVariable("OPENKOGAMA_TRACE") == "1";
+    internal static readonly bool Trace = Environment.GetEnvironmentVariable("OPENKOGAMA_TRACE") == "1";
 
     public void Handle(PhotonPeer peer, OperationRequest request)
     {

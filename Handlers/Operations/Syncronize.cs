@@ -49,7 +49,12 @@ public sealed class Syncronize(Session session, OperationRouter router, GetNextG
             Run(peer, OperationCode.InitializeAvatarEdit);
         }
 
-        if (player.SpawnRoles) peer.Send(CreateGameSnapshot.Setup(session, player));
+        if (player.SpawnRoles)
+        {
+            EventData setup = CreateGameSnapshot.Setup(session, player);
+            if (OperationRouter.Trace) Console.WriteLine($"peer {peer.Id}: setup {OperationRouter.Describe(setup.Parameters)}");
+            peer.Send(setup);
+        }
         else Run(peer, OperationCode.CreateGameSnapshot);
         batch.SendWorld(peer, world => Send(peer, OperationCode.GameSnapshotData,
             (ParameterKey.Data, world), (ParameterKey.QueryType, (byte)QueryType.GameWorld), (ParameterKey.QueryDataLeft, false)));
