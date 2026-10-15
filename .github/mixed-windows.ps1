@@ -112,9 +112,9 @@ function Start-Client($name, $entry, $world, $profile) {
     $version = if ($entry.version) { $entry.version } else { "2012" }
     $dir = Join-Path $work $name
     $zip = Join-Path $work "$name.zip"
-    Invoke-WebRequest ($entry.urls | Select-Object -First 1) -OutFile $zip -Headers $agent
+    if (-not (Test-Path $zip)) { Invoke-WebRequest ($entry.urls | Select-Object -First 1) -OutFile $zip -Headers $agent }
+    Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue
     Expand-Archive $zip $dir
-    Remove-Item $zip
     $clientLog = Join-Path $work "$name-client.log"
     $psi = New-Object System.Diagnostics.ProcessStartInfo
     $psi.UseShellExecute = $false
@@ -132,7 +132,8 @@ function Start-Client($name, $entry, $world, $profile) {
             $psi.Arguments = "`"$webFile`" --version $version --reply `"sendPlayerParams=$session&client=$version`" --title KoGaMa-$name --log `"$clientLog`""
         }
     } else {
-        $exe = Get-ChildItem $dir -Recurse -Filter kogama.exe | Select-Object -First 1
+        $exe = Get-ChildItem $dir -Recurse -Filter *.exe | Where-Object { $_.Name -notmatch "crash|handler|unins" } | Sort-Object Length -Descending | Select-Object -First 1
+        if (-not $exe) { throw "no executable in the $version build" }
         $session = "http://127.0.0.1:8080/session?mode=play&world=$world&client=$version&unity=$($entry.unityVersion)&profile=$profile"
         $psi.FileName = $exe.FullName
         $psi.WorkingDirectory = $exe.DirectoryName
@@ -205,6 +206,10 @@ function Say($client, $text) {
     [System.Windows.Forms.SendKeys]::SendWait($text)
     Start-Sleep -Milliseconds 300
     [System.Windows.Forms.SendKeys]::SendWait("{ENTER}")
+    Start-Sleep -Milliseconds 500
+    $bitmap = [Win]::Capture($client.window)
+    [Win]::Click($client.window, $bitmap.Width / 2, $bitmap.Height / 2)
+    $bitmap.Dispose()
 }
 
 function Clean($from) { return -not ((Log)[$from..((Log).Count)] -match "exception|failed") }
@@ -243,7 +248,7 @@ try {
     }
     if (($clients | Where-Object { $_.stage -eq "world" }).Count -eq $clients.Count) {
         Start-Sleep 8
-        foreach ($client in $clients) { Find-Window $client; if (Press-Play $client) { $client.stage = "playing" } else { Shot $client "stuck" } }
+        foreach ($client in $clients) { Find-Window $client; if ($client.unity.StartsWith("3.") -or (Press-Play $client)) { $client.stage = "playing" } else { Shot $client "stuck" } }
         Start-Sleep 10
     }
     if (($clients | Where-Object { $_.stage -eq "playing" }).Count -eq $clients.Count) {
@@ -294,7 +299,7 @@ try {
         Find-Window $again
         $mark = Enter-World $again $mark
         $result.checks["rejoin"] = $again.stage -eq "world"
-        if ($again.stage -eq "world") { Start-Sleep 8; Find-Window $again; if (Press-Play $again) { $again.stage = "playing"; Start-Sleep 8 } }
+        if ($again.stage -eq "world") { Start-Sleep 8; Find-Window $again; if ($again.unity.StartsWith("3.") -or (Press-Play $again)) { $again.stage = "playing"; Start-Sleep 8 } }
         foreach ($client in $clients) { Shot $client "9-rejoined" }
     }
 } finally {

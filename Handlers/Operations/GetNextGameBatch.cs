@@ -7,6 +7,25 @@ namespace OpenKogama.Handlers.Operations;
 
 public sealed class GetNextGameBatch(Session session) : IOperationHandler
 {
+    public static void Introduce(Player me, Player other)
+    {
+        var join = new EventData((byte)EventCode.Join)
+        {
+            Parameters = { [(byte)ParameterKey.ActorNr] = me.Actor },
+        };
+        foreach ((ParameterKey key, object value) in me.Info()) join.Parameters[(byte)key] = value;
+        join.Parameters[(byte)ParameterKey.Bool] = false;
+        other.Peer.Send(join);
+        other.Sees(me.Actor);
+        if (other.Peer.Translator is Kogama.Protocols.OperationRemap)
+            other.Peer.Send(new EventData((byte)EventCode.JoinNotification) { Parameters = { [(byte)ParameterKey.ActorNr] = me.Actor } });
+        if (other.SpawnRoles)
+            other.Peer.Send(new EventData((byte)EventCode.ReplicateSpawnRoleData)
+            {
+                Parameters = { [(byte)ParameterKey.ActorNr] = me.Actor, [(byte)ParameterKey.Data] = me.SpawnRoleData() },
+            });
+    }
+
     public static void SendAdded(Session session, int actor, Snapshot added, Func<Player, bool>? audience = null)
     {
         var formats = new Dictionary<object, byte[]>();
@@ -101,22 +120,7 @@ public sealed class GetNextGameBatch(Session session) : IOperationHandler
         foreach (Player other in session.Players)
         {
             if (other.Peer == peer) continue;
-
-            var join = new EventData((byte)EventCode.Join)
-            {
-                Parameters = { [(byte)ParameterKey.ActorNr] = me.Actor },
-            };
-            foreach ((ParameterKey key, object value) in me.Info()) join.Parameters[(byte)key] = value;
-            join.Parameters[(byte)ParameterKey.Bool] = false;
-            other.Peer.Send(join);
-            other.Sees(me.Actor);
-            if (other.Peer.Translator is Kogama.Protocols.OperationRemap)
-                other.Peer.Send(new EventData((byte)EventCode.JoinNotification) { Parameters = { [(byte)ParameterKey.ActorNr] = me.Actor } });
-            if (other.SpawnRoles)
-                other.Peer.Send(new EventData((byte)EventCode.ReplicateSpawnRoleData)
-                {
-                    Parameters = { [(byte)ParameterKey.ActorNr] = me.Actor, [(byte)ParameterKey.Data] = me.SpawnRoleData() },
-                });
+            Introduce(me, other);
 
             other.Peer.Send(new EventData((byte)EventCode.GetGameBatch)
             {

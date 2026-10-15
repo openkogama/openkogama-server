@@ -21,7 +21,7 @@ public sealed class Player(PhotonPeer peer, int actor, int avatarId)
     public int ProfileId { get; set; } = actor;
     public Team Team { get; set; }
     public int Level { get; set; } = 1;
-    public byte BuildTarget { get; set; }
+    public byte BuildTarget { get; set; } = 1;
     public DateTime? BoostSince { get; set; }
     public long? NextFreeSpin { get; set; }
     public int? PendingReward { get; set; }

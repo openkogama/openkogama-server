@@ -122,6 +122,11 @@ public sealed class Router2012
                 [(byte)Key2012.ActorNr] = player.Actor,
             },
         });
+        if (Shared(peer))
+        {
+            player.BuildTarget = 1;
+            foreach (Player other in Newer(peer)) Operations.GetNextGameBatch.Introduce(player, other);
+        }
         Console.WriteLine($"peer {peer.Id}: 2012 client joined as actor {player.Actor}");
     }
 
@@ -142,9 +147,20 @@ public sealed class Router2012
     void Broadcast(PhotonPeer? from, EventData evt, bool reliable = true)
     {
         foreach (Player player in session.Players)
-            if (player.Peer != from)
-                player.Peer.Send(evt, reliable: reliable);
+            if (player.Peer != from && player.Peer.Protocol == PhotonProtocol.Protocol15)
+                Send2012(player.Peer, evt, reliable);
     }
+
+    static void Send2012(PhotonPeer peer, EventData evt, bool reliable = true)
+    {
+        if (peer.Translator is Translator2012 shared) shared.SendRaw(peer, evt, reliable);
+        else peer.Send(evt, reliable: reliable);
+    }
+
+    static bool Shared(PhotonPeer peer) => peer.Translator is Translator2012;
+
+    IEnumerable<Player> Newer(PhotonPeer? except = null) =>
+        session.Players.Where(player => player.Peer != except && player.Peer.Protocol != PhotonProtocol.Protocol15);
 
     void DBQuery(PhotonPeer peer, OperationRequest request)
     {
@@ -341,8 +357,8 @@ public sealed class Router2012
     void SendToFriends(Friendship friendship, EventData evt)
     {
         foreach (Player other in session.Players)
-            if (other.ProfileId == friendship.Profile || other.ProfileId == friendship.Friend)
-                other.Peer.Send(evt);
+            if ((other.ProfileId == friendship.Profile || other.ProfileId == friendship.Friend) && other.Peer.Protocol == PhotonProtocol.Protocol15)
+                Send2012(other.Peer, evt);
     }
 
     void PublishPlanet(PhotonPeer peer, OperationRequest request)
@@ -384,7 +400,27 @@ public sealed class Router2012
             session.World.MarkChanged();
         }
 
+        if (Shared(peer)) MovedForNewer(peer, request, objectId);
         Broadcast(peer, new EventData((byte)Event2012.UpdateWorldObject) { Parameters = new Dictionary<byte, object?>(request.Parameters) }, reliable: false);
+    }
+
+    void MovedForNewer(PhotonPeer from, OperationRequest request, int objectId)
+    {
+        float Get(Key2012 key) => Convert.ToSingle(request[(byte)key]);
+        var moved = new EventData((byte)EventCode.UpdateWorldObject)
+        {
+            Parameters =
+            {
+                [(byte)ParameterKey.WorldObjectID] = objectId,
+                [(byte)ParameterKey.Timestamp] = request[(byte)Key2012.Timestamp] is { } stamp ? Convert.ToInt32(stamp) : 0,
+                [(byte)ParameterKey.PosX] = Get(Key2012.PosX),
+                [(byte)ParameterKey.PosY] = Get(Key2012.PosY),
+                [(byte)ParameterKey.PosZ] = Get(Key2012.PosZ),
+                [(byte)ParameterKey.ByteRotation] = QuaternionCompression.ToBytes(Get(Key2012.RotX), Get(Key2012.RotY), Get(Key2012.RotZ), Get(Key2012.RotW)),
+                [(byte)ParameterKey.TransformPackageType] = (byte)1,
+            },
+        };
+        foreach (Player other in Newer(from)) other.Peer.Send(moved, reliable: false);
     }
 
     void TriggerBox(PhotonPeer peer, OperationRequest request, bool entering)
@@ -515,14 +551,21 @@ public sealed class Router2012
         if (Plugins.PluginHost.Chat(session, player, message) is not { } allowed) return;
         message = allowed;
         if (message.Length > 256) message = message[..256];
-        Broadcast(null, new EventData((byte)Event2012.ChatMsg)
+        if (Shared(peer))
         {
-            Parameters =
+            ServerChat.Relay(session, player, ChatKind.Everyone, new Dictionary<object, object?> { [Legacy.SendChatMsg.Sender] = player.Actor, [Legacy.SendChatMsg.Text] = message });
+        }
+        else
+        {
+            Broadcast(null, new EventData((byte)Event2012.ChatMsg)
             {
-                [(byte)Key2012.ActorNr] = player.Actor,
-                [(byte)Key2012.ChatMsg] = message,
-            },
-        });
+                Parameters =
+                {
+                    [(byte)Key2012.ActorNr] = player.Actor,
+                    [(byte)Key2012.ChatMsg] = message,
+                },
+            });
+        }
         Console.WriteLine($"peer {peer.Id}: chat {player.Username}: {message}");
     }
 
@@ -590,8 +633,8 @@ public sealed class Router2012
             },
         };
         foreach (Player player in session.Players)
-            if (player.InWorld)
-                player.Peer.Send(evt);
+            if (player.InWorld && player.Peer.Protocol == PhotonProtocol.Protocol15)
+                Send2012(player.Peer, evt);
     }
 
     void UpdatePrototype(PhotonPeer peer, OperationRequest request)
@@ -693,7 +736,7 @@ public sealed class Router2012
             return;
         }
 
-        peer.Send(new EventData((byte)Event2012.RemoveItemFromInventory) { Parameters = { [(byte)Key2012.ItemID] = itemId } });
+        Send2012(peer, new EventData((byte)Event2012.RemoveItemFromInventory) { Parameters = { [(byte)Key2012.ItemID] = itemId } });
         Reply(peer, request);
     }
 
@@ -847,6 +890,7 @@ public sealed class Router2012
         foreach ((object key, object? value) in WorldObjects2012.Describe([obj], ProtocolTable.For(Version)).Single())
             registered.Parameters[(byte)key] = value;
         Broadcast(peer, registered);
+        if (Shared(peer)) Operations.GetNextGameBatch.SendAdded(session, player.Actor, session.World.SubtreeSnapshot(obj.Id), other => other.Peer.Protocol != PhotonProtocol.Protocol15);
         Console.WriteLine($"peer {peer.Id}: 2012 client registered {obj.Type} as {obj.Id}");
     }
 

@@ -16,7 +16,7 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
 {
     public Func<int> EntryWorld { get; init; } = () => 0;
     public Func<string, bool> Allows { get; init; } = _ => true;
-    sealed record Entry(Session Session, OperationRouter? Router, bool Editor, string Client = "", Router2012? Classic = null);
+    sealed record Entry(Session Session, OperationRouter? Router, bool Editor, string Client = "") { public Router2012? Classic { get; set; } }
 
     readonly object _sync = new();
     readonly Dictionary<(int Id, bool Play, string Client), Entry> _worlds = [];
@@ -98,7 +98,7 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
         {
             if (!_peers.TryGetValue(peer, out entry) && request.OperationCode == (byte)Op2012.Join)
             {
-                entry = Assign2012(request);
+                entry = Assign2012(peer, request);
                 if (entry is not null) _peers[peer] = entry;
             }
         }
@@ -121,10 +121,10 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
         }
     }
 
-    Entry? Assign2012(OperationRequest join)
+    Entry? Assign2012(PhotonPeer peer, OperationRequest join)
     {
-        const string Client = "2012";
-        if (!Allows(Client))
+        const string Version = "2012";
+        if (!Allows(Version))
         {
             Console.WriteLine("2012 client rejected, not in server.json clients");
             return null;
@@ -133,13 +133,21 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
 
         bool play = join[(byte)Key2012.JoinEditMode] is not true;
         if (play && id == 0) id = EntryWorld();
-        if (_worlds.TryGetValue((id, play, Client), out Entry? open)) return open;
+        string client = mixedClients ? "" : Version;
+        if (mixedClients) peer.Translator ??= new Translator2012 { Peer = peer };
+        if (_worlds.TryGetValue((id, play, client), out Entry? open))
+        {
+            open.Classic ??= new Router2012(open.Session);
+            return open;
+        }
         if (!play && EditLocked(id)) return null;
         if (Session.Open(id, play) is not { } session) return null;
 
-        Console.WriteLine($"world {id} {(play ? "play" : "edit")} opened for {Client}");
-        session.Begin(() => server.Now);
-        return _worlds[(id, play, Client)] = new Entry(session, null, false, Client, new Router2012(session));
+        Console.WriteLine($"world {id} {(play ? "play" : "edit")} opened{(client == "" ? "" : $" for {client}")}");
+        Entry entry = mixedClients ? Create(session, editor: false) : new Entry(session, null, false, client);
+        if (!mixedClients) session.Begin(() => server.Now);
+        entry.Classic = new Router2012(session);
+        return _worlds[(id, play, client)] = entry;
     }
 
     public void Disconnect(PhotonPeer peer)
@@ -160,12 +168,15 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
             return;
         }
 
-        if (entry.Classic is not null)
+        if (peer.Protocol == PhotonProtocol.Protocol15)
         {
-            session.Remove(gone);
-            entry.Classic.Left(gone);
-            Close(entry);
-            return;
+            entry.Classic?.Left(gone);
+            if (!mixedClients)
+            {
+                session.Remove(gone);
+                Close(entry);
+                return;
+            }
         }
 
         ReleaseEverything(session, gone);
