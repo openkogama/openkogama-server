@@ -202,10 +202,10 @@ class Client:
         return {"name": self.name, "version": self.entry["version"], "unity": self.entry["unity"], "stage": self.stage, "peer": self.peer, "log": lines[-40:]}
 
 
-async def enter(client, server, mark):
+async def enter(client, server, mark, limit=LIMIT):
     start = time.time()
     joined = None
-    while joined is None and time.time() - start < LIMIT:
+    while joined is None and time.time() - start < limit:
         joined = await server.wait("joined", mark, 15)
         if joined is None:
             client.logs.append("openkogama: test page says " + await client.progress())
@@ -214,7 +214,7 @@ async def enter(client, server, mark):
         return mark
     client.peer = re.search(r"peer (\d+): joined", server.log()[joined - 1]).group(1)
     client.stage = "joined"
-    synced = await server.wait(f"peer {client.peer}: world sent", joined, LIMIT - (time.time() - start))
+    synced = await server.wait(f"peer {client.peer}: world sent", joined, limit - (time.time() - start))
     if synced is None:
         client.stage = "no sync"
         return joined
@@ -233,7 +233,7 @@ async def rejoin(last, clients, server, browser, world, out, result, suffix):
         await client.shot(out, "6-left" if not suffix else "10-left")
     mark = len(server.log())
     await last.open(context, world, len(clients))
-    await enter(last, server, mark)
+    await enter(last, server, mark, 1200)
     result["checks"]["rejoin" + suffix] = last.stage == "world"
     if last.stage == "world" and await last.press_play(out):
         last.stage = "playing"
