@@ -18,6 +18,9 @@ public static class Win {
   [DllImport("user32.dll")] static extern void mouse_event(uint flags, int dx, int dy, uint data, UIntPtr extra);
   [DllImport("user32.dll")] static extern void keybd_event(byte key, byte scan, uint flags, UIntPtr extra);
   [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
+  [DllImport("user32.dll")] static extern IntPtr WindowFromPoint(POINT p);
+  [DllImport("user32.dll")] static extern bool ScreenToClient(IntPtr h, ref POINT p);
+  [DllImport("user32.dll")] static extern bool PostMessage(IntPtr h, uint msg, IntPtr w, IntPtr l);
   [StructLayout(LayoutKind.Sequential)] public struct RECT { public int L, T, R, B; }
   [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X, Y; }
   public static void Place(IntPtr h, int x, int y, int w, int hh) {
@@ -30,6 +33,12 @@ public static class Win {
     SetForegroundWindow(h); System.Threading.Thread.Sleep(300);
     SetCursorPos(p.X, p.Y); System.Threading.Thread.Sleep(200);
     mouse_event(0x0002, 0, 0, 0, UIntPtr.Zero); System.Threading.Thread.Sleep(120); mouse_event(0x0004, 0, 0, 0, UIntPtr.Zero);
+    IntPtr target = WindowFromPoint(p);
+    if (target != IntPtr.Zero && target != h) {
+      var q = p; ScreenToClient(target, ref q); IntPtr l = (IntPtr)((q.Y << 16) | (q.X & 0xffff));
+      System.Threading.Thread.Sleep(150);
+      PostMessage(target, 0x0201, (IntPtr)1, l); System.Threading.Thread.Sleep(100); PostMessage(target, 0x0202, IntPtr.Zero, l);
+    }
   }
   public static void Hold(IntPtr h, byte key, int ms) {
     SetForegroundWindow(h); System.Threading.Thread.Sleep(200);
