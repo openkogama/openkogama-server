@@ -138,6 +138,7 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
         if (_worlds.TryGetValue((id, play, client), out Entry? open))
         {
             open.Classic ??= new Router2012(open.Session);
+            if (peer.Translator is Translator2012 shared) shared.Session = open.Session;
             return open;
         }
         if (!play && EditLocked(id)) return null;
@@ -147,6 +148,7 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
         Entry entry = mixedClients ? Create(session, editor: false) : new Entry(session, null, false, client);
         if (!mixedClients) session.Begin(() => server.Now);
         entry.Classic = new Router2012(session);
+        if (peer.Translator is Translator2012 joined) joined.Session = session;
         return _worlds[(id, play, client)] = entry;
     }
 

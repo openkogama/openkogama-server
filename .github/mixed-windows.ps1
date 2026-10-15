@@ -134,6 +134,12 @@ function Start-Client($name, $entry, $world, $profile) {
     } else {
         $exe = Get-ChildItem $dir -Recurse -Filter *.exe | Where-Object { $_.Name -notmatch "crash|handler|unins" } | Sort-Object Length -Descending | Select-Object -First 1
         if (-not $exe) { throw "no executable in the $version build" }
+        $dataDir = Get-ChildItem $exe.DirectoryName -Directory -Filter "*_Data" | Select-Object -First 1
+        if ($dataDir -and $dataDir.Name -ne "$($exe.BaseName)_Data") {
+            $renamed = Join-Path $exe.DirectoryName ($dataDir.Name.Substring(0, $dataDir.Name.Length - 5) + ".exe")
+            Move-Item $exe.FullName $renamed
+            $exe = Get-Item $renamed
+        }
         $session = "http://127.0.0.1:8080/session?mode=play&world=$world&client=$version&unity=$($entry.unityVersion)&profile=$profile"
         $psi.FileName = $exe.FullName
         $psi.WorkingDirectory = $exe.DirectoryName
@@ -199,8 +205,10 @@ function Press-Play($client) {
 
 function Say($client, $text) {
     if ($client.window -eq [IntPtr]::Zero) { return }
-    [Win]::SetForegroundWindow($client.window) | Out-Null
-    Start-Sleep -Milliseconds 300
+    $bitmap = [Win]::Capture($client.window)
+    [Win]::Click($client.window, $bitmap.Width / 2, $bitmap.Height / 2)
+    $bitmap.Dispose()
+    Start-Sleep -Milliseconds 500
     [System.Windows.Forms.SendKeys]::SendWait("{ENTER}")
     Start-Sleep -Milliseconds 600
     [System.Windows.Forms.SendKeys]::SendWait($text)

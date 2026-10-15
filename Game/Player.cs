@@ -11,6 +11,7 @@ public sealed class Player(PhotonPeer peer, int actor, int avatarId)
     public Dictionary<int, int> ClassAvatars { get; } = [];
     public int ActiveSpawnRole { get; set; } = avatarId;
     public float[]? LastPosition { get; set; }
+    public int ClassicAvatarId { get; set; } = -1;
     public float[]? LastRotation { get; set; }
     public bool InWorld { get; set; }
     public string ClientVersion { get; set; } = Kogama.Protocols.ClientProtocols.ServerVersion;

@@ -138,6 +138,13 @@ public sealed partial class Session
         Transient = obj.Transient,
     };
 
+    public Snapshot WithoutClassicAvatars(Snapshot snapshot)
+    {
+        var classic = Players.Where(player => player.ClassicAvatarId >= 0).Select(player => player.ClassicAvatarId).ToHashSet();
+        if (classic.Count == 0) return snapshot;
+        return snapshot with { Objects = [.. snapshot.Objects.Where(obj => !classic.Contains(obj.Id) && !classic.Contains(obj.ParentId))] };
+    }
+
     public Snapshot WithoutNpcs(Snapshot snapshot)
     {
         HashSet<int> actors;

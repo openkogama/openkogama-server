@@ -12,6 +12,7 @@ public sealed class Translator2012 : IMessageTranslator
     readonly HashSet<object> _raw = new(ReferenceEqualityComparer.Instance);
 
     public PhotonPeer? Peer { get; set; }
+    public Game.Session? Session { get; set; }
 
     public void SendRaw(PhotonPeer peer, EventData data, bool reliable = true)
     {
@@ -62,9 +63,11 @@ public sealed class Translator2012 : IMessageTranslator
         return new EventData((byte)Event2012.ChatMsg) { Parameters = { [(byte)Key2012.ActorNr] = actor, [(byte)Key2012.ChatMsg] = text } };
     }
 
-    static EventData? Moved(EventData data)
+    EventData? Moved(EventData data)
     {
         if (data[(byte)ParameterKey.WorldObjectID] is not { } id) return null;
+        int objectId = Convert.ToInt32(id);
+        if (Session?.Players.Any(player => player.Peer.Protocol == PhotonProtocol.Protocol15 && player.AvatarId == objectId) == true) return null;
         var moved = new EventData((byte)Event2012.UpdateWorldObject) { Parameters = { [(byte)Key2012.WorldObjectID] = id } };
         if (data[(byte)ParameterKey.Timestamp] is { } stamp) moved.Parameters[(byte)Key2012.Timestamp] = stamp;
         foreach ((ParameterKey from, Key2012 to) in new[] { (ParameterKey.PosX, Key2012.PosX), (ParameterKey.PosY, Key2012.PosY), (ParameterKey.PosZ, Key2012.PosZ) })
@@ -99,7 +102,9 @@ public sealed class Translator2012 : IMessageTranslator
             Console.WriteLine($"peer {Peer.Id}: 2012 client cannot read added objects, {error.Message}");
             return;
         }
-        foreach (Dictionary<object, object?> described in WorldObjects2012.Describe(snapshot.Objects, Table))
+        var built = Session?.Players.Where(player => player.Peer.Protocol == PhotonProtocol.Protocol15).Select(player => player.AvatarId).ToHashSet() ?? [];
+        IReadOnlyList<WorldObject> objects = [.. snapshot.Objects.Where(obj => !built.Contains(obj.Id))];
+        foreach (Dictionary<object, object?> described in WorldObjects2012.Describe(objects, Table))
         {
             var registered = new EventData((byte)Event2012.RegisterWorldObject);
             foreach ((object key, object? value) in described) registered.Parameters[(byte)key] = value;

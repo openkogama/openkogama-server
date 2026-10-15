@@ -99,7 +99,7 @@ public sealed class Router2012
 
     void Join(PhotonPeer peer, OperationRequest request)
     {
-        Player player = session.For(peer) ?? session.Add(peer, buildAvatar: false);
+        Player player = session.For(peer) ?? session.Add(peer, buildAvatar: Shared(peer));
         if (int.TryParse(request[(byte)Key2012.Username] as string, out int profile) && profile > 0)
             player.ProfileId = profile;
 
@@ -126,6 +126,7 @@ public sealed class Router2012
         {
             player.BuildTarget = 1;
             foreach (Player other in Newer(peer)) Operations.GetNextGameBatch.Introduce(player, other);
+            Operations.GetNextGameBatch.SendAdded(session, player.Actor, session.AvatarSnapshot(player), other => other.Peer.Protocol != PhotonProtocol.Protocol15);
         }
         Console.WriteLine($"peer {peer.Id}: 2012 client joined as actor {player.Actor}");
     }
@@ -139,8 +140,10 @@ public sealed class Router2012
         }
         foreach (int trigger in session.Triggers.ExitAll(gone.Actor))
             Broadcast(gone.Peer, new EventData((byte)Event2012.TriggerBoxStayEnd) { Parameters = { [(byte)Key2012.WorldObjectID] = trigger } });
-        if (gone.AvatarId >= 0)
-            Broadcast(gone.Peer, new EventData((byte)Event2012.UnregisterWorldObject) { Parameters = { [(byte)Key2012.WorldObjectID] = gone.AvatarId } });
+        int avatar = gone.ClassicAvatarId >= 0 ? gone.ClassicAvatarId : gone.AvatarId;
+        if (gone.ClassicAvatarId >= 0) session.World.Remove(gone.ClassicAvatarId);
+        if (avatar >= 0)
+            Broadcast(gone.Peer, new EventData((byte)Event2012.UnregisterWorldObject) { Parameters = { [(byte)Key2012.WorldObjectID] = avatar } });
         Broadcast(gone.Peer, new EventData((byte)Event2012.Leave) { Parameters = { [(byte)Key2012.ActorNr] = gone.Actor } });
     }
 
@@ -214,7 +217,7 @@ public sealed class Router2012
 
     void RequestWorldObjects(PhotonPeer peer, OperationRequest request)
     {
-        IReadOnlyList<WorldObject> objects = session.WithoutNpcs(session.World.ToSnapshot()).Objects;
+        IReadOnlyList<WorldObject> objects = WithoutOwnBuiltAvatars(session.WithoutNpcs(session.World.ToSnapshot())).Objects;
         var batch = new Queue<Dictionary<object, object?>>(WorldObjects2012.Describe(objects, ProtocolTable.For(Version)));
         int count = batch.Count;
         var kept = batch.Select(obj => (int)obj[(byte)Key2012.WorldObjectID]!).ToHashSet();
@@ -404,14 +407,31 @@ public sealed class Router2012
         Broadcast(peer, new EventData((byte)Event2012.UpdateWorldObject) { Parameters = new Dictionary<byte, object?>(request.Parameters) }, reliable: false);
     }
 
+    Snapshot WithoutOwnBuiltAvatars(Snapshot snapshot)
+    {
+        var built = session.Players.Where(player => player.ClassicAvatarId >= 0 || player.Peer.Protocol == PhotonProtocol.Protocol15).Select(player => player.AvatarId).ToHashSet();
+        if (built.Count == 0) return snapshot;
+        return snapshot with { Objects = [.. snapshot.Objects.Where(obj => !built.Contains(obj.Id))] };
+    }
+
     void MovedForNewer(PhotonPeer from, OperationRequest request, int objectId)
     {
         float Get(Key2012 key) => Convert.ToSingle(request[(byte)key]);
+        Player? mover = session.For(from);
+        if (mover is not null && objectId == mover.ClassicAvatarId)
+        {
+            objectId = mover.AvatarId;
+            float[] position = [Get(Key2012.PosX), Get(Key2012.PosY), Get(Key2012.PosZ)];
+            float[] rotation = [Get(Key2012.RotX), Get(Key2012.RotY), Get(Key2012.RotZ), Get(Key2012.RotW)];
+            session.World.Modify(objectId, obj => { obj.Position = position; obj.Rotation = rotation; });
+            mover.LastPosition = position;
+        }
         var moved = new EventData((byte)EventCode.UpdateWorldObject)
         {
             Parameters =
             {
                 [(byte)ParameterKey.WorldObjectID] = objectId,
+                [(byte)ParameterKey.ActorNr] = mover?.Actor ?? 0,
                 [(byte)ParameterKey.Timestamp] = request[(byte)Key2012.Timestamp] is { } stamp ? Convert.ToInt32(stamp) : 0,
                 [(byte)ParameterKey.PosX] = Get(Key2012.PosX),
                 [(byte)ParameterKey.PosY] = Get(Key2012.PosY),
@@ -881,7 +901,8 @@ public sealed class Router2012
         WorldObject obj = WorldObjects2012.Read(request, session.World.NewObjectId(), ProtocolTable.For(Version));
         obj.Owner = player.Actor;
         session.World.Add(obj);
-        if (obj.Type == WorldObjectType.Avatar) player.AvatarId = obj.Id;
+        if (obj.Type == WorldObjectType.Avatar && Shared(peer)) player.ClassicAvatarId = obj.Id;
+        else if (obj.Type == WorldObjectType.Avatar) player.AvatarId = obj.Id;
         else session.World.MarkChanged();
 
         Reply(peer, request, new() { [(byte)Key2012.WorldObjectID] = obj.Id });
@@ -890,7 +911,7 @@ public sealed class Router2012
         foreach ((object key, object? value) in WorldObjects2012.Describe([obj], ProtocolTable.For(Version)).Single())
             registered.Parameters[(byte)key] = value;
         Broadcast(peer, registered);
-        if (Shared(peer)) Operations.GetNextGameBatch.SendAdded(session, player.Actor, session.World.SubtreeSnapshot(obj.Id), other => other.Peer.Protocol != PhotonProtocol.Protocol15);
+        if (Shared(peer) && obj.Id != player.ClassicAvatarId) Operations.GetNextGameBatch.SendAdded(session, player.Actor, session.World.SubtreeSnapshot(obj.Id), other => other.Peer.Protocol != PhotonProtocol.Protocol15);
         Console.WriteLine($"peer {peer.Id}: 2012 client registered {obj.Type} as {obj.Id}");
     }
 
