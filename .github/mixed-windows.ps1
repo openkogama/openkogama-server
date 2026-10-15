@@ -221,7 +221,8 @@ function Say($client, $text) {
     [System.Windows.Forms.SendKeys]::SendWait("{ENTER}")
     Start-Sleep -Milliseconds 1200
     foreach ($char in $text.ToCharArray()) {
-        [System.Windows.Forms.SendKeys]::SendWait([regex]::Escape([string]$char) -replace '\\(.)', '{$1}')
+        $key = if ("+^%~(){}[]".Contains($char)) { "{$char}" } else { [string]$char }
+        [System.Windows.Forms.SendKeys]::SendWait($key)
         Start-Sleep -Milliseconds 60
     }
     Start-Sleep -Milliseconds 500
