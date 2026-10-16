@@ -18,13 +18,17 @@ An optional `server.json` in the server working directory configures its launche
   "listenHost": "+",
   "clients": ["3.5.20", "1.25.12.280-1.32.10.547"],
   "mixedClients": false,
-  "keepPlayChanges": false
+  "keepPlayChanges": false,
+  "joinMode": "play",
+  "admins": ["203.0.113.7"]
 }
 ```
 
 Without this file the server keeps its local addresses. `joinWorld` defaults to the first saved world. Set `publicUrl` to the HTTP/HTTPS address players use, and `listenHost` to the HTTP listener hostname (`+` accepts all hostnames); hosting requires HTTP port 8080 and Photon port 5055 to be reachable. On Windows the listener prefixes may require an HTTP URL reservation for the account running the server. Session responses use the public hostname for Photon and the public base URL for callbacks, the API and asset bundles. Clients built with Unity 2022 or newer, such as 3.5.20, refuse plain HTTP to anything but localhost, so a public server needs an HTTPS `publicUrl`, for example behind Caddy.
 
-`clients` limits which game versions can join, as exact versions or inclusive ranges like `1.25.12.280-1.32.10.547`; the 2012 build is `2012`. Without it every version is accepted. Other versions get a 403 from `/session`, and the launcher picks an installed version that matches. `mixedClients` puts every version into one world session instead of one per translated protocol; it is unsupported, like `--mixed-clients`. `keepPlayChanges` saves what players change in play mode, such as cubes and moved vehicles, apart from the published world, so the world carries on after everyone leaves or the server restarts. It is saved every minute, when the last player leaves and when the server stops; a save that cannot be read back is skipped, the previous save is kept, and a world whose newest save does not load falls back to the previous one and then to the published world. Publishing the world again starts it fresh.
+`clients` limits which game versions can join, as exact versions or inclusive ranges like `1.25.12.280-1.32.10.547`; the 2012 build is `2012`. Without it every version is accepted. Other versions get a 403 from `/session`, and the launcher picks an installed version that matches. `mixedClients` puts every version into one world session instead of one per translated protocol; it is unsupported, like `--mixed-clients`. `keepPlayChanges` saves what players change in play mode, such as cubes and moved vehicles, apart from the published world, so the world carries on after everyone leaves or the server restarts. It is saved every minute, when the last player leaves and when the server stops; a save that cannot be read back is skipped, the previous save is kept, and a world whose newest save does not load falls back to the previous one and then to the published world. Publishing the world again starts it fresh. `joinMode` set to `build` makes Join open the world in build mode, so everyone builds together; on the launcher's own server it only applies to players who join with a code, and the host's Play still plays. `admins` lists the IP addresses whose players can use admin commands such as `!reload`, besides players on the server's own machine.
+
+The launcher edits the `server.json` of its own server under File, Server settings, and restarts the server on save. A world hosted with a code follows it like a public server: the title, thumbnail and versions show on the tile of everyone who joins, and `joinMode`, `mixedClients`, `keepPlayChanges` and the plugins apply to them.
 
 `GET /api/server` exposes only `title` (up to 40 characters), `clients` and an optional `/api/server/thumbnail` path. The image endpoint serves the configured file up to 256 KB; PNG, JPEG and WebP are accepted by the launcher. `GET /session?mode=play` opens the configured entry world. Lists, map selection and hubs belong inside the game; the launcher never reads a remote server's world or avatar lists.
 

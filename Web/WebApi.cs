@@ -71,7 +71,7 @@ public sealed class WebApi
             bool join = query["mode"] == "play";
             GameMode mode = query["mode"] switch
             {
-                "play" => ServerInfo.BuildJoin ? GameMode.Edit : GameMode.Play,
+                "play" => ServerInfo.BuildJoin && (ServerInfo.Accounts || request.Via is not null) ? GameMode.Edit : GameMode.Play,
                 "avatar" => GameMode.CharacterEditor,
                 _ => GameMode.Edit,
             };
