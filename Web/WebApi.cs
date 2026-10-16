@@ -31,6 +31,7 @@ public sealed class WebApi
     public Func<int, bool> DeleteWorld { get; set; } = _ => false;
     public Func<int, byte[]?> ExportWorld { get; set; } = _ => null;
     public Action? Shutdown { get; set; }
+    public Func<int> Players { get; set; } = () => 0;
     public ServerInfo ServerInfo { get; init; } = new();
 
     public ApiResponse Route(ApiRequest request)
@@ -46,6 +47,8 @@ public sealed class WebApi
                 title = ServerInfo.DisplayTitle,
                 thumbnail = ServerInfo.ThumbnailBytes() is not null ? "/api/server/thumbnail" : null,
                 clients = ServerInfo.Clients ?? [],
+                players = Players(),
+                @public = ServerInfo.Public,
             }));
 
         if (path.TrimEnd('/') == "/api/server/thumbnail")

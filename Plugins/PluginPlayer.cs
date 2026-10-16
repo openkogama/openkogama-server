@@ -30,7 +30,7 @@ sealed class PluginPlayer(Player player, Session session) : IPlayer
             ? PluginHost.ItemOf(type)
             : AvatarItem.Hand;
 
-    public int AddXp(int amount) => Experience.Award(player, amount, Experience.NoReason);
+    public int AddXp(int amount) => Experience.Award(session, player, amount, Experience.NoReason);
 
     public int AddGold(int amount) => Stores.Profiles.AddGold(player.ProfileId, amount);
 

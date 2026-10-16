@@ -104,7 +104,7 @@ public sealed class GamePasses
 
         Stores.Profiles.AddGold(player.ProfileId, -price);
         Stores.Profiles.SetPlanet(player.ProfileId, key, progress with { Tier = tier });
-        Experience.Award(player, TierXp()[tier], TierUnlockedReward);
+        Experience.Award(_session, player, TierXp()[tier], TierUnlockedReward);
         Update(player);
         Console.WriteLine($"profile {player.ProfileId}: bought tier {tier} in world {key} for {price} gold");
         return 0;
@@ -166,7 +166,7 @@ public sealed class GamePasses
         Stores.Profiles.SetPlanet(player.ProfileId, key, progress);
         if (_session.Play)
             for (int tier = before + 1; tier <= after; tier++)
-                Experience.Award(player, TierXp()[tier], TierUnlockedReward);
+                Experience.Award(_session, player, TierXp()[tier], TierUnlockedReward);
         Update(player);
     }
 

@@ -4,7 +4,7 @@ Anyone can host an OpenKogama server and let others join it from the Servers tab
 
 ## Sharing a world with a code
 
-To let others play one of your worlds you don't need any of this. In the launcher, select a world on the Worlds tab and click **Host**. The game starts and a bar at the top of the launcher shows a code like `ABC-DEF`. Others click **Join with code** on the Servers tab, type the code and play with the same game version. Nobody opens ports or needs an IP address: the launchers find each other through small meeting points in Europe, North America, South America and Asia and connect directly. The host uses the nearest one, and when a direct connection can't be made, the game goes through it instead. Keep the launcher open while others play.
+To let others play one of your worlds you don't need any of this. In the launcher, select a world on the Worlds tab and click **Host**. The game starts and a bar at the top of the launcher shows a code like `ABC-DEF`. Others click **Join with code** on the Servers tab, type the code and play with the same game version. Nobody opens ports or needs an IP address: the launchers find each other through small meeting points in Europe, North America, South America and Asia and connect directly. The host uses the nearest one, and when a direct connection can't be made, the game goes through it instead. Keep the launcher open while others play. With `"public": true` in File, Server settings, the hosted world also shows for everyone under Public on the Servers tab while you host.
 
 The same works from the command line. `openkogama-server tunnel host` shares a server running on the same PC (`--http 8080 --photon 5055` by default) and prints its code, `openkogama-server tunnel join CODE` prints a local port that leads to that server, and `openkogama-server rendezvous --port 5058` runs a meeting point of your own, which both sides then pick with `--rendezvous host:port` (several are separated by commas). Players who come through a tunnel get their own profile by nickname, are never admins, and can't reach `/shutdown`, `/api/worlds`, `/api/avatars` or `/api/templates`.
 
@@ -52,6 +52,7 @@ The server reads its program files from `app` and keeps everything else in the f
 | `mixedClients` | `true` puts every version into the same world. Checked with builds from 2012 to 3.5 playing together. |
 | `keepPlayChanges` | `true` keeps the cubes, vehicles and other changes players make, after they leave and after restarts. |
 | `joinMode` | `"build"` puts everyone who joins straight into the editor of the join world, and their changes are saved into the world itself. The default is `"play"`. |
+| `public` | `true` shows the server to everyone under Public on the launcher's Servers tab. The list checks the server at its `publicUrl` before showing it, and drops it a few minutes after it stops. |
 | `admins` | IP addresses that may type `!reload` to load changed plugins without a restart. Players on the server's own machine always can. |
 | `httpPort`, `photonPort` | Ports for HTTP and the game, 8080 and 5055 by default. Change them to run a second server on the same machine; the 2012 build always connects to 5055. |
 
@@ -112,7 +113,7 @@ Leave `listenHost` out of `server.json` so the server only listens on its own ma
 
 ## 5. Join it
 
-In the launcher, open Servers, click **Add server...** and enter your `https://` address. Send the same address to your friends.
+In the launcher, open Servers, click **Add server...** and enter your `https://` address. Send the same address to others, or make the server public so it shows for everyone.
 
 ## Good to know
 
@@ -120,4 +121,4 @@ In the launcher, open Servers, click **Add server...** and enter your `https://`
 - So far only the 3.5.x builds have been tested on a remote server.
 - Back up `server.db` now and then. It holds every world and profile.
 - Plugins go in the `plugins` folder inside the data folder, see the [README](README.md#plugins).
-- Got it running and want it in the launcher's built-in server list? Message nightus on the [OpenKogama Discord](https://discord.gg/u6tKuP3k4M).
+- Want everyone to see it in the launcher? Add `"public": true` to `server.json` and restart the server. It shows under Public on the Servers tab within a minute.

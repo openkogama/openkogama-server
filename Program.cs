@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 using System.Text.Json;
 using OpenKogama.Game;
 using OpenKogama.Hosting;
+using OpenKogama.PublicList;
 using OpenKogama.P2p;
 using OpenKogama.Photon;
 using OpenKogama.Plugins;
@@ -19,6 +20,8 @@ if (args is ["tunnel", .. var tunnel])
     return Tunnel.Run(tunnel);
 if (args is ["rendezvous", .. var rendezvous])
     return Rendezvous.Run(rendezvous);
+if (args is ["list", .. var list])
+    return ServerList.Run(list);
 
 LogFile.Start("logs");
 AssetCache.Offline = args.Contains("--offline");
@@ -134,7 +137,13 @@ var api = new WebApi
     DeleteWorld = host.DeleteWorld,
     ExportWorld = host.ExportWorld,
     Shutdown = () => _ = Task.Delay(100).ContinueWith(_ => Environment.Exit(0)),
+    Players = () => host.Sessions().Sum(session => session.Players.Count),
 };
+if (serverInfo.Public && serverInfo.Accounts)
+{
+    Announcer.Start(serverInfo.List, () => new { url = publicBase });
+    Console.WriteLine($"listed on {serverInfo.List}");
+}
 var web = new HttpServer($"http://{serverInfo.ListenHost}:{serverInfo.HttpPort}/", api);
 Console.WriteLine($"http {serverInfo.HttpPort}");
 web.Run();

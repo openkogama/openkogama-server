@@ -1,7 +1,9 @@
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
+using System.Text.Json.Nodes;
 using LiteNetLib;
+using OpenKogama.PublicList;
 
 namespace OpenKogama.P2p;
 
@@ -58,6 +60,9 @@ public sealed class TunnelHost : INatPunchListener
         }
         var host = new TunnelHost(Tunnel.Rendezvous(options), secret, info, http, photon);
         Tunnel.ExitWithParent(options, host._stopped.Set);
+        if (options.Contains("--public"))
+            Announcer.Start(Tunnel.Option(options, "list") ?? Announcer.DefaultList,
+                () => new { secret, info = JsonNode.Parse(info) });
         host.Serve();
         return 0;
     }

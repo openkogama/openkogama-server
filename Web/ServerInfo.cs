@@ -19,6 +19,8 @@ public sealed class ServerInfo
     public string[] Clients { get; init; } = [];
     public bool MixedClients { get; init; }
     public bool KeepPlayChanges { get; init; }
+    public bool Public { get; init; }
+    public string List { get; init; } = PublicList.Announcer.DefaultList;
 
     public bool Accounts => Uri.TryCreate(PublicUrl, UriKind.Absolute, out Uri? url) && !url.IsLoopback;
 

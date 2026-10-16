@@ -16,10 +16,12 @@ public static class Experience
     const string PlayMinute = "1MinXpRewardPlayMode";
     static readonly TimeSpan Minute = TimeSpan.FromMinutes(1);
 
-    public static int Award(Player player, int amount, byte reason)
+    public static int Award(Session session, Player player, int amount, byte reason)
     {
         int total = Leveling.Grant(player.ProfileId, amount);
         ShowLevelGold(player, total);
+        bool leveled = Leveling.LevelFor(total) != Leveling.LevelFor(total - amount);
+        if (leveled) ShowLevel(session, player);
         if (!player.ServerExperience) return total;
 
         player.Peer.Send(new EventData((byte)EventCode.XPReward)
@@ -33,20 +35,26 @@ public static class Experience
             },
         });
 
-        int level = Leveling.LevelFor(total);
-        if (level != Leveling.LevelFor(total - amount))
-        {
-            player.Peer.Send(new EventData((byte)EventCode.LevelChanged)
-            {
-                Parameters =
-                {
-                    [(byte)ParameterKey.ActorNr] = player.Actor,
-                    [(byte)ParameterKey.Level] = level,
-                },
-            });
-        }
+        if (leveled) player.Peer.Send(LevelEvent(player));
         return total;
     }
+
+    public static void ShowLevel(Session session, Player player)
+    {
+        EventData changed = LevelEvent(player);
+        foreach (Player other in session.Players)
+            if (other != player && other.Saw(player.Actor))
+                other.Peer.Send(changed);
+    }
+
+    static EventData LevelEvent(Player player) => new((byte)EventCode.LevelChanged)
+    {
+        Parameters =
+        {
+            [(byte)ParameterKey.ActorNr] = player.Actor,
+            [(byte)ParameterKey.Level] = player.Level,
+        },
+    };
 
     static byte Shown(Player player, byte reason) => reason switch
     {
@@ -96,7 +104,7 @@ public static class Experience
         {
             if (!player.ServerExperience || player.PlayingSince is not DateTime since || now - since < Minute) continue;
             player.PlayingSince = since + Minute;
-            Award(player, amount, PlayModeRepeatPlayTime);
+            Award(session, player, amount, PlayModeRepeatPlayTime);
         }
     }
 }

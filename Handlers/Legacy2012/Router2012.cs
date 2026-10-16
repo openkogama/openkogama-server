@@ -417,7 +417,7 @@ public sealed class Router2012
 
     Snapshot WithoutOwnBuiltAvatars(Snapshot snapshot)
     {
-        var built = session.Players.Where(player => player.ClassicAvatarId >= 0 || player.Peer.Protocol == PhotonProtocol.Protocol15).Select(player => player.AvatarId).ToHashSet();
+        var built = session.Players.Where(player => Shared(player.Peer)).Select(player => player.AvatarId).ToHashSet();
         if (built.Count == 0) return snapshot;
         return snapshot with { Objects = [.. snapshot.Objects.Where(obj => !built.Contains(obj.Id))] };
     }
