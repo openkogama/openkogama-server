@@ -62,8 +62,9 @@ public sealed class TunnelHost : INatPunchListener
         Tunnel.ExitWithParent(options, host._stopped.Set);
         if (options.Contains("--public"))
             Announcer.Start(Tunnel.Option(options, "list") ?? Announcer.DefaultList,
-                () => new { secret, info = JsonNode.Parse(info) });
+                () => new { secret, info = JsonNode.Parse(info) }, () => new { secret, left = true });
         host.Serve();
+        Announcer.Leave();
         return 0;
     }
 

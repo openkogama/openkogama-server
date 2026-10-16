@@ -9,8 +9,9 @@ namespace OpenKogama.PublicList;
 
 public sealed class ServerList(int port, string bans)
 {
-    const int PollMs = 60_000;
-    const long StaleMs = 180_000;
+    const int PollMs = 20_000;
+    const long StaleMs = 90_000;
+    const long PlayingMs = 180_000;
     const long ForgetMs = 600_000;
     const int PerSource = 5;
     const int MaxBody = 4096;
@@ -109,7 +110,7 @@ public sealed class ServerList(int port, string bans)
         {
             visible = [.. _entries.Values.Where(entry => now - entry.Seen < StaleMs && !banned.Contains(entry.Address) && !banned.Contains(entry.Source))];
             foreach ((string source, (string address, long seen)) in _playing)
-                if (now - seen < StaleMs && !banned.Contains(source))
+                if (now - seen < PlayingMs && !banned.Contains(source))
                     players[address] = players.GetValueOrDefault(address) + 1;
         }
         var list = new JsonArray();
@@ -141,6 +142,11 @@ public sealed class ServerList(int port, string bans)
         string source = SourceOf(request);
         lock (_sync)
         {
+            if (Flag(body["left"]))
+            {
+                if (_playing.TryGetValue(source, out var playing) && playing.Address == address) _playing.Remove(source);
+                return 200;
+            }
             if (!_entries.ContainsKey(address)) return 404;
             if (_playing.Count >= MaxPlaying && !_playing.ContainsKey(source)) return 429;
             _playing[source] = (address, Environment.TickCount64);
@@ -153,14 +159,19 @@ public sealed class ServerList(int port, string bans)
         if (await BodyAsync(request) is not JsonObject body) return 400;
         string source = SourceOf(request);
         long now = Environment.TickCount64;
+        bool left = Flag(body["left"]);
 
         if (body["url"]?.GetValue<string>() is string url)
         {
             if (Address(url) is not string address) return 400;
+            if (left) return Forget(address, source);
             if (Claim(address, code: false, source, now) is not Entry entry) return 429;
             if (entry.Seen == 0) _ = Task.Run(() => CheckAsync(entry));
             return 200;
         }
+
+        if (left && body["secret"]?.GetValue<string>() is { Length: >= 16 } leaving)
+            return Forget("p2p:" + Tunnel.CodeOf(leaving), source: null);
 
         if (body["secret"]?.GetValue<string>() is { Length: >= 16 } secret && body["info"] is JsonObject info)
         {
@@ -183,14 +194,27 @@ public sealed class ServerList(int port, string bans)
             if (!_entries.TryGetValue(address, out Entry? entry))
             {
                 if (_entries.Values.Count(other => other.Source == source) >= PerSource) return null;
-                entry = new Entry(address, code);
+                entry = new Entry(address, code) { Source = source };
                 _entries[address] = entry;
             }
-            entry.Source = source;
             entry.Announced = now;
             return entry;
         }
     }
+
+    int Forget(string address, string? source)
+    {
+        lock (_sync)
+        {
+            if (!_entries.TryGetValue(address, out Entry? entry) || (source is not null && entry.Source != source)) return 200;
+            _entries.Remove(address);
+            foreach (string player in _playing.Where(play => play.Value.Address == address).Select(play => play.Key).ToList())
+                _playing.Remove(player);
+        }
+        return 200;
+    }
+
+    static bool Flag(JsonNode? node) => node is JsonValue value && value.TryGetValue(out bool flag) && flag;
 
     async Task PollAsync()
     {
@@ -203,7 +227,7 @@ public sealed class ServerList(int port, string bans)
             {
                 foreach (string gone in _entries.Values.Where(entry => now - entry.Announced > ForgetMs).Select(entry => entry.Address).ToList())
                     _entries.Remove(gone);
-                foreach (string left in _playing.Where(play => now - play.Value.Seen > StaleMs).Select(play => play.Key).ToList())
+                foreach (string left in _playing.Where(play => now - play.Value.Seen > PlayingMs).Select(play => play.Key).ToList())
                     _playing.Remove(left);
                 checking = [.. _entries.Values.Where(entry => !entry.Code)];
             }

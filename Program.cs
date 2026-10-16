@@ -80,6 +80,7 @@ void SaveBeforeExit()
 {
     if (Interlocked.Exchange(ref stopping, 1) == 1) return;
     Console.WriteLine("stopping, saving worlds");
+    Announcer.Leave();
     PluginHost.Shutdown();
     host.SaveAll(force: true);
 }
@@ -141,7 +142,7 @@ var api = new WebApi
 };
 if (serverInfo.Public && serverInfo.Accounts)
 {
-    Announcer.Start(serverInfo.List, () => new { url = publicBase });
+    Announcer.Start(serverInfo.List, () => new { url = publicBase }, () => new { url = publicBase, left = true });
     Console.WriteLine($"listed on {serverInfo.List}");
 }
 var web = new HttpServer($"http://{serverInfo.ListenHost}:{serverInfo.HttpPort}/", api);

@@ -5,19 +5,24 @@ namespace OpenKogama.PublicList;
 public static class Announcer
 {
     public const string DefaultList = "https://list.openkogama.org";
-    const int EveryMs = 60_000;
+    const int EveryMs = 20_000;
+    const int GoodbyeMs = 2_000;
 
-    public static void Start(string list, Func<object> body)
+    static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(10) };
+    static string? _target;
+    static Func<object>? _goodbye;
+
+    public static void Start(string list, Func<object> body, Func<object> goodbye)
     {
+        _target = list.TrimEnd('/') + "/announce";
+        _goodbye = goodbye;
         _ = Task.Run(async () =>
         {
-            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
-            string target = list.TrimEnd('/') + "/announce";
             while (true)
             {
                 try
                 {
-                    using HttpResponseMessage response = await http.PostAsJsonAsync(target, body());
+                    using HttpResponseMessage response = await Http.PostAsJsonAsync(_target, body());
                     if (!response.IsSuccessStatusCode) Console.WriteLine($"server list answered {(int)response.StatusCode}");
                 }
                 catch (Exception error)
@@ -27,5 +32,17 @@ public static class Announcer
                 await Task.Delay(EveryMs);
             }
         });
+    }
+
+    public static void Leave()
+    {
+        if (_target is null || _goodbye is null) return;
+        try
+        {
+            Http.PostAsJsonAsync(_target, _goodbye()).Wait(GoodbyeMs);
+        }
+        catch (Exception)
+        {
+        }
     }
 }
