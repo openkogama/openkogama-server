@@ -8,10 +8,10 @@ public sealed class ServerInfo
     public string Title { get; init; } = "OpenKogama";
     public string? Thumbnail { get; init; }
     public int JoinWorld { get; init; }
-    public string PublicUrl { get; init; } = "http://127.0.0.1:8080";
+    public string PublicUrl { get; set; } = "http://127.0.0.1:8080";
     public string ListenHost { get; init; } = "127.0.0.1";
-    public int HttpPort { get; init; } = 8080;
-    public int PhotonPort { get; init; } = 5055;
+    public int HttpPort { get; set; } = 8080;
+    public int PhotonPort { get; set; } = 5055;
     public string JoinMode { get; init; } = "play";
     public string[] Admins { get; init; } = [];
 
@@ -28,6 +28,12 @@ public sealed class ServerInfo
         ? JsonSerializer.Deserialize<ServerInfo>(File.ReadAllText(path), new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
             ?? new ServerInfo()
         : new ServerInfo();
+
+    public void UseHttpPort(int port)
+    {
+        if (PublicUrl == $"http://127.0.0.1:{HttpPort}") PublicUrl = $"http://127.0.0.1:{port}";
+        HttpPort = port;
+    }
 
     public int EntryWorld() => JoinWorld > 0 ? JoinWorld : Stores.Worlds.List().FirstOrDefault()?.Id ?? 0;
 

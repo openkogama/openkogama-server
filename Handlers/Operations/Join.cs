@@ -34,6 +34,12 @@ public sealed class Join(Session session) : IOperationHandler
         if (nickname is not null)
             player.Nickname = session.Players.Any(other => other != player && other.Username == nickname) ? $"{nickname} {player.Actor}" : nickname;
         player.Unity = ClientEngines.Of(player.ProfileId);
+        if (Bans.Holds(player))
+        {
+            Console.WriteLine($"peer {peer.Id}: {player.Username} is banned");
+            peer.Disconnect();
+            return;
+        }
         if (player.SpawnRoles && player.Mode is GameMode.Edit or GameMode.CharacterEditor) session.AddBuildAvatar(player);
 
         PhotonDictionary prices = PhotonDictionary.Untyped();
@@ -57,11 +63,11 @@ public sealed class Join(Session session) : IOperationHandler
                 [(byte)ParameterKey.PublishLevel] = 0,
                 [(byte)ParameterKey.Format] = SecurityHelper.Encrypt("openkogama"),
                 [(byte)ParameterKey.APIUrl] = $"{SessionLocator.UrlFor(player.ProfileId)}/api/",
-                [(byte)ParameterKey.AssetBundleRootUrl] = peer.Translator is Kogama.Protocols.LegacyTranslator ? $"{SessionLocator.PublicUrl}/bundles/" : BundleSets.Url(player.Build, peer.IsWebSocket, player.Unity),
+                [(byte)ParameterKey.AssetBundleRootUrl] = peer.Translator is Kogama.Protocols.LegacyTranslator ? $"{SessionLocator.BundlesFor(player.ProfileId)}/bundles/" : BundleSets.Url(player.Build, peer.IsWebSocket, player.Unity, SessionLocator.BundlesFor(player.ProfileId)),
                 [(byte)ParameterKey.LevelingSilentMode] = false,
                 [(byte)ParameterKey.SentryUrl] = SessionLocator.UrlFor(player.ProfileId).Replace("://", "://openkogama:openkogama@") + "/sentry/1",
                 [(byte)ParameterKey.AntiCheatData] = NoBannedTools,
-                [(byte)ParameterKey.IsAdmin] = false,
+                [(byte)ParameterKey.IsAdmin] = Plugins.PluginHost.Admin(player),
                 [(byte)ParameterKey.Region] = Www,
                 [(byte)ParameterKey.ThemesEnabled] = true,
                 [(byte)ParameterKey.GoldAmount] = Storage.Stores.Profiles.Gold(player.ProfileId),
@@ -87,7 +93,7 @@ public sealed class Join(Session session) : IOperationHandler
             },
         };
 
-        if (peer.IsWebSocket) response.Parameters[(byte)ParameterKey.AssetBundleRootUrlWebGL] = BundleSets.Url(player.Build, webgl: true, player.Unity);
+        if (peer.IsWebSocket) response.Parameters[(byte)ParameterKey.AssetBundleRootUrlWebGL] = BundleSets.Url(player.Build, webgl: true, player.Unity, SessionLocator.BundlesFor(player.ProfileId));
         peer.Send(response);
         Console.WriteLine($"peer {peer.Id}: joined");
     }

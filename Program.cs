@@ -1,3 +1,5 @@
+using System.Net;
+using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using OpenKogama.Game;
@@ -8,6 +10,13 @@ using OpenKogama.Photon;
 using OpenKogama.Plugins;
 using OpenKogama.Storage;
 using OpenKogama.Web;
+
+const uint QuietErrors = 0x0001 | 0x0002 | 0x8000;
+const int PortBusy = 3;
+if (OperatingSystem.IsWindows()) SetErrorMode(QuietErrors);
+
+[DllImport("kernel32.dll")]
+static extern uint SetErrorMode(uint mode);
 
 if (args is ["install", .. var sets])
 {
@@ -24,8 +33,11 @@ if (args is ["list", .. var list])
     return ServerList.Run(list);
 
 LogFile.Start("logs");
+AppDomain.CurrentDomain.UnhandledException += (_, crash) => Console.WriteLine($"error {(crash.ExceptionObject as Exception)?.Message}");
 AssetCache.Offline = args.Contains("--offline");
 var serverInfo = ServerInfo.Load("server.json");
+if (int.TryParse(Tunnel.Option(args, "http"), out int httpPort)) serverInfo.UseHttpPort(httpPort);
+if (int.TryParse(Tunnel.Option(args, "photon"), out int photonPort)) serverInfo.PhotonPort = photonPort;
 var publicUrl = new Uri(serverInfo.PublicUrl.TrimEnd('/'));
 if (publicUrl.Scheme is not ("http" or "https") || publicUrl.AbsolutePath != "/"
     || !string.IsNullOrEmpty(publicUrl.Query) || !string.IsNullOrEmpty(publicUrl.Fragment)
@@ -47,7 +59,16 @@ Stores.Market = new SqliteMarketStore(database);
 Session.EnsureDefaultWorld();
 Session.KeepPlayChanges = serverInfo.KeepPlayChanges;
 
-var server = new PhotonServer(serverInfo.PhotonPort) { Log = Console.WriteLine };
+PhotonServer server;
+try
+{
+    server = new PhotonServer(serverInfo.PhotonPort) { Log = Console.WriteLine };
+}
+catch (SocketException error)
+{
+    Console.WriteLine($"error port {serverInfo.PhotonPort} is used by another program: {error.Message}");
+    return PortBusy;
+}
 bool mixedClients = args.Contains("--mixed-clients") || serverInfo.MixedClients;
 var host = new SessionHost(server, mixedClients) { EntryWorld = serverInfo.EntryWorld, Allows = serverInfo.Allows };
 PluginHost.Admins = serverInfo.Admins ?? [];
@@ -64,7 +85,8 @@ server.Operation = host.Handle;
 
 _ = server.RunAsync();
 Console.WriteLine($"udp {serverInfo.PhotonPort}");
-_ = server.RunWebSocketsAsync($"http://{serverInfo.ListenHost}:{serverInfo.PhotonPort}/");
+_ = server.RunWebSocketsAsync($"http://{serverInfo.ListenHost}:{serverInfo.PhotonPort}/").ContinueWith(failed =>
+    Console.WriteLine($"websocket {serverInfo.PhotonPort} failed: {failed.Exception?.InnerException?.Message}"), TaskContinuationOptions.OnlyOnFaulted);
 Console.WriteLine($"websocket {serverInfo.PhotonPort}");
 
 _ = Task.Run(async () =>
@@ -147,5 +169,13 @@ if (serverInfo.Public && serverInfo.Accounts)
 }
 var web = new HttpServer($"http://{serverInfo.ListenHost}:{serverInfo.HttpPort}/", api);
 Console.WriteLine($"http {serverInfo.HttpPort}");
-web.Run();
+try
+{
+    web.Run();
+}
+catch (HttpListenerException error)
+{
+    Console.WriteLine($"error port {serverInfo.HttpPort} is used by another program: {error.Message}");
+    return PortBusy;
+}
 return 0;

@@ -43,16 +43,19 @@ public sealed class WebApi
             return new ApiResponse(403, null, []);
 
         if (path.TrimEnd('/') == "/api/server")
+        {
+            int world = WorldOf(query);
             return ApiResponse.Json(JsonSerializer.Serialize(new {
                 title = ServerInfo.DisplayTitle,
-                thumbnail = ServerInfo.ThumbnailBytes() is not null ? "/api/server/thumbnail" : null,
+                thumbnail = Thumbnail(world) is not null ? "/api/server/thumbnail" + (world > 0 ? $"?world={world}" : "") : null,
                 clients = ServerInfo.Clients ?? [],
                 players = Players(),
                 @public = ServerInfo.Public,
             }));
+        }
 
         if (path.TrimEnd('/') == "/api/server/thumbnail")
-            return ServerInfo.ThumbnailBytes() is byte[] thumbnail
+            return Thumbnail(WorldOf(query)) is byte[] thumbnail
                 ? new ApiResponse(200, "application/octet-stream", thumbnail)
                 : ApiResponse.NotFound;
 
@@ -70,7 +73,7 @@ public sealed class WebApi
             if ((ServerInfo.Accounts || request.Via is not null) && SessionToken.Clean(query["name"]) is string name) profile = Stores.Profiles.ForName(name);
             if (request.Via is not null && profile == 1)
                 return ApiResponse.Json(JsonSerializer.Serialize(new { error = "Pick another nickname" }), 403);
-            SessionLocator.Remember(profile, request.Via);
+            SessionLocator.Remember(profile, request.Via, int.TryParse(query["local"], out int local) && local is > 0 and < 65536 ? local : 0);
             bool join = query["mode"] == "play";
             GameMode mode = query["mode"] switch
             {
@@ -237,6 +240,10 @@ public sealed class WebApi
 
         return ApiResponse.NotFound;
     }
+
+    byte[]? Thumbnail(int world) => ServerInfo.ThumbnailBytes() ?? Stores.Images.Image(PlanetImage, world > 0 ? world : ServerInfo.EntryWorld());
+
+    static int WorldOf(NameValueCollection query) => int.TryParse(query["world"], out int world) && world > 0 ? world : 0;
 
     static bool IsPng(byte[] data) => data.Length <= MaxThumbnail && data.AsSpan().StartsWith(PngSignature);
 

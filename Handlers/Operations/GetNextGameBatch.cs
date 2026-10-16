@@ -122,6 +122,7 @@ public sealed class GetNextGameBatch(Session session) : IOperationHandler
             if (other.Peer == peer) continue;
             Introduce(me, other);
 
+            int added = NextQueryId();
             other.Peer.Send(new EventData((byte)EventCode.GetGameBatch)
             {
                 Parameters =
@@ -129,10 +130,12 @@ public sealed class GetNextGameBatch(Session session) : IOperationHandler
                     [(byte)ParameterKey.ActorNr] = me.Actor,
                     [(byte)ParameterKey.Data] = other.WorldData(avatar),
                     [(byte)ParameterKey.QueryType] = (byte)QueryType.AddToGameWorld,
-                    [(byte)ParameterKey.QueryId] = GetNextGameBatch.NextQueryId(),
+                    [(byte)ParameterKey.QueryId] = added,
                     [(byte)ParameterKey.QueryDataLeft] = false,
                 },
             });
+            if (other.WaitsForQueryReady)
+                other.Peer.Send(new EventData((byte)EventCode.GameQueryReady) { Parameters = { [(byte)ParameterKey.QueryId] = added } });
         }
 
         Console.WriteLine($"peer {peer.Id}: world sent, players now {session.Players.Count}");

@@ -154,8 +154,9 @@ public sealed class Logic(Session session)
                 case WorldObjectType.PressurePlate or WorldObjectType.TriggerCube when session.Triggers.IsPressed(obj.Id):
                     player.Peer.Send(FiringEvent(obj.Id, true));
                     break;
-                case WorldObjectType.RandomBox when graph.OutputCounts[index] > 0:
-                    player.Peer.Send(RandomEvent(obj.Id, Random.Shared.Next(graph.OutputCounts[index])));
+                case WorldObjectType.RandomBox when session.World.Find(obj.Id) is WorldObject box
+                    && CurrentOutput(box) is int current && current != NoOutput && current < graph.OutputCounts[index]:
+                    player.Peer.Send(RandomEvent(obj.Id, current));
                     break;
             }
         }
@@ -376,7 +377,7 @@ public sealed class Logic(Session session)
 
             case WorldObjectType.RandomBox:
                 int pick = rising && outputCount > 0 ? Random.Shared.Next(outputCount) : NoOutput;
-                if (rising && outputCount > 0) Broadcast(RandomEvent(obj.Id, Random.Shared.Next(outputCount)), frames: true);
+                if (pick != NoOutput) Broadcast(RandomEvent(obj.Id, pick), frames: true);
                 if (pick == CurrentOutput(obj)) return false;
                 SetData(obj.Id, "currentOutput", pick);
                 return true;

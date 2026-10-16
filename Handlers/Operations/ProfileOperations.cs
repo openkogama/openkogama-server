@@ -4,14 +4,41 @@ using OpenKogama.Photon;
 
 namespace OpenKogama.Handlers.Operations;
 
-public sealed class AdminOperation : IOperationHandler
+public sealed class AdminOperation(Session session) : IOperationHandler
 {
-    const short NotAdmin = -1;
+    const byte Kick = 0;
+    const byte Ban = 1;
+    const byte Expel = 2;
+    const short Refused = -1;
+    const int MaxHours = 24 * 365 * 10;
 
     public byte Code => (byte)OperationCode.AdminOperation;
 
-    public void Handle(PhotonPeer peer, OperationRequest request) =>
-        peer.Send(new OperationResponse(request) { ReturnCode = NotAdmin });
+    public void Handle(PhotonPeer peer, OperationRequest request)
+    {
+        Player? admin = session.For(peer);
+        byte type = request[(byte)ParameterKey.OperationType] is { } kind ? Convert.ToByte(kind) : byte.MaxValue;
+        int target = request[(byte)ParameterKey.ProfileID] is { } profile ? Convert.ToInt32(profile) : 0;
+        Player? player = admin is not null && Plugins.PluginHost.Admin(admin) && type is Kick or Ban or Expel
+            ? session.Players.FirstOrDefault(other => other.ProfileId == target && other != admin && !Plugins.PluginHost.Admin(other))
+            : null;
+
+        peer.Send(new OperationResponse(request) { ReturnCode = player is null ? Refused : (short)0 });
+        if (player is null) return;
+
+        string reason = request[(byte)ParameterKey.GameMsgData] as string ?? "";
+        if (type == Ban)
+        {
+            int hours = Math.Clamp(request[(byte)ParameterKey.Amount] is { } amount ? Convert.ToInt32(amount) : 0, 1, MaxHours);
+            Bans.Add(player, hours, reason);
+            Console.WriteLine($"peer {peer.Id}: admin {admin!.Username} banned {player.Username} for {hours} h: {reason}");
+        }
+        else
+        {
+            Console.WriteLine($"peer {peer.Id}: admin {admin!.Username} kicked {player.Username}: {reason}");
+        }
+        player.Peer.Disconnect();
+    }
 }
 
 public sealed class OwnerOperation(Session session) : IOperationHandler

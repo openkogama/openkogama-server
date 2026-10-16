@@ -15,6 +15,9 @@ public sealed class ServerList(int port, string bans)
     const long ForgetMs = 600_000;
     const int PerSource = 5;
     const int MaxBody = 4096;
+    const int MaxImage = 64 * 1024;
+    static readonly byte[] Jpeg = [0xFF, 0xD8, 0xFF];
+    static readonly byte[] Png = [0x89, 0x50, 0x4E, 0x47];
     const int MaxTitle = 40;
     const int MaxClients = 10;
     const int MaxPlaying = 100_000;
@@ -26,6 +29,7 @@ public sealed class ServerList(int port, string bans)
         public string Title = "";
         public string[] Clients = [];
         public bool Thumbnail;
+        public byte[]? Image;
         public string Source = "";
         public long Announced;
         public long Seen;
@@ -72,6 +76,10 @@ public sealed class ServerList(int port, string bans)
                 await ReplyAsync(response, await AnnounceAsync(request), "{}");
             else if (request.HttpMethod == "POST" && path == "/playing")
                 await ReplyAsync(response, await PlayingAsync(request), "{}");
+            else if (request.HttpMethod == "POST" && path == "/thumbnail")
+                await ReplyAsync(response, await UploadAsync(request), "{}");
+            else if (request.HttpMethod == "GET" && path == "/thumbnail" && Image(request.QueryString["address"]) is byte[] image)
+                await ImageAsync(response, image);
             else
                 await ReplyAsync(response, 404, "{}");
         }
@@ -121,17 +129,56 @@ public sealed class ServerList(int port, string bans)
                 ["title"] = entry.Title,
                 ["clients"] = new JsonArray([.. entry.Clients.Select(client => (JsonNode)client)]),
                 ["players"] = players.GetValueOrDefault(entry.Address),
-                ["thumbnail"] = entry.Thumbnail,
+                ["thumbnail"] = entry.Thumbnail || entry.Image is not null,
             });
         return list.ToJsonString();
     }
 
-    static async Task<JsonObject?> BodyAsync(HttpListenerRequest request)
+    static async Task ImageAsync(HttpListenerResponse response, byte[] image)
     {
-        var buffer = new byte[MaxBody + 1];
+        response.StatusCode = 200;
+        response.ContentType = image[0] == 0xFF ? "image/jpeg" : "image/png";
+        response.AddHeader("Access-Control-Allow-Origin", "*");
+        response.ContentLength64 = image.Length;
+        await response.OutputStream.WriteAsync(image);
+        response.Close();
+    }
+
+    static async Task<JsonObject?> BodyAsync(HttpListenerRequest request, int limit = MaxBody)
+    {
+        var buffer = new byte[limit + 1];
         int read = 0;
         while (read < buffer.Length && await request.InputStream.ReadAsync(buffer.AsMemory(read)) is int chunk and > 0) read += chunk;
-        return read <= MaxBody ? JsonNode.Parse(buffer.AsSpan(0, read)) as JsonObject : null;
+        return read <= limit ? JsonNode.Parse(buffer.AsSpan(0, read)) as JsonObject : null;
+    }
+
+    async Task<int> UploadAsync(HttpListenerRequest request)
+    {
+        if (await BodyAsync(request, MaxImage * 2) is not JsonObject body || body["secret"]?.GetValue<string>() is not { Length: >= 16 } secret
+            || body["image"]?.GetValue<string>() is not string encoded)
+            return 400;
+        byte[] image;
+        try
+        {
+            image = Convert.FromBase64String(encoded);
+        }
+        catch (FormatException)
+        {
+            return 400;
+        }
+        if (image.Length is 0 or > MaxImage || !(image.AsSpan().StartsWith(Jpeg) || image.AsSpan().StartsWith(Png))) return 400;
+        lock (_sync)
+        {
+            if (!_entries.TryGetValue("p2p:" + Tunnel.CodeOf(secret), out Entry? entry)) return 404;
+            entry.Image = image;
+        }
+        return 200;
+    }
+
+    byte[]? Image(string? address)
+    {
+        if (address is null || Listing(address) is not string listed) return null;
+        lock (_sync) return _entries.TryGetValue(listed, out Entry? entry) ? entry.Image : null;
     }
 
     async Task<int> PlayingAsync(HttpListenerRequest request)

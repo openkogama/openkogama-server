@@ -142,6 +142,7 @@ public enum ParameterKey : byte
     MarketPlaceLevel = 182,
     Prices = 183,
     GameCoinBoosterEnabled = 184,
+    Amount = 144,
     PublishLevel = 185,
     Price = 186,
     AssetBundleRootUrlWebGL = 187,

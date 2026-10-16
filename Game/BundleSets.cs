@@ -48,7 +48,10 @@ public static class BundleSets
 
     public const string Legacy = "2015";
 
-    public static string Url(string build, bool webgl = false, string? unity = null) =>
-        For(build, unity) is string set ? $"{SessionLocator.PublicUrl}/bundles-{set}{(webgl ? WebGL : "")}/"
-            : webgl ? $"{SessionLocator.PublicUrl}/bundles-{Legacy}{WebGL}/" : $"{SessionLocator.PublicUrl}/bundles/";
+    public static string Url(string build, bool webgl = false, string? unity = null, string? root = null)
+    {
+        root ??= SessionLocator.PublicUrl;
+        return For(build, unity) is string set ? $"{root}/bundles-{set}{(webgl ? WebGL : "")}/"
+            : webgl ? $"{root}/bundles-{Legacy}{WebGL}/" : $"{root}/bundles/";
+    }
 }

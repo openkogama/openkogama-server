@@ -110,6 +110,12 @@ public sealed class Router2012
         {
             player.ProfileId = profile;
         }
+        if (Bans.Holds(player))
+        {
+            Console.WriteLine($"peer {peer.Id}: 2012 player {player.Username} is banned");
+            peer.Disconnect();
+            return;
+        }
 
         Reply(peer, request, new()
         {

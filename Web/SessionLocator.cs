@@ -7,16 +7,21 @@ namespace OpenKogama.Web;
 public static class SessionLocator
 {
     static readonly ConcurrentDictionary<int, string> Tunneled = new();
+    static readonly ConcurrentDictionary<int, string> Bundles = new();
 
     public static string GameServer { get; set; } = "127.0.0.1";
     public static string PublicUrl { get; set; } = "http://127.0.0.1:8080";
     public static Func<int> EntryWorld { get; set; } = () => 0;
 
-    public static void Remember(int profile, string? via)
+    public static void Remember(int profile, string? via, int local = 0)
     {
         if (via is null) Tunneled.TryRemove(profile, out _);
         else Tunneled[profile] = via;
+        if (via is not null && local > 0) Bundles[profile] = $"http://127.0.0.1:{local}";
+        else Bundles.TryRemove(profile, out _);
     }
+
+    public static string BundlesFor(int profile) => Bundles.TryGetValue(profile, out string? root) ? root : PublicUrl;
 
     public static string UrlFor(int profile) => Tunneled.TryGetValue(profile, out string? via) ? "http://" + via : PublicUrl;
 
