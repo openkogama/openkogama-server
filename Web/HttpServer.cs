@@ -1,4 +1,5 @@
 using System.Net;
+using OpenKogama.P2p;
 
 namespace OpenKogama.Web;
 
@@ -46,10 +47,20 @@ public sealed class HttpServer(string prefix, WebApi api)
             return;
         }
 
+        IPAddress remote = request.RemoteEndPoint.Address;
+        bool tunneled = Tunnel.Carries(remote);
+        string? via = tunneled ? Tunnel.Via(request.Headers["Host"]) : null;
+        if (tunneled && via is null)
+        {
+            response.StatusCode = 400;
+            response.Close();
+            return;
+        }
+
         using var body = new MemoryStream();
         if (request.HasEntityBody) request.InputStream.CopyTo(body);
         ApiResponse result = api.Route(new ApiRequest(request.HttpMethod, path, request.QueryString, request.ContentType, body.ToArray(),
-            IPAddress.IsLoopback(request.RemoteEndPoint.Address)));
+            IPAddress.IsLoopback(remote) && !tunneled, via));
 
         response.StatusCode = result.Status;
         if (result.ContentType is not null) response.ContentType = result.ContentType;

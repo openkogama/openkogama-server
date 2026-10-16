@@ -48,6 +48,17 @@ sealed class PluginPlayer(Player player, Session session) : IPlayer
 
     public bool SetTeam(Api.Team team) => player.Team == (Game.Team)(int)team || session.Teams.Set(player, (Game.Team)(int)team);
 
+    public bool PressLocally(int id) => session.Logic.PressFor(player, id);
+
+    public bool Equip(AvatarItem item)
+    {
+        if (!Playing || item is AvatarItem.Unknown) return false;
+        Pickup.Give(session, player, (Kogama.AvatarItemType)(int)item);
+        return true;
+    }
+
+    public bool GiveLightningSpeed() => Playing && Boosts.LightningSpeed(session, player);
+
     public bool Teleport(Vector3 position, TeleportMethod method) => method switch
     {
         TeleportMethod.HiddenVehicle => Free && Teleports.HiddenVehicle(session, player, position),

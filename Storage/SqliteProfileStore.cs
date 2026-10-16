@@ -9,8 +9,9 @@ public sealed class SqliteProfileStore(Database database) : IProfileStore
     {
         using SqliteConnection connection = database.Open();
         using SqliteCommand command = Command(connection, """
-            INSERT OR IGNORE INTO profiles (name) VALUES ($name);
-            SELECT id FROM profiles WHERE name = $name COLLATE NOCASE
+            INSERT OR IGNORE INTO profiles (id) VALUES (1);
+            INSERT INTO profiles (name) SELECT $name WHERE NOT EXISTS (SELECT 1 FROM profiles WHERE name = $name COLLATE NOCASE);
+            SELECT id FROM profiles WHERE name = $name COLLATE NOCASE ORDER BY id LIMIT 1
             """, ("$name", name));
         return (int)(long)command.ExecuteScalar()!;
     }

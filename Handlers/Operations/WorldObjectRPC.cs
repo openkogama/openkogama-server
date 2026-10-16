@@ -22,6 +22,11 @@ public sealed class WorldObjectRPC(Session session) : IOperationHandler
             session.Round.GhostHit(shooter, ghost, hit.Damage);
         }
 
+        if (session.For(peer) is Player attacker
+            && session.Players.FirstOrDefault(player => player.PlayAvatar == targetId) is { } victim && victim != attacker
+            && interactions.Exists(interaction => interaction.Damage > 0f))
+            Plugins.PluginHost.Hit(session, victim, attacker);
+
         session.HitNpc(targetId, peer.Id, interactions);
 
         var evt = new EventData((byte)EventCode.WorldObjectRPCEvent)

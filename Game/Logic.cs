@@ -304,6 +304,16 @@ public sealed class Logic(Session session)
         return true;
     }
 
+    public bool PressFor(Player player, int id)
+    {
+        if (session.World.Find(id)?.Type is not (WorldObjectType.PressurePlate or WorldObjectType.TriggerCube or WorldObjectType.TriggerBox)) return false;
+        player.Peer.Send(Sensor(player, id, true));
+        _ = Task.Delay(PressMs).ContinueWith(_ => player.Peer.Send(Sensor(player, id, false)));
+        return true;
+    }
+
+    EventData Sensor(Player player, int id, bool pressed) => player.LogicFrames ? FiringEvent(id, pressed) : StayEvent(id, ServerActor, pressed);
+
     void Hold(int id, bool pressed)
     {
         bool changed = pressed ? session.Triggers.Enter(id, ServerActor) : session.Triggers.Exit(id, ServerActor);

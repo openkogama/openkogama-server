@@ -2,6 +2,14 @@
 
 Anyone can host an OpenKogama server and let others join it from the Servers tab in the launcher.
 
+## Sharing a world with a code
+
+To let others play one of your worlds you don't need any of this. In the launcher, select a world on the Worlds tab and click **Host**. The game starts and a bar at the top of the launcher shows a code like `ABC-DEF`. Others click **Join with code** on the Servers tab, type the code and play with the same game version. Nobody opens ports or needs an IP address: the launchers find each other through small meeting points in Europe, North America, South America and Asia and connect directly. The host uses the nearest one, and when a direct connection can't be made, the game goes through it instead. Keep the launcher open while others play. KoGaMa 2012 can't join this way yet.
+
+The same works from the command line. `openkogama-server tunnel host` shares a server running on the same PC (`--http 8080 --photon 5055` by default) and prints its code, `openkogama-server tunnel join CODE` prints a local port that leads to that server, and `openkogama-server rendezvous --port 5058` runs a meeting point of your own, which both sides then pick with `--rendezvous host:port` (several are separated by commas). Players who come through a tunnel get their own profile by nickname, are never admins, and can't reach `/shutdown`, `/api/worlds`, `/api/avatars` or `/api/templates`.
+
+The rest of this guide is for a server that stays online for everyone.
+
 ## What you need
 
 - A PC or VPS that stays on. One CPU core and 1 GB of RAM is enough for a few players.

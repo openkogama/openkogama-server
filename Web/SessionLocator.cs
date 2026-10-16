@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.Specialized;
 using OpenKogama.Storage;
 
@@ -5,9 +6,19 @@ namespace OpenKogama.Web;
 
 public static class SessionLocator
 {
+    static readonly ConcurrentDictionary<int, string> Tunneled = new();
+
     public static string GameServer { get; set; } = "127.0.0.1";
     public static string PublicUrl { get; set; } = "http://127.0.0.1:8080";
     public static Func<int> EntryWorld { get; set; } = () => 0;
+
+    public static void Remember(int profile, string? via)
+    {
+        if (via is null) Tunneled.TryRemove(profile, out _);
+        else Tunneled[profile] = via;
+    }
+
+    public static string UrlFor(int profile) => Tunneled.TryGetValue(profile, out string? via) ? "http://" + via : PublicUrl;
 
     public static string? Answer(string path, NameValueCollection query)
     {

@@ -8,7 +8,7 @@ using OpenKogama.Storage;
 
 namespace OpenKogama.Web;
 
-public sealed record ApiRequest(string Method, string Path, NameValueCollection Query, string? ContentType, byte[] Body, bool Local);
+public sealed record ApiRequest(string Method, string Path, NameValueCollection Query, string? ContentType, byte[] Body, bool Local, string? Via = null);
 
 public sealed record ApiResponse(int Status, string? ContentType, byte[] Body)
 {
@@ -24,7 +24,7 @@ public sealed class WebApi
     const int PlanetImage = 0;
     const int MaxThumbnail = 2 * 1024 * 1024;
 
-    public Func<int, GameMode, int, string?, string> SessionJson { get; set; } = (_, _, _, _) => "{}";
+    public Func<int, GameMode, int, string?, string?, string> SessionJson { get; set; } = (_, _, _, _, _) => "{}";
     public AssetCache? Assets { get; set; }
     public AssetCache? LegacyAssets { get; set; }
     public Dictionary<string, AssetCache> AssetSets { get; init; } = [];
@@ -37,6 +37,9 @@ public sealed class WebApi
     {
         string path = Regex.Replace(request.Path, "/{2,}", "/");
         NameValueCollection query = request.Query;
+
+        if (request.Via is not null && Managing(path))
+            return new ApiResponse(403, null, []);
 
         if (path.TrimEnd('/') == "/api/server")
             return ApiResponse.Json(JsonSerializer.Serialize(new {
@@ -60,8 +63,11 @@ public sealed class WebApi
         {
             if (!ServerInfo.Allows(query["client"]))
                 return ApiResponse.Json(JsonSerializer.Serialize(new { error = $"This server accepts {string.Join(", ", ServerInfo.Clients)}" }), 403);
-            int profile = int.TryParse(query["profile"], out int requested) && requested > 0 ? requested : 1;
-            if (ServerInfo.Accounts && SessionToken.Clean(query["name"]) is string name) profile = Stores.Profiles.ForName(name);
+            int profile = request.Via is null && int.TryParse(query["profile"], out int requested) && requested > 0 ? requested : 1;
+            if ((ServerInfo.Accounts || request.Via is not null) && SessionToken.Clean(query["name"]) is string name) profile = Stores.Profiles.ForName(name);
+            if (request.Via is not null && profile == 1)
+                return ApiResponse.Json(JsonSerializer.Serialize(new { error = "Pick another nickname" }), 403);
+            SessionLocator.Remember(profile, request.Via);
             bool join = query["mode"] == "play";
             GameMode mode = query["mode"] switch
             {
@@ -72,7 +78,7 @@ public sealed class WebApi
             int world = int.TryParse(query["world"], out int chosen) ? chosen : 0;
             if (world == 0 && join) world = ServerInfo.EntryWorld();
             ClientEngines.Remember(profile, query["unity"]);
-            string session = SessionJson(profile, mode, world, query["client"]);
+            string session = SessionJson(profile, mode, world, query["client"], request.Via);
             if (query["name"] is not null && System.Text.Json.Nodes.JsonNode.Parse(session) is System.Text.Json.Nodes.JsonObject named)
             {
                 named["token"] = SessionToken.Create(profile, query["name"]);
@@ -191,7 +197,8 @@ public sealed class WebApi
             switch (path["/api/xp_level/".Length..].TrimEnd('/'))
             {
                 case "init_data":
-                    return ApiResponse.Json(Leveling.InitData(profile, ServerInfo.PublicUrl.TrimEnd('/') + "/badges/").ToJsonString());
+                    string root = request.Via is null ? ServerInfo.PublicUrl.TrimEnd('/') : "http://" + request.Via;
+                    return ApiResponse.Json(Leveling.InitData(profile, root + "/badges/").ToJsonString());
                 case "level":
                     return ApiResponse.Json(Leveling.LevelOf(profile).ToString());
                 case "xp_limits_data":
@@ -229,6 +236,9 @@ public sealed class WebApi
     }
 
     static bool IsPng(byte[] data) => data.Length <= MaxThumbnail && data.AsSpan().StartsWith(PngSignature);
+
+    static bool Managing(string path) => path.TrimEnd('/') == "/shutdown"
+        || new[] { "/api/worlds", "/api/avatars", "/api/templates" }.Any(area => path == area || path.StartsWith(area + "/"));
 
     static int ProfileOf(NameValueCollection query) =>
         int.TryParse(query["profile"], out int profile) && profile > 0 ? profile : 1;

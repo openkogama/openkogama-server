@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 using System.Text.Json;
 using OpenKogama.Game;
 using OpenKogama.Hosting;
+using OpenKogama.P2p;
 using OpenKogama.Photon;
 using OpenKogama.Plugins;
 using OpenKogama.Storage;
@@ -14,6 +15,10 @@ if (args is ["install", .. var sets])
         installed &= await AssetCache.InstallAsync(set);
     return installed ? 0 : 1;
 }
+if (args is ["tunnel", .. var tunnel])
+    return Tunnel.Run(tunnel);
+if (args is ["rendezvous", .. var rendezvous])
+    return Rendezvous.Run(rendezvous);
 
 LogFile.Start("logs");
 AssetCache.Offline = args.Contains("--offline");
@@ -90,10 +95,14 @@ _ = Task.Run(async () =>
 });
 
 var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-string SessionJson(int profile, GameMode mode, int world, string? client) => JsonSerializer.Serialize(
-    new SessionData(photonAddress, profile, world, mode, "en_US", false, profile.ToString(),
-        publicBase + "/ping", publicBase + "/disconnect", publicBase + "/reward", client),
-    jsonOptions);
+string SessionJson(int profile, GameMode mode, int world, string? client, string? via)
+{
+    string root = via is null ? publicBase : "http://" + via;
+    return JsonSerializer.Serialize(
+        new SessionData(via ?? photonAddress, profile, world, mode, "en_US", false, profile.ToString(),
+            root + "/ping", root + "/disconnect", root + "/reward", client),
+        jsonOptions);
+}
 
 StreamingAssetCatalog streaming = StreamingAssets.For("2015");
 var assets = AssetCache.ForSet("2015", streaming.Root);

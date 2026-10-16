@@ -62,6 +62,28 @@ sealed class WorldEditor(GameWorld world, Session? session) : IWorldBuilder
         return true;
     }
 
+    public bool Link(int from, int to)
+    {
+        if (from == to || world.Find(from) is null || world.Find(to) is null) return false;
+        var link = world.AddLink(from, to, objectLink: false);
+        world.MarkChanged();
+        if (session is null) return true;
+
+        session.Logic.Evaluate();
+        var added = new EventData((byte)EventCode.AddLink)
+        {
+            Parameters =
+            {
+                [(byte)ParameterKey.LinkID] = link.Id,
+                [(byte)ParameterKey.LinkFromID] = link.From,
+                [(byte)ParameterKey.LinkToID] = link.To,
+            },
+        };
+        foreach (Player player in session.Players)
+            player.Peer.Send(added);
+        return true;
+    }
+
     public bool Move(int id, Vector3 position, Quaternion? rotation = null, float seconds = 0)
     {
         float[] from = [], turnedFrom = [];

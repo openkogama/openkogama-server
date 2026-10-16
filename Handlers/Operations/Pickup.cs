@@ -49,7 +49,14 @@ public static class Pickup
         ];
         var itemData = pickup.Data.Find(pair => pair.Key == "itemData");
         if (itemData.Key is not null) currentItem.Add(itemData);
+        Hold(session, player, holderId, currentItem);
+    }
 
+    public static void Give(Session session, Player player, AvatarItemType item) =>
+        Hold(session, player, player.PlayAvatar, [("type", PackedType.Int32, (int)item), ("variantId", PackedType.Int32, 0)]);
+
+    static void Hold(Session session, Player player, int holderId, List<(string Key, PackedType Type, object Value)> currentItem)
+    {
         session.World.Modify(holderId, holder => holder.SetRuntime("currentItem", PackedType.Hashtable, currentItem));
 
         var runtime = new Dictionary<object, object?> { ["currentItem"] = PackedData.ToPhoton(currentItem) };

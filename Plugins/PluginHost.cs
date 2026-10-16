@@ -114,7 +114,7 @@ public static class PluginHost
     {
         IPAddress address = player.Peer.EndPoint.Address;
         if (address.IsIPv4MappedToIPv6) address = address.MapToIPv4();
-        return IPAddress.IsLoopback(address) || Admins.Contains(address.ToString());
+        return IPAddress.IsLoopback(address) && !P2p.Tunnel.Carries(address) || Admins.Contains(address.ToString());
     }
 
     internal static PluginPlayer PlayerOf(Session session, Player player) => Players.GetValue(player, _ => new PluginPlayer(player, session));
@@ -164,6 +164,9 @@ public static class PluginHost
 
     public static void Killed(Session session, Player victim, Player killer) =>
         Server.OnKilled(PlayerOf(session, victim), PlayerOf(session, killer));
+
+    public static void Hit(Session session, Player victim, Player attacker) =>
+        Server.OnHit(PlayerOf(session, victim), PlayerOf(session, attacker));
 
     public static void KilledByNpc(Session session, Player victim, Npc npc) =>
         Server.OnKilledByNpc(PlayerOf(session, victim), new PluginNpc(session, npc));
@@ -223,6 +226,7 @@ public static class PluginHost
         public event Action? Tick;
         public event Action<float>? Update;
         public event Action<IPlayer, IPlayer>? PlayerKilled;
+        public event Action<IPlayer, IPlayer>? PlayerHit;
         public event Action<IPlayer, INpc>? PlayerKilledByNpc;
         public event Action<IPlayer, IWorldObject>? ItemCollected;
         public event Action<IWorld>? RoundStarted;
@@ -307,6 +311,12 @@ public static class PluginHost
         {
             foreach (Action<IPlayer, IPlayer> handler in Handlers(PlayerKilled))
                 Guard(() => handler(victim, killer));
+        }
+
+        public void OnHit(IPlayer victim, IPlayer attacker)
+        {
+            foreach (Action<IPlayer, IPlayer> handler in Handlers(PlayerHit))
+                Guard(() => handler(victim, attacker));
         }
 
         public void OnKilledByNpc(IPlayer victim, INpc killer)

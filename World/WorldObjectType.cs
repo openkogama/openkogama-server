@@ -16,6 +16,7 @@ public enum WorldObjectType
     ToggleBox = 20,
     Negate = 21,
     And = 22,
+    Explosives = 23,
     TextMsg = 24,
     TimeTrigger = 27,
     Teleporter = 28,

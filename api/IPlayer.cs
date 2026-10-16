@@ -27,6 +27,9 @@ public interface IPlayer
     void Damage(float amount, INpc? by = null, System.Numerics.Vector3? impulse = null);
     bool SetTeam(Team team);
     bool Teleport(Vector3 position, TeleportMethod method);
+    bool PressLocally(int id);
+    bool Equip(AvatarItem item);
+    bool GiveLightningSpeed();
     bool EnterVehicle(IWorldObject vehicle);
     bool BecomeColossus(IWorldObject trigger);
     void Kick();
