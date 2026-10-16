@@ -8,6 +8,8 @@ namespace OpenKogama.P2p;
 
 public sealed class TunnelJoin : INatPunchListener
 {
+    const int MinPort = 20000;
+    const int MaxPort = short.MaxValue;
     const int DirectWaitMs = 6000;
     const int FindWaitMs = 8000;
     const int ReadyWaitMs = 20_000;
@@ -196,7 +198,7 @@ public sealed class TunnelJoin : INatPunchListener
     {
         for (int attempt = 0; ; attempt++)
         {
-            int port = Random.Shared.Next(20000, 60000);
+            int port = Random.Shared.Next(MinPort, MaxPort + 1);
             var tcp = new TcpListener(IPAddress.Loopback, port);
             try
             {

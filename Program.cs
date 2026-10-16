@@ -71,6 +71,7 @@ catch (SocketException error)
 }
 bool mixedClients = args.Contains("--mixed-clients") || serverInfo.MixedClients;
 var host = new SessionHost(server, mixedClients) { EntryWorld = serverInfo.EntryWorld, Allows = serverInfo.Allows };
+Player.ActorName = actor => host.Sessions().SelectMany(session => session.Players).FirstOrDefault(player => player.Actor == actor)?.Username;
 PluginHost.Admins = serverInfo.Admins ?? [];
 PluginHost.LoadAll("plugins", host.Sessions);
 if (mixedClients) Console.WriteLine("mixed client versions enabled");

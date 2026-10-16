@@ -7,13 +7,14 @@ namespace OpenKogama.Handlers.Operations;
 
 public sealed class GetNextGameBatch(Session session) : IOperationHandler
 {
-    public static void Introduce(Player me, Player other)
+    public static void Introduce(Session session, Player me, Player other)
     {
         var join = new EventData((byte)EventCode.Join)
         {
             Parameters = { [(byte)ParameterKey.ActorNr] = me.Actor },
         };
         foreach ((ParameterKey key, object value) in me.Info()) join.Parameters[(byte)key] = value;
+        join.Parameters[(byte)ParameterKey.TeamID] = session.Teams.IdFor(other, (int)me.Team);
         join.Parameters[(byte)ParameterKey.Bool] = false;
         other.Peer.Send(join);
         other.Sees(me.Actor);
@@ -120,7 +121,7 @@ public sealed class GetNextGameBatch(Session session) : IOperationHandler
         foreach (Player other in session.Players)
         {
             if (other.Peer == peer) continue;
-            Introduce(me, other);
+            Introduce(session, me, other);
 
             int added = NextQueryId();
             other.Peer.Send(new EventData((byte)EventCode.GetGameBatch)

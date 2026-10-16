@@ -105,6 +105,8 @@ public sealed class Player(PhotonPeer peer, int actor, int avatarId)
     public bool AccessoryQueries => NativeSince(AccessoryQueriesVersion);
     public bool WaitsForQueryReady => !NativeSince(ImmediateQueriesVersion);
     public bool ModernAccessories => peer.Translator is Kogama.Protocols.OperationRemap remap && remap.Knows(Kogama.OperationCode.RequestAccessoryData);
+    public bool Legacy => peer.Translator is Kogama.Protocols.LegacyTranslator;
+    public static Func<int, string?> ActorName { get; set; } = _ => null;
     public bool RichText => peer.Protocol != PhotonProtocol.Protocol15 && peer.Translator is not Kogama.Protocols.LegacyTranslator;
     public bool Notifications => peer.Translator is Kogama.Protocols.OperationRemap remap && remap.Knows(Kogama.EventCode.NotificationEvent);
     public bool SeesNpcs => peer.Protocol != PhotonProtocol.Protocol15 && peer.Translator is not Kogama.Protocols.LegacyTranslator;
@@ -157,6 +159,7 @@ public sealed class Player(PhotonPeer peer, int actor, int avatarId)
         else if (Mode == GameMode.CharacterEditor) snapshot = Without(snapshot, obj => obj.Type == World.WorldObjectType.Avatar);
         else snapshot = snapshot with { Objects = [.. snapshot.Objects.Select(WithoutLaser)] };
         snapshot = snapshot with { Objects = [.. snapshot.Objects.Select(obj => AvatarModifiers.For(this, Accessories.For(this, obj)))] };
+        if (Legacy) snapshot = snapshot with { Objects = [.. snapshot.Objects.Select(Named)] };
         if (peer.Translator is Kogama.Protocols.OperationRemap && Kogama.Protocols.ProtocolTable.For(ClientVersion).StateTypes is { Count: > 0 } types)
             snapshot = snapshot with { Objects = [.. snapshot.Objects.Select(obj => World.LegacyWorld.Retyped(obj, types))] };
         return World.WorldSerializer.Write(snapshot, linkState: LinkState, objectLinkState: ObjectLinkState, events: !package);
@@ -164,6 +167,29 @@ public sealed class Player(PhotonPeer peer, int actor, int avatarId)
 
     static bool HoldsLaser(IEnumerable<(string Key, World.PackedType Type, object Value)> item) =>
         item.FirstOrDefault(pair => pair.Key == "type").Value is { } type && Convert.ToInt32(type) == (int)Kogama.AvatarItemType.LaserPointer;
+
+    static World.WorldObject Named(World.WorldObject obj)
+    {
+        if (obj.Type != World.WorldObjectType.Avatar || obj.Owner is not int actor || ActorName(actor) is not string name
+            || obj.Data.Any(pair => pair.Key == "ownerUserName"))
+            return obj;
+
+        return new World.WorldObject
+        {
+            Id = obj.Id,
+            ParentId = obj.ParentId,
+            ItemId = obj.ItemId,
+            Type = obj.Type,
+            Position = obj.Position,
+            Rotation = obj.Rotation,
+            Scale = obj.Scale,
+            Data = [.. obj.Data, ("ownerUserName", World.PackedType.String, name), ("actorNr", World.PackedType.Int32, actor)],
+            Owner = obj.Owner,
+            PreviewOwner = obj.PreviewOwner,
+            Runtime = obj.Runtime,
+            Transient = obj.Transient,
+        };
+    }
 
     static World.WorldObject WithoutLaser(World.WorldObject obj)
     {

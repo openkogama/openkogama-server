@@ -12,10 +12,14 @@ public sealed class TunnelHost : INatPunchListener
     const int MaxGuests = 16;
     const int TickMs = 5000;
     const int PunchEvery = 3;
+    const long HomeMs = 20_000;
+    const long ResumeMs = 45_000;
+    const int RebindMs = 10_000;
 
     readonly IPEndPoint[] _rendezvous;
     readonly Dictionary<IPEndPoint, NetPeer> _dialing = [];
     readonly object _sync = new();
+    readonly object _dialSync = new();
     readonly string _secret;
     readonly string _info;
     readonly int _http;
@@ -25,6 +29,8 @@ public sealed class TunnelHost : INatPunchListener
     readonly ConcurrentDictionary<int, Guest> _relayed = new();
     readonly ManualResetEventSlim _stopped = new();
     NetPeer? _server;
+    IPEndPoint? _home;
+    long _lostAt;
     string? _code;
     int _guests = -1;
 
@@ -74,7 +80,10 @@ public sealed class TunnelHost : INatPunchListener
         for (long tick = 0; !_stopped.IsSet; tick++)
         {
             if (_server is not { ConnectionState: ConnectionState.Connected } server)
+            {
                 Dial();
+                if (!_relayed.IsEmpty && Environment.TickCount64 - _lostAt > ResumeMs) DropRelayed(long.MaxValue);
+            }
             else if (tick % PunchEvery == 0 && _code is string code)
                 _manager.NatPunchModule.SendNatIntroduceRequest(new IPEndPoint(server.Address, server.Port), "h:" + code);
             _stopped.Wait(TickMs);
@@ -84,9 +93,20 @@ public sealed class TunnelHost : INatPunchListener
 
     void Dial()
     {
-        foreach (IPEndPoint endPoint in _rendezvous)
-            if (!_dialing.TryGetValue(endPoint, out NetPeer? peer) || peer.ConnectionState == ConnectionState.Disconnected)
-                _dialing[endPoint] = _manager.Connect(endPoint, Tunnel.Key);
+        bool home = _home is not null && Environment.TickCount64 - _lostAt < HomeMs;
+        lock (_dialSync)
+            foreach (IPEndPoint endPoint in _rendezvous)
+                if ((!home || endPoint.Equals(_home))
+                    && (!_dialing.TryGetValue(endPoint, out NetPeer? peer) || peer.ConnectionState == ConnectionState.Disconnected))
+                    _dialing[endPoint] = _manager.Connect(endPoint, Tunnel.Key);
+    }
+
+    void DropRelayed(long boundBefore)
+    {
+        foreach ((int id, Guest guest) in _relayed)
+            if (guest.BoundAt < boundBefore && _relayed.TryRemove(id, out Guest? dropped))
+                dropped.Close();
+        Count();
     }
 
     void Request(ConnectionRequest request)
@@ -107,6 +127,7 @@ public sealed class TunnelHost : INatPunchListener
                     return;
                 }
                 _server = peer;
+                _home = new IPEndPoint(peer.Address, peer.Port);
             }
             Console.WriteLine($"rendezvous {peer.Address}:{peer.Port}");
             Tunnel.Send(peer, Op.Register, _secret, _info);
@@ -124,10 +145,10 @@ public sealed class TunnelHost : INatPunchListener
             {
                 if (peer != _server) return;
                 _server = null;
+                _lostAt = Environment.TickCount64;
             }
-            foreach (Guest guest in _relayed.Values) guest.Close();
-            _relayed.Clear();
-            Count();
+            Console.WriteLine("rendezvous lost");
+            Dial();
             return;
         }
         if (_direct.TryRemove(peer, out Guest? gone)) gone.Close();
@@ -151,6 +172,8 @@ public sealed class TunnelHost : INatPunchListener
                     reader.GetByte();
                     _code = reader.GetString(16);
                     Console.WriteLine($"code {_code}");
+                    long registeredAt = Environment.TickCount64;
+                    if (!_relayed.IsEmpty) _ = Task.Delay(RebindMs).ContinueWith(_ => DropRelayed(registeredAt));
                     _manager.NatPunchModule.SendNatIntroduceRequest(new IPEndPoint(peer.Address, peer.Port), "h:" + _code);
                     break;
                 case Op.Missing:
@@ -159,7 +182,8 @@ public sealed class TunnelHost : INatPunchListener
                     break;
                 case Op.Relayed when reader.AvailableBytes >= 5:
                     int id = Tunnel.IdOf(reader.GetRemainingBytesSpan());
-                    _relayed[id] = new Guest(new Link(peer, id), _http, _photon);
+                    if (_relayed.TryGetValue(id, out Guest? known)) known.Rebind(new Link(peer, id));
+                    else _relayed[id] = new Guest(new Link(peer, id), _http, _photon);
                     Count();
                     break;
                 case Op.Wrap when reader.AvailableBytes >= 5:
@@ -194,6 +218,9 @@ public sealed class TunnelHost : INatPunchListener
 
     sealed class Guest(Link link, int http, int photon)
     {
+        Link _link = link;
+        public long BoundAt = Environment.TickCount64;
+
         const int MaxPipes = 64;
         const int MaxFlows = 8;
         const long FlowIdleMs = 30_000;
@@ -215,7 +242,7 @@ public sealed class TunnelHost : INatPunchListener
             switch ((Op)frame[0])
             {
                 case Op.Open:
-                    var pipe = new Pipe(id, link);
+                    var pipe = new Pipe(id, _link);
                     if (_pipes.Count < MaxPipes && _pipes.TryAdd(id, pipe))
                         _ = pipe.RunAsync(Tunnel.DialAsync(http), () => _pipes.TryRemove(id, out _));
                     else
@@ -265,7 +292,8 @@ public sealed class TunnelHost : INatPunchListener
                 {
                     int read = await flow.Socket.ReceiveAsync(buffer, SocketFlags.None);
                     flow.Seen = Environment.TickCount64;
-                    link.SendDatagram(id, buffer.AsSpan(0, read));
+                    Link current = _link;
+                    if (current.Alive) current.SendDatagram(id, buffer.AsSpan(0, read));
                 }
             }
             catch (Exception)
@@ -273,6 +301,18 @@ public sealed class TunnelHost : INatPunchListener
             }
             _flows.TryRemove(new KeyValuePair<int, Flow>(id, flow));
             flow.Socket.Dispose();
+        }
+
+        public void Rebind(Link link)
+        {
+            foreach ((int id, Pipe pipe) in _pipes)
+            {
+                pipe.End();
+                link.Send(Tunnel.Frame(Op.Close, id), (byte)(1 + id % (Tunnel.Lanes - 1)), DeliveryMethod.ReliableOrdered);
+            }
+            _pipes.Clear();
+            _link = link;
+            BoundAt = Environment.TickCount64;
         }
 
         public void Close()

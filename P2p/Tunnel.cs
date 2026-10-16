@@ -100,7 +100,7 @@ public static partial class Tunnel
             AutoRecycle = true,
             IPv6Enabled = false,
             MtuDiscovery = true,
-            DisconnectTimeout = 10_000,
+            DisconnectTimeout = 6_000,
             UpdateTime = 5,
             NatPunchEnabled = punch is not null,
         };

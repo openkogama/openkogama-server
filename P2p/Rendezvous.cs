@@ -10,6 +10,8 @@ public sealed class Rendezvous(int port) : INatPunchListener
     const int MaxInfo = 1024;
     const int MaxRelays = 16;
     const int MaxRelayBacklog = 4096;
+    const long OrphanMs = 30_000;
+    const int SweepMs = 5_000;
 
     sealed class Hosted(NetPeer peer, string secret, string info)
     {
@@ -21,10 +23,11 @@ public sealed class Rendezvous(int port) : INatPunchListener
 
     sealed class Relaying(NetPeer host, NetPeer guest, string code)
     {
-        public NetPeer Host => host;
+        public NetPeer Host = host;
         public NetPeer Guest => guest;
         public string Code => code;
         public long Bytes;
+        public long OrphanedAt;
     }
 
     readonly object _sync = new();
@@ -49,7 +52,19 @@ public sealed class Rendezvous(int port) : INatPunchListener
         _manager = Tunnel.Manager(events, this);
         if (!_manager.Start(port)) throw new InvalidOperationException($"rendezvous cannot listen on udp {port}");
         Console.WriteLine($"rendezvous udp {port}");
-        Thread.Sleep(Timeout.Infinite);
+        while (true)
+        {
+            Thread.Sleep(SweepMs);
+            Sweep();
+        }
+    }
+
+    void Sweep()
+    {
+        long now = Environment.TickCount64;
+        List<int> expired;
+        lock (_sync) expired = [.. _relays.Where(pair => pair.Value.OrphanedAt > 0 && now - pair.Value.OrphanedAt > OrphanMs).Select(pair => pair.Key)];
+        foreach (int id in expired) Unrelay(id, null);
     }
 
     void Receive(NetPeer peer, NetPacketReader reader, byte lane, DeliveryMethod method)
@@ -93,6 +108,7 @@ public sealed class Rendezvous(int port) : INatPunchListener
             return;
         }
         string code = Tunnel.CodeOf(secret);
+        var resumed = new List<int>();
         lock (_sync)
         {
             foreach (string old in _hosts.Where(pair => pair.Value.Peer == peer).Select(pair => pair.Key).ToList())
@@ -100,9 +116,20 @@ public sealed class Rendezvous(int port) : INatPunchListener
             if (_hosts.TryGetValue(code, out Hosted? taken) && taken.Secret != secret)
                 do code = Tunnel.RandomCode(); while (_hosts.ContainsKey(code));
             _hosts[code] = new Hosted(peer, secret, info);
+            foreach ((int id, Relaying relay) in _relays.Where(pair => pair.Value.Code == code && pair.Value.OrphanedAt > 0))
+            {
+                relay.Host = peer;
+                relay.OrphanedAt = 0;
+                resumed.Add(id);
+            }
         }
         Tunnel.Send(peer, Op.Registered, code);
         Console.WriteLine($"host {code} from {peer.Address}");
+        foreach (int id in resumed)
+        {
+            peer.Send(Tunnel.Frame(Op.Relayed, id), 0, DeliveryMethod.ReliableOrdered);
+            Console.WriteLine($"relay {id} for {code} resumed");
+        }
     }
 
     void Find(NetPeer peer, string? code)
@@ -139,7 +166,7 @@ public sealed class Rendezvous(int port) : INatPunchListener
         int id = Tunnel.IdOf(frame);
         Relaying? relay;
         lock (_sync) relay = _relays.GetValueOrDefault(id);
-        NetPeer? to = relay is null ? null : relay.Host == from ? relay.Guest : relay.Guest == from ? relay.Host : null;
+        NetPeer? to = relay is null || relay.OrphanedAt > 0 ? null : relay.Host == from ? relay.Guest : relay.Guest == from ? relay.Host : null;
         if (relay is null || to is null) return;
         if (method == DeliveryMethod.Unreliable && frame.Length > to.GetMaxSinglePacketSize(DeliveryMethod.Unreliable))
             method = DeliveryMethod.ReliableUnordered;
@@ -178,7 +205,10 @@ public sealed class Rendezvous(int port) : INatPunchListener
                 _hosts.Remove(code);
                 Console.WriteLine($"host {code} gone");
             }
-            ended = [.. _relays.Where(pair => pair.Value.Host == peer || pair.Value.Guest == peer).Select(pair => pair.Key)];
+            long now = Environment.TickCount64;
+            foreach (Relaying relay in _relays.Values.Where(relay => relay.Host == peer && relay.OrphanedAt == 0))
+                relay.OrphanedAt = now;
+            ended = [.. _relays.Where(pair => pair.Value.Guest == peer).Select(pair => pair.Key)];
         }
         foreach (int id in ended) Unrelay(id, peer);
     }

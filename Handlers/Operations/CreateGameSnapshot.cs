@@ -72,6 +72,7 @@ public sealed class CreateGameSnapshot(Session session) : IOperationHandler
         {
             PhotonDictionary info = PhotonDictionary.ByteKeyed();
             foreach ((ParameterKey key, object value) in p.Info()) info.Add((byte)key, value);
+            if (me is not null) info[(byte)ParameterKey.TeamID] = session.Teams.IdFor(me, (int)p.Team);
             if (me?.SpawnRoles == true) info.Add((byte)ParameterKey.Data, p.SpawnRoleData());
             users.Add(p.Actor, info);
             me?.Sees(p.Actor);

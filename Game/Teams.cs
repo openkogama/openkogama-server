@@ -17,6 +17,7 @@ public sealed class Teams
     };
 
     const string ClassTeam = "team";
+    const int LegacyNone = 4;
 
     readonly Session _session;
     readonly object _sync = new();
@@ -35,22 +36,24 @@ public sealed class Teams
 
     public Team Default => Active[0];
 
+    public int IdFor(Player viewer, int team) =>
+        viewer.Legacy && (team == Npc.NoTeam || Active.Count <= 1) ? LegacyNone : team;
+
     public bool Set(Player player, Team team)
     {
         if (!Active.Contains(team)) return false;
 
         player.Team = team;
         _session.Round.Stats.RemoveActor(player.Actor);
-        var evt = new EventData((byte)EventCode.SetTeam)
-        {
-            Parameters =
-            {
-                [(byte)ParameterKey.ActorNr] = player.Actor,
-                [(byte)ParameterKey.TeamID] = (int)team,
-            },
-        };
         foreach (Player other in _session.Players)
-            other.Peer.Send(evt);
+            other.Peer.Send(new EventData((byte)EventCode.SetTeam)
+            {
+                Parameters =
+                {
+                    [(byte)ParameterKey.ActorNr] = player.Actor,
+                    [(byte)ParameterKey.TeamID] = IdFor(other, (int)team),
+                },
+            });
         return true;
     }
 
