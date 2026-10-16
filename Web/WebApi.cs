@@ -53,7 +53,7 @@ public sealed class WebApi
                 ? new ApiResponse(200, "application/octet-stream", thumbnail)
                 : ApiResponse.NotFound;
 
-        if (SessionLocator.Answer(path, query) is string located)
+        if (SessionLocator.Answer(path, query, request.Via) is string located)
             return new ApiResponse(200, "text/html", Encoding.UTF8.GetBytes(located));
 
         if (path == "/crossdomain.xml")

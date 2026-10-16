@@ -20,7 +20,7 @@ public static class SessionLocator
 
     public static string UrlFor(int profile) => Tunneled.TryGetValue(profile, out string? via) ? "http://" + via : PublicUrl;
 
-    public static string? Answer(string path, NameValueCollection query)
+    public static string? Answer(string path, NameValueCollection query, string? via = null)
     {
         bool edit = path.EndsWith("/PHP/EditSessionLocator.php", StringComparison.OrdinalIgnoreCase);
         if (!edit && !path.EndsWith("/PHP/GameSessionLocator.php", StringComparison.OrdinalIgnoreCase)) return null;
@@ -32,6 +32,7 @@ public static class SessionLocator
         Console.WriteLine($"session locator: {(edit ? "edit" : "play")} planet '{planet}' {(found ? "found" : "missing")}");
 
         if (!found) return "STATUS:'1' GAMESERVERIP:'' GAMENAME:''";
-        return edit ? $"STATUS:'3' GAMESERVERIP:'{GameServer}'" : $"STATUS:'2' GAMESERVERIP:'{GameServer}' GAMENAME:'{id}'";
+        string server = via is null ? GameServer : P2p.Tunnel.Address2012.ToString();
+        return edit ? $"STATUS:'3' GAMESERVERIP:'{server}'" : $"STATUS:'2' GAMESERVERIP:'{server}' GAMENAME:'{id}'";
     }
 }

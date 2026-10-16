@@ -4,14 +4,14 @@ using System.Text;
 
 namespace OpenKogama.Web;
 
-public sealed class SocketPolicyServer(int port = 843)
+public sealed class SocketPolicyServer(int port = 843, IPAddress? address = null)
 {
     static readonly byte[] Policy = Encoding.ASCII.GetBytes(
         "<?xml version=\"1.0\"?><cross-domain-policy><allow-access-from domain=\"*\" to-ports=\"*\"/></cross-domain-policy>\0");
 
     public async Task RunAsync()
     {
-        var listener = new TcpListener(IPAddress.Any, port);
+        var listener = new TcpListener(address ?? IPAddress.Any, port);
         try
         {
             listener.Start();

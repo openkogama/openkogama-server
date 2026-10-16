@@ -100,8 +100,16 @@ public sealed class Router2012
     void Join(PhotonPeer peer, OperationRequest request)
     {
         Player player = session.For(peer) ?? session.Add(peer, buildAvatar: Shared(peer));
-        if (int.TryParse(request[(byte)Key2012.Username] as string, out int profile) && profile > 0)
+        string? username = request[(byte)Key2012.Username] as string;
+        if (P2p.Tunnel.Carries(peer.EndPoint.Address))
+        {
+            player.Nickname = SessionToken.Clean(username) ?? "Player";
+            player.ProfileId = Stores.Profiles.ForName(player.Nickname);
+        }
+        else if (int.TryParse(username, out int profile) && profile > 0)
+        {
             player.ProfileId = profile;
+        }
 
         Reply(peer, request, new()
         {

@@ -17,6 +17,8 @@ public static partial class Tunnel
     public const byte Lanes = 8;
     public const int CodeLength = 6;
     public static readonly IPAddress Address = IPAddress.Parse("127.0.0.2");
+    public static readonly IPAddress Address2012 = IPAddress.Parse("127.0.0.3");
+    public const int Photon2012 = 5055;
 
     const string DefaultRendezvous = "p2p-eu.openkogama.org,p2p-na.openkogama.org,p2p-sa.openkogama.org,p2p-as.openkogama.org";
     const string Letters = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";

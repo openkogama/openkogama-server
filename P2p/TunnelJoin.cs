@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 using LiteNetLib;
+using OpenKogama.Web;
 
 namespace OpenKogama.P2p;
 
@@ -19,14 +20,15 @@ public sealed class TunnelJoin : INatPunchListener
     readonly NetManager _manager;
     readonly TaskCompletionSource<int> _done = new(TaskCreationOptions.RunContinuationsAsynchronously);
     readonly ConcurrentDictionary<int, Pipe> _pipes = new();
-    readonly ConcurrentDictionary<IPEndPoint, int> _flows = new();
-    readonly ConcurrentDictionary<int, IPEndPoint> _games = new();
+    readonly ConcurrentDictionary<(Socket Socket, IPEndPoint Game), int> _flows = new();
+    readonly ConcurrentDictionary<int, (Socket Socket, IPEndPoint Game)> _games = new();
     readonly object _sync = new();
     NetPeer? _server;
     NetPeer? _dialing;
     Link? _link;
     TcpListener? _tcp;
     Socket? _udp;
+    Socket? _udp2012;
     int _port;
     int _lastStream;
     int _lastFlow;
@@ -202,12 +204,25 @@ public sealed class TunnelJoin : INatPunchListener
                 _udp = Tunnel.Udp(new IPEndPoint(IPAddress.Loopback, port));
                 _tcp = tcp;
                 _port = port;
+                Bind2012();
                 return;
             }
             catch (SocketException) when (attempt < 50)
             {
                 tcp.Stop();
             }
+        }
+    }
+
+    void Bind2012()
+    {
+        try
+        {
+            _udp2012 = Tunnel.Udp(new IPEndPoint(Tunnel.Address2012, Tunnel.Photon2012));
+        }
+        catch (SocketException)
+        {
+            Console.WriteLine("note 127.0.0.3:5055 is busy, so KoGaMa 2012 cannot join");
         }
     }
 
@@ -220,7 +235,12 @@ public sealed class TunnelJoin : INatPunchListener
         }
         Console.WriteLine($"ready {_port} {(link.Relay == 0 ? "direct" : "relay")}");
         _ = AcceptAsync(link);
-        _ = ForwardAsync(link);
+        if (_udp is Socket udp) _ = ForwardAsync(link, udp);
+        if (_udp2012 is Socket udp2012)
+        {
+            _ = ForwardAsync(link, udp2012);
+            _ = new SocketPolicyServer(843, Tunnel.Address2012).RunAsync();
+        }
         return true;
     }
 
@@ -239,8 +259,8 @@ public sealed class TunnelJoin : INatPunchListener
             case Op.Credit when frame.Length >= 9 && _pipes.TryGetValue(id, out Pipe? pipe):
                 pipe.Grant(frame[5..]);
                 break;
-            case Op.Datagram when _games.TryGetValue(id, out IPEndPoint? game):
-                _udp?.SendTo(frame[5..], SocketFlags.None, game);
+            case Op.Datagram when _games.TryGetValue(id, out var game):
+                game.Socket.SendTo(frame[5..], SocketFlags.None, game.Game);
                 break;
         }
     }
@@ -259,18 +279,18 @@ public sealed class TunnelJoin : INatPunchListener
         }
     }
 
-    async Task ForwardAsync(Link link)
+    async Task ForwardAsync(Link link, Socket udp)
     {
         var buffer = new byte[4096];
         EndPoint anyone = new IPEndPoint(IPAddress.Any, 0);
-        while (_udp is Socket udp)
+        while (true)
         {
             SocketReceiveFromResult got = await udp.ReceiveFromAsync(buffer, SocketFlags.None, anyone);
             var game = (IPEndPoint)got.RemoteEndPoint;
-            int flow = _flows.GetOrAdd(game, _ =>
+            int flow = _flows.GetOrAdd((udp, game), _ =>
             {
                 int id = Interlocked.Increment(ref _lastFlow);
-                _games[id] = game;
+                _games[id] = (udp, game);
                 return id;
             });
             link.SendDatagram(flow, buffer.AsSpan(0, got.ReceivedBytes));
