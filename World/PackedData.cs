@@ -16,7 +16,9 @@ public static class PackedData
 
             if (index >= 0 && value is Dictionary<object, object?> nested && target[index].Value is List<(string, PackedType, object)> existing)
             {
-                Merge(existing, nested);
+                List<(string, PackedType, object)> merged = [.. existing];
+                Merge(merged, nested);
+                target[index] = (key, target[index].Type, merged);
                 continue;
             }
 
@@ -35,7 +37,11 @@ public static class PackedData
             if (index < 0) continue;
 
             if (value is Dictionary<object, object?> nested && target[index].Value is List<(string, PackedType, object)> existing)
-                Remove(existing, nested);
+            {
+                List<(string, PackedType, object)> left = [.. existing];
+                Remove(left, nested);
+                target[index] = (key, target[index].Type, left);
+            }
             else
                 target.RemoveAt(index);
         }

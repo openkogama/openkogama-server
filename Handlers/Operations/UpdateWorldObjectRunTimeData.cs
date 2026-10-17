@@ -54,7 +54,12 @@ public sealed class UpdateWorldObjectRunTimeData(Session session) : IOperationHa
 
             try
             {
-                session.World.Modify(objectId, obj => PackedData.Merge(obj.Runtime, changes));
+                session.World.Modify(objectId, obj =>
+                {
+                    if (changes.GetValueOrDefault("currentItem") is Dictionary<object, object?>)
+                        obj.Runtime.RemoveAll(pair => pair.Key == "currentItem");
+                    PackedData.Merge(obj.Runtime, changes);
+                });
             }
             catch (NotSupportedException error)
             {

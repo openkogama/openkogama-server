@@ -154,6 +154,9 @@ public sealed class Database
         """
         CREATE UNIQUE INDEX profiles_name ON profiles (name COLLATE NOCASE) WHERE name IS NOT NULL;
         """,
+        """
+        ALTER TABLE avatars ADD COLUMN from_player INTEGER NOT NULL DEFAULT 0;
+        """,
     ];
 
     readonly string _connectionString;

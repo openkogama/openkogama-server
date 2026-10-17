@@ -162,6 +162,7 @@ var api = new WebApi
     ExportWorld = host.ExportWorld,
     Shutdown = () => _ = Task.Delay(100).ContinueWith(_ => Environment.Exit(0)),
     Players = () => host.Sessions().Sum(session => session.Players.Count),
+    Sessions = host.Sessions,
 };
 if (serverInfo.Public && serverInfo.Accounts)
 {

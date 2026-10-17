@@ -38,6 +38,7 @@ public interface IProfileStore
     List<StoredAvatar> Avatars(int profile);
     int ActiveAvatar(int profile);
     int AddAvatar(int profile, int? source);
+    int ResetPlayerAvatar(int profile);
     int? AvatarSource(int avatar);
     List<AvatarPart>? AvatarParts(int avatar);
     void SaveAvatar(int avatar, List<AvatarPart> parts);

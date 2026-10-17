@@ -108,7 +108,7 @@ public sealed class Rendezvous(int port) : INatPunchListener
             return;
         }
         string code = Tunnel.CodeOf(secret);
-        var resumed = new List<int>();
+        var resumed = new List<(int Id, NetPeer Guest)>();
         lock (_sync)
         {
             foreach (string old in _hosts.Where(pair => pair.Value.Peer == peer).Select(pair => pair.Key).ToList())
@@ -120,14 +120,14 @@ public sealed class Rendezvous(int port) : INatPunchListener
             {
                 relay.Host = peer;
                 relay.OrphanedAt = 0;
-                resumed.Add(id);
+                resumed.Add((id, relay.Guest));
             }
         }
         Tunnel.Send(peer, Op.Registered, code);
         Console.WriteLine($"host {code} from {peer.Address}");
-        foreach (int id in resumed)
+        foreach ((int id, NetPeer guest) in resumed)
         {
-            peer.Send(Tunnel.Frame(Op.Relayed, id), 0, DeliveryMethod.ReliableOrdered);
+            peer.Send(ToHost(id, guest), 0, DeliveryMethod.ReliableOrdered);
             Console.WriteLine($"relay {id} for {code} resumed");
         }
     }
@@ -155,11 +155,12 @@ public sealed class Rendezvous(int port) : INatPunchListener
             host = hosted.Peer;
             _relays[id] = new Relaying(host, guest, code);
         }
-        byte[] frame = Tunnel.Frame(Op.Relayed, id);
-        host.Send(frame, 0, DeliveryMethod.ReliableOrdered);
-        guest.Send(frame, 0, DeliveryMethod.ReliableOrdered);
+        host.Send(ToHost(id, guest), 0, DeliveryMethod.ReliableOrdered);
+        guest.Send(Tunnel.Frame(Op.Relayed, id), 0, DeliveryMethod.ReliableOrdered);
         Console.WriteLine($"relay {id} for {code} from {guest.Address}");
     }
+
+    static byte[] ToHost(int id, NetPeer guest) => Tunnel.Frame(Op.Relayed, id, guest.Address.MapToIPv4().GetAddressBytes());
 
     void Forward(NetPeer from, ReadOnlySpan<byte> frame, byte lane, DeliveryMethod method)
     {

@@ -20,6 +20,9 @@ public sealed class ServerInfo
     public bool MixedClients { get; init; }
     public bool KeepPlayChanges { get; init; }
     public bool Public { get; init; }
+    public bool PlayerSettings { get; init; } = true;
+    public bool PlayerAvatars { get; init; } = true;
+    public bool PlayerInventory { get; init; } = true;
     public string List { get; init; } = PublicList.Announcer.DefaultList;
 
     public bool Accounts => Uri.TryCreate(PublicUrl, UriKind.Absolute, out Uri? url) && !url.IsLoopback;

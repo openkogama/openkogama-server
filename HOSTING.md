@@ -53,6 +53,9 @@ The server reads its program files from `app` and keeps everything else in the f
 | `keepPlayChanges` | `true` keeps the cubes, vehicles and other changes players make, after they leave and after restarts. |
 | `joinMode` | `"build"` puts everyone who joins straight into the editor of the join world, and their changes are saved into the world itself. The default is `"play"`. |
 | `public` | `true` shows the server to everyone under Public on the launcher's Servers tab. The list checks the server at its `publicUrl` before showing it, and drops it a few minutes after it stops. |
+| `playerSettings` | `true` by default: mouse and graphics settings come from the player's launcher and go back to it after the game. `false` keeps them for one session only. |
+| `playerAvatars` | `true` by default: players wear the avatar they use in their own launcher. `false` keeps the avatars they have on this server. |
+| `playerInventory` | `true` by default: the models from the player's own inventory come along into theirs on this server. `false` keeps only what they have here. |
 | `admins` | IP addresses of admins. Admins may type `!reload` to load changed plugins without a restart and get the game's own admin tools on the player list, where they can kick or ban other players. Bans are kept in `bans.json` in the data folder. Players on the server's own machine are always admins. |
 | `httpPort`, `photonPort` | Ports for HTTP and the game, 8080 and 5055 by default. Change them to run a second server on the same machine; the 2012 build always connects to 5055. |
 

@@ -15,11 +15,14 @@ public static class ProfileMeta
     {
         if (player.Peer.Translator is not Kogama.Protocols.OperationRemap remap || !remap.Knows(EventCode.GetProfileMetaData)) return;
 
-        string json = JsonSerializer.Serialize(new
+        var meta = new Dictionary<string, object>
         {
-            FirstTimeState = new { ByteArray = Convert.ToBase64String(State(player.ProfileId)) },
-            TestData = new Dictionary<string, string>(),
-        });
+            ["FirstTimeState"] = new { ByteArray = Convert.ToBase64String(State(player.ProfileId)) },
+            ["TestData"] = new Dictionary<string, string>(),
+        };
+        if (ProfileSettings.Of(player.ProfileId) is { } settings)
+            meta["ProfileSettingsState"] = new { ProfileSettingsData = settings };
+        string json = JsonSerializer.Serialize(meta);
         player.Peer.Send(new EventData((byte)EventCode.GetProfileMetaData)
         {
             Parameters =

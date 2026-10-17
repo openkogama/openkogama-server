@@ -16,6 +16,8 @@ public sealed class TunnelHost : INatPunchListener
     const long ResumeMs = 45_000;
     const int RebindMs = 10_000;
 
+    static readonly HttpClient Server = new() { Timeout = TimeSpan.FromSeconds(5) };
+
     readonly IPEndPoint[] _rendezvous;
     readonly Dictionary<IPEndPoint, NetPeer> _dialing = [];
     readonly object _sync = new();
@@ -133,7 +135,7 @@ public sealed class TunnelHost : INatPunchListener
             Tunnel.Send(peer, Op.Register, _secret, _info);
             return;
         }
-        _direct[peer] = new Guest(new Link(peer), _http, _photon);
+        _direct[peer] = new Guest(new Link(peer), _http, _photon, peer.Address, Report);
         Count();
     }
 
@@ -181,9 +183,11 @@ public sealed class TunnelHost : INatPunchListener
                     _stopped.Set();
                     break;
                 case Op.Relayed when reader.AvailableBytes >= 5:
-                    int id = Tunnel.IdOf(reader.GetRemainingBytesSpan());
+                    ReadOnlySpan<byte> relayedFrame = reader.GetRemainingBytesSpan();
+                    int id = Tunnel.IdOf(relayedFrame);
+                    IPAddress? from = relayedFrame.Length >= 9 ? new IPAddress(relayedFrame[5..9]) : null;
                     if (_relayed.TryGetValue(id, out Guest? known)) known.Rebind(new Link(peer, id));
-                    else _relayed[id] = new Guest(new Link(peer, id), _http, _photon);
+                    else _relayed[id] = new Guest(new Link(peer, id), _http, _photon, from, Report);
                     Count();
                     break;
                 case Op.Wrap when reader.AvailableBytes >= 5:
@@ -202,6 +206,10 @@ public sealed class TunnelHost : INatPunchListener
         }
     }
 
+    void Report(int port, IPAddress address) =>
+        _ = Server.PostAsync($"http://127.0.0.1:{_http}/api/tunnel/guest?port={port}&ip={address.MapToIPv4()}", null)
+            .ContinueWith(task => { if (task.IsCompletedSuccessfully) task.Result.Dispose(); });
+
     void Count()
     {
         int guests = _direct.Count + _relayed.Count;
@@ -216,7 +224,7 @@ public sealed class TunnelHost : INatPunchListener
     {
     }
 
-    sealed class Guest(Link link, int http, int photon)
+    sealed class Guest(Link link, int http, int photon, IPAddress? address, Action<int, IPAddress> report)
     {
         Link _link = link;
         public long BoundAt = Environment.TickCount64;
@@ -273,6 +281,7 @@ public sealed class TunnelHost : INatPunchListener
             if (_flows.Count >= MaxFlows) return null;
             Socket socket = Tunnel.Udp(new IPEndPoint(Tunnel.Address, 0));
             socket.Connect(IPAddress.Loopback, photon);
+            if (address is not null) report(((IPEndPoint)socket.LocalEndPoint!).Port, address);
             var flow = new Flow(socket);
             if (!_flows.TryAdd(id, flow))
             {

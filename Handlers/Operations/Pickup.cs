@@ -15,15 +15,22 @@ public static class Pickup
             ? AvatarItemType.CubeGun
             : pickup.Data.Find(pair => pair.Key == "itemType").Value is int type ? (AvatarItemType)type : null;
 
+        bool weapon = item is not (null or AvatarItemType.Health or AvatarItemType.Mutant or AvatarItemType.NinjaRun);
+        if (weapon && Mutated(session, player)) return;
+
         Plugins.PluginHost.PickedUp(session, player, (int?)item);
-        if (item is AvatarItemType weapon && weapon is not (AvatarItemType.Health or AvatarItemType.Mutant or AvatarItemType.NinjaRun))
+        if (weapon && item is AvatarItemType held)
         {
-            Equip(session, player, pickup, weapon, Holder(session, player, instigator));
-            Plugins.PluginHost.SwitchedItem(session, player, (int)weapon);
+            Equip(session, player, pickup, held, Holder(session, player, instigator));
+            Plugins.PluginHost.SwitchedItem(session, player, (int)held);
         }
 
         Respawn(session, pickup.Id, player.Actor);
     }
+
+    static bool Mutated(Session session, Player player) =>
+        session.World.Find(player.PlayAvatar)?.Runtime.Find(pair => pair.Key == "modifiers").Value is List<(string Key, PackedType Type, object Value)> modifiers
+        && modifiers.Exists(modifier => modifier.Key is "_Mutant" or "Mutant");
 
     static int Holder(Session session, Player player, int instigator) =>
         session.World.Find(instigator) is { } obj && obj.Owner == player.Actor && obj.Runtime.Exists(pair => pair.Key == "currentItem")

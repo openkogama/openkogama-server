@@ -294,6 +294,35 @@ public sealed class SqliteProfileStore(Database database) : IProfileStore
         return (int)(long)insert.ExecuteScalar()!;
     }
 
+    public int ResetPlayerAvatar(int profile)
+    {
+        using SqliteConnection connection = database.Open();
+        using SqliteTransaction transaction = connection.BeginTransaction();
+        using SqliteCommand find = Command(connection, "SELECT id FROM avatars WHERE owner = $profile AND from_player = 1", ("$profile", profile));
+        find.Transaction = transaction;
+        int avatar;
+        if (find.ExecuteScalar() is long id)
+        {
+            avatar = (int)id;
+        }
+        else
+        {
+            using SqliteCommand insert = Command(connection, "INSERT INTO avatars (owner, active, from_player) VALUES ($profile, 0, 1) RETURNING id", ("$profile", profile));
+            insert.Transaction = transaction;
+            avatar = (int)(long)insert.ExecuteScalar()!;
+        }
+
+        foreach (string table in new[] { "avatar_parts", "avatar_accessories" })
+        {
+            using SqliteCommand clear = Command(connection, $"DELETE FROM {table} WHERE avatar = $avatar", ("$avatar", avatar));
+            clear.Transaction = transaction;
+            clear.ExecuteNonQuery();
+        }
+
+        transaction.Commit();
+        return avatar;
+    }
+
     public int? AvatarSource(int avatar)
     {
         using SqliteConnection connection = database.Open();

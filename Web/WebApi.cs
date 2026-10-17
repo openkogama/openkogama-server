@@ -32,6 +32,7 @@ public sealed class WebApi
     public Func<int, byte[]?> ExportWorld { get; set; } = _ => null;
     public Action? Shutdown { get; set; }
     public Func<int> Players { get; set; } = () => 0;
+    public Func<IReadOnlyList<Session>> Sessions { get; set; } = () => [];
     public ServerInfo ServerInfo { get; init; } = new();
 
     public ApiResponse Route(ApiRequest request)
@@ -41,6 +42,11 @@ public sealed class WebApi
 
         if (request.Via is not null && Managing(path))
             return new ApiResponse(403, null, []);
+
+        if (path.StartsWith("/api/admin/"))
+            return request.Local && request.Via is null && !ServerInfo.Accounts
+                ? AdminApi.Route(path.TrimEnd('/'), request, Sessions())
+                : new ApiResponse(403, null, []);
 
         if (path.TrimEnd('/') == "/api/server")
         {
@@ -75,15 +81,21 @@ public sealed class WebApi
                 return ApiResponse.Json(JsonSerializer.Serialize(new { error = "Pick another nickname" }), 403);
             SessionLocator.Remember(profile, request.Via, int.TryParse(query["local"], out int local) && local is > 0 and < 65536 ? local : 0);
             bool join = query["mode"] == "play";
+            int world = int.TryParse(query["world"], out int chosen) ? chosen : 0;
+            if (world == 0 && join) world = ServerInfo.EntryWorld();
+            (bool hostPlays, bool hostBuilds) = request.Via is not null ? HostIn(world) : (false, false);
+            bool build = hostPlays != hostBuilds ? hostBuilds : ServerInfo.BuildJoin && (ServerInfo.Accounts || request.Via is not null);
             GameMode mode = query["mode"] switch
             {
-                "play" => ServerInfo.BuildJoin && (ServerInfo.Accounts || request.Via is not null) ? GameMode.Edit : GameMode.Play,
+                "play" => build ? GameMode.Edit : GameMode.Play,
                 "avatar" => GameMode.CharacterEditor,
                 _ => GameMode.Edit,
             };
-            int world = int.TryParse(query["world"], out int chosen) ? chosen : 0;
-            if (world == 0 && join) world = ServerInfo.EntryWorld();
             ClientEngines.Remember(profile, query["unity"]);
+            PlayerPackage? package = PlayerPackages.Find(query["key"]);
+            ProfileSettings.Remember(profile, ServerInfo.PlayerSettings ? query["key"] : null, ServerInfo.PlayerSettings ? package?.Settings?.GetRawText() : null);
+            if (package is not null && (ServerInfo.Accounts || request.Via is not null))
+                PlayerPackages.Apply(profile, package, ServerInfo.PlayerAvatars, ServerInfo.PlayerInventory);
             string session = SessionJson(profile, mode, world, query["client"], request.Via);
             if (query["name"] is not null && System.Text.Json.Nodes.JsonNode.Parse(session) is System.Text.Json.Nodes.JsonObject named)
             {
@@ -97,6 +109,25 @@ public sealed class WebApi
             }
             return ApiResponse.Json(session);
         }
+
+        if (path.TrimEnd('/') == "/api/tunnel/guest" && request.Method == "POST")
+        {
+            if (!request.Local || ServerInfo.Accounts || !int.TryParse(query["port"], out int port) || port is <= 0 or > 65535
+                || !System.Net.IPAddress.TryParse(query["ip"], out System.Net.IPAddress? address))
+                return new ApiResponse(403, null, []);
+            TunnelGuests.Report(port, address);
+            GuestSeen(port);
+            return ApiResponse.Json("{}");
+        }
+
+        if (path.TrimEnd('/') == "/api/player" && request.Method == "POST")
+            return ApiResponse.Json("{}", PlayerPackages.Offer(query["key"], request.Body) ? 200 : 400);
+
+        if (path.TrimEnd('/') == "/api/profile/export")
+            return request.Local && !ServerInfo.Accounts ? ApiResponse.Json(PlayerPackages.Export(ProfileOf(query))) : new ApiResponse(403, null, []);
+
+        if (path.TrimEnd('/') == "/api/settings")
+            return ProfileSettings.ForKey(query["key"]) is string settings ? ApiResponse.Json(settings) : ApiResponse.NotFound;
 
         if (path.TrimEnd('/') == "/api/templates")
             return ApiResponse.Json(JsonSerializer.Serialize(Templates.All.Select(template => new { template.Id, template.Name }), WorldJson));
@@ -247,8 +278,25 @@ public sealed class WebApi
 
     static bool IsPng(byte[] data) => data.Length <= MaxThumbnail && data.AsSpan().StartsWith(PngSignature);
 
+    (bool Plays, bool Builds) HostIn(int world)
+    {
+        List<Session> hosted = [.. Sessions().Where(session => session.WorldId == world
+            && session.Players.ToList().Any(player => !P2p.Tunnel.Carries(player.Peer.EndPoint.Address)))];
+        return (hosted.Any(session => session.Play), hosted.Any(session => !session.Play));
+    }
+
+    void GuestSeen(int port)
+    {
+        foreach (Player player in Sessions().SelectMany(session => session.Players.ToList()))
+            if (player.Peer.EndPoint.Port == port && P2p.Tunnel.Carries(player.Peer.EndPoint.Address) && Bans.Holds(player))
+            {
+                Console.WriteLine($"peer {player.Peer.Id}: {player.Username} is banned");
+                player.Peer.Disconnect();
+            }
+    }
+
     static bool Managing(string path) => path.TrimEnd('/') == "/shutdown"
-        || new[] { "/api/worlds", "/api/avatars", "/api/templates" }.Any(area => path == area || path.StartsWith(area + "/"));
+        || new[] { "/api/worlds", "/api/avatars", "/api/templates", "/api/profile", "/api/admin" }.Any(area => path == area || path.StartsWith(area + "/"));
 
     static int ProfileOf(NameValueCollection query) =>
         int.TryParse(query["profile"], out int profile) && profile > 0 ? profile : 1;

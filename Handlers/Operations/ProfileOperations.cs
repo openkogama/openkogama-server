@@ -10,7 +10,6 @@ public sealed class AdminOperation(Session session) : IOperationHandler
     const byte Ban = 1;
     const byte Expel = 2;
     const short Refused = -1;
-    const int MaxHours = 24 * 365 * 10;
 
     public byte Code => (byte)OperationCode.AdminOperation;
 
@@ -29,7 +28,7 @@ public sealed class AdminOperation(Session session) : IOperationHandler
         string reason = request[(byte)ParameterKey.GameMsgData] as string ?? "";
         if (type == Ban)
         {
-            int hours = Math.Clamp(request[(byte)ParameterKey.Amount] is { } amount ? Convert.ToInt32(amount) : 0, 1, MaxHours);
+            int hours = Math.Clamp(request[(byte)ParameterKey.Amount] is { } amount ? Convert.ToInt32(amount) : 0, 1, Bans.MaxHours);
             Bans.Add(player, hours, reason);
             Console.WriteLine($"peer {peer.Id}: admin {admin!.Username} banned {player.Username} for {hours} h: {reason}");
         }
