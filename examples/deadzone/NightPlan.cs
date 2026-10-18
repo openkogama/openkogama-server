@@ -15,14 +15,13 @@ abstract record NightStep
     public sealed record Wait(float Seconds) : NightStep;
 }
 
-sealed record Night(string? Name, int MaxAlive, IReadOnlyList<NightStep> Steps);
+sealed record Night(string? Name, IReadOnlyList<NightStep> Steps);
 
 sealed class NightPlan
 {
     sealed class File
     {
         public float SpawnEvery { get; init; } = 2f;
-        public int MaxAlive { get; init; } = 30;
         public float[][] SpawnPoints { get; init; } = [];
         public Dictionary<string, Monster> Monsters { get; init; } = [];
         public List<NightFile> Nights { get; init; } = [];
@@ -31,7 +30,6 @@ sealed class NightPlan
     sealed class NightFile
     {
         public string? Name { get; init; }
-        public int? MaxAlive { get; init; }
         public List<string> Steps { get; init; } = [];
     }
 
@@ -71,7 +69,6 @@ sealed class NightPlan
 
         List<Night> nights = [.. file.Nights.Select((night, index) => new Night(
             night.Name,
-            night.MaxAlive ?? file.MaxAlive,
             [.. night.Steps.SelectMany(step => Steps(file, index + 1, step))]))];
         Vector3[] points = [.. file.SpawnPoints.Select(point => new Vector3(point[0], point[1], point[2]))];
         return new NightPlan(file.SpawnEvery, points, file.Monsters.Values, nights);

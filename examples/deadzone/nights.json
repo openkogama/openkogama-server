@@ -1,6 +1,5 @@
 {
   "spawnEvery": 2,
-  "maxAlive": 30,
   "spawnPoints": [[76.1, 32.2, -46.1]],
   "monsters": {
     "zombie": { "name": "Zombie", "level": 1, "size": 1, "speed": 8, "health": 100, "damage": 10, "knockback": 1 },
@@ -11,7 +10,7 @@
   "nights": [
     { "name": "Tutorial", "steps": ["2 zombie", "wait 5", "3 zombie"] },
     { "name": "Kids", "steps": ["baby", "wait 8", "rush 3 baby", "wait 4", "rush 3 baby", "zombie", "wait 4", "rush 5 baby", "zombie"] },
-    { "name": "The Pack", "maxAlive": 9, "steps": ["rush 3 zombie", "rush 3 baby", "rush 3 zombie", "rush 3 baby", "rush 3 zombie", "rush 3 zombie"] },
+    { "name": "The Pack", "steps": ["rush 3 zombie", "rush 3 baby", "rush 3 zombie", "rush 3 baby", "rush 3 zombie", "rush 3 zombie"] },
     { "name": "Swarm", "steps": ["rush 4 baby", "wait 3", "rush 4 baby", "zombie", "wait 3", "rush 5 baby", "wait 2", "rush 5 baby", "zombie"] },
     { "name": "The Brute", "steps": ["rush brute", "rush 4 zombie", "rush 3 baby", "wait 12", "rush 3 zombie", "wait 6", "rush 3 baby"] },
     { "name": "Calm", "steps": ["2 zombie", "wait 5", "zombie", "baby", "wait 5", "2 zombie", "baby"] },

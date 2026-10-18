@@ -29,7 +29,6 @@ sealed class Zombies(AvatarSkin skin, IReadOnlyDictionary<string, AvatarSkin> sk
 
     sealed class Wave(Night night)
     {
-        public int MaxAlive => night.MaxAlive;
         public Queue<NightStep> Steps { get; } = new(night.Steps);
         public long NextSpawn { get; set; } = Environment.TickCount64;
         public long? ClearedAt { get; set; }
@@ -148,7 +147,6 @@ sealed class Zombies(AvatarSkin skin, IReadOnlyDictionary<string, AvatarSkin> sk
     {
         if (now < wave.NextSpawn || !wave.Steps.TryPeek(out NightStep? step)) return;
         int alive = _zombies.Values.Count(zombie => zombie.World == world && zombie.Npc.Alive);
-        int room = wave.MaxAlive - alive;
         int players = Math.Max(1, world.Players.Count);
         switch (step)
         {
@@ -163,12 +161,12 @@ sealed class Zombies(AvatarSkin skin, IReadOnlyDictionary<string, AvatarSkin> sk
                 wave.Steps.Dequeue();
                 wave.ClearedAt = null;
                 break;
-            case NightStep.Spawn spawn when room >= Math.Min(players, wave.MaxAlive):
+            case NightStep.Spawn spawn:
                 wave.Steps.Dequeue();
                 for (int i = 0; i < players; i++) SpawnOne(world, wave, spawn.Monster);
                 wave.NextSpawn = now + (long)(plan.SpawnEvery * 1000f);
                 break;
-            case NightStep.Rush rush when room >= Math.Min(rush.Count * players, wave.MaxAlive):
+            case NightStep.Rush rush:
                 wave.Steps.Dequeue();
                 for (int i = 0; i < rush.Count * players; i++) SpawnOne(world, wave, rush.Monster);
                 wave.NextSpawn = now;
