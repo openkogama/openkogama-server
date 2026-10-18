@@ -149,6 +149,7 @@ sealed class Zombies(AvatarSkin skin, IReadOnlyDictionary<string, AvatarSkin> sk
         if (now < wave.NextSpawn || !wave.Steps.TryPeek(out NightStep? step)) return;
         int alive = _zombies.Values.Count(zombie => zombie.World == world && zombie.Npc.Alive);
         int room = wave.MaxAlive - alive;
+        int players = Math.Max(1, world.Players.Count);
         switch (step)
         {
             case NightStep.Wait wait:
@@ -162,14 +163,14 @@ sealed class Zombies(AvatarSkin skin, IReadOnlyDictionary<string, AvatarSkin> sk
                 wave.Steps.Dequeue();
                 wave.ClearedAt = null;
                 break;
-            case NightStep.Spawn spawn when room > 0:
+            case NightStep.Spawn spawn when room >= Math.Min(players, wave.MaxAlive):
                 wave.Steps.Dequeue();
-                SpawnOne(world, wave, spawn.Monster);
+                for (int i = 0; i < players; i++) SpawnOne(world, wave, spawn.Monster);
                 wave.NextSpawn = now + (long)(plan.SpawnEvery * 1000f);
                 break;
-            case NightStep.Rush rush when room >= Math.Min(rush.Count, wave.MaxAlive):
+            case NightStep.Rush rush when room >= Math.Min(rush.Count * players, wave.MaxAlive):
                 wave.Steps.Dequeue();
-                for (int i = 0; i < rush.Count; i++) SpawnOne(world, wave, rush.Monster);
+                for (int i = 0; i < rush.Count * players; i++) SpawnOne(world, wave, rush.Monster);
                 wave.NextSpawn = now;
                 break;
         }
