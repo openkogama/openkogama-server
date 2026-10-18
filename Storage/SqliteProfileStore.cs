@@ -227,6 +227,22 @@ public sealed class SqliteProfileStore(Database database) : IProfileStore
         return removed;
     }
 
+    public bool RenameItem(int profile, int itemId, string name)
+    {
+        using SqliteConnection connection = database.Open();
+        using SqliteCommand command = Command(connection, "UPDATE items SET name = $name WHERE id = $item AND owner = $profile",
+            ("$name", name), ("$item", itemId), ("$profile", profile));
+        return command.ExecuteNonQuery() > 0;
+    }
+
+    public bool SetItemData(int profile, int itemId, byte[] data)
+    {
+        using SqliteConnection connection = database.Open();
+        using SqliteCommand command = Command(connection, "UPDATE items SET data = $data WHERE id = $item AND owner = $profile",
+            ("$data", data), ("$item", itemId), ("$profile", profile));
+        return command.ExecuteNonQuery() > 0;
+    }
+
     public Dictionary<int, int> Slots(int profile)
     {
         using SqliteConnection connection = database.Open();
@@ -382,6 +398,26 @@ public sealed class SqliteProfileStore(Database database) : IProfileStore
         using SqliteCommand command = Command(connection, "UPDATE avatars SET name = $name WHERE id = $avatar AND owner = $profile",
             ("$name", name), ("$avatar", avatar), ("$profile", profile));
         return command.ExecuteNonQuery() > 0;
+    }
+
+    public bool DeleteAvatar(int profile, int avatar)
+    {
+        using SqliteConnection connection = database.Open();
+        using SqliteTransaction transaction = connection.BeginTransaction();
+        using SqliteCommand delete = Command(connection, "DELETE FROM avatars WHERE id = $avatar AND owner = $profile AND active = 0",
+            ("$avatar", avatar), ("$profile", profile));
+        delete.Transaction = transaction;
+        if (delete.ExecuteNonQuery() == 0) return false;
+
+        foreach (string table in new[] { "avatar_parts", "avatar_accessories" })
+        {
+            using SqliteCommand clear = Command(connection, $"DELETE FROM {table} WHERE avatar = $avatar", ("$avatar", avatar));
+            clear.Transaction = transaction;
+            clear.ExecuteNonQuery();
+        }
+
+        transaction.Commit();
+        return true;
     }
 
     public List<WornAccessory> Accessories(int avatar)

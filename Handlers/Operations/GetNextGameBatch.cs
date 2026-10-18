@@ -116,27 +116,32 @@ public sealed class GetNextGameBatch(Session session) : IOperationHandler
         }
         deliver(me.WorldData(snapshot));
 
-        Snapshot avatar = session.AvatarSnapshot(me);
+        List<Snapshot> avatars = session.AvatarSnapshots(me);
 
         foreach (Player other in session.Players)
         {
             if (other.Peer == peer) continue;
             Introduce(session, me, other);
 
-            int added = NextQueryId();
-            other.Peer.Send(new EventData((byte)EventCode.GetGameBatch)
+            foreach (Snapshot avatar in avatars)
             {
-                Parameters =
+                if (!other.SpawnRoles && avatar.Objects is [{ Type: WorldObjectType.BuildModeAvatar }, ..]) continue;
+
+                int added = NextQueryId();
+                other.Peer.Send(new EventData((byte)EventCode.GetGameBatch)
                 {
-                    [(byte)ParameterKey.ActorNr] = me.Actor,
-                    [(byte)ParameterKey.Data] = other.WorldData(avatar),
-                    [(byte)ParameterKey.QueryType] = (byte)QueryType.AddToGameWorld,
-                    [(byte)ParameterKey.QueryId] = added,
-                    [(byte)ParameterKey.QueryDataLeft] = false,
-                },
-            });
-            if (other.WaitsForQueryReady)
-                other.Peer.Send(new EventData((byte)EventCode.GameQueryReady) { Parameters = { [(byte)ParameterKey.QueryId] = added } });
+                    Parameters =
+                    {
+                        [(byte)ParameterKey.ActorNr] = me.Actor,
+                        [(byte)ParameterKey.Data] = other.WorldData(avatar),
+                        [(byte)ParameterKey.QueryType] = (byte)QueryType.AddToGameWorld,
+                        [(byte)ParameterKey.QueryId] = added,
+                        [(byte)ParameterKey.QueryDataLeft] = false,
+                    },
+                });
+                if (other.WaitsForQueryReady)
+                    other.Peer.Send(new EventData((byte)EventCode.GameQueryReady) { Parameters = { [(byte)ParameterKey.QueryId] = added } });
+            }
         }
 
         Console.WriteLine($"peer {peer.Id}: world sent, players now {session.Players.Count}");

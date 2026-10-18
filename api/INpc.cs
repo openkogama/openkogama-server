@@ -32,6 +32,7 @@ public interface INpc
     void Shoot(Vector3 direction);
     void Shoot(Vector3 direction, float holdSeconds);
     void Aim(Vector3 direction);
+    bool Hold(IWorldObject weapon);
     bool BecomeColossus(IWorldObject trigger);
     bool BecomeColossus(ColossusSize size);
     void PlayAnimation(string? state);

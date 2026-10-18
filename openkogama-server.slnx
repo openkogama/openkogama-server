@@ -6,4 +6,6 @@
   <Project Path="examples/xp/xp.csproj" />
   <Project Path="examples/sandbox/sandbox.csproj" />
   <Project Path="examples/deadzone/deadzone.csproj" />
+  <Project Path="examples/poison/poison.csproj" />
+  <Project Path="tests/launcher-contract/launcher-contract.csproj" />
 </Solution>

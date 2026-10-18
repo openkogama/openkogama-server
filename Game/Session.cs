@@ -85,19 +85,11 @@ public sealed partial class Session
         World.Modify(player.AvatarId, obj => obj.SetRuntime("spawnRoleModeType", PackedType.Int32, Avatar.Hidden));
     }
 
-    public Snapshot AvatarSnapshot(Player player)
+    public List<Snapshot> AvatarSnapshots(Player player)
     {
-        Snapshot avatar = World.SubtreeSnapshot(player.AvatarId);
-        if (player.BuildAvatarId >= 0)
-        {
-            Snapshot builder = World.SubtreeSnapshot(player.BuildAvatarId);
-            avatar = avatar with
-            {
-                Prototypes = [.. avatar.Prototypes.Concat(builder.Prototypes).DistinctBy(prototype => prototype.Id)],
-                Objects = [.. avatar.Objects, .. builder.Objects],
-            };
-        }
-        return avatar with { Prototypes = [.. avatar.Prototypes.Where(prototype => !_avatarPrototypes.Contains(prototype.Id))] };
+        int[] roots = player.BuildAvatarId >= 0 ? [player.AvatarId, player.BuildAvatarId] : [player.AvatarId];
+        return [.. roots.Select(World.SubtreeSnapshot).Select(avatar =>
+            avatar with { Prototypes = [.. avatar.Prototypes.Where(prototype => !_avatarPrototypes.Contains(prototype.Id))] })];
     }
 
     public int BodyOf(int avatarId) =>
@@ -108,9 +100,8 @@ public sealed partial class Session
         if (Bodies.Count > 0) return;
 
         int avatar = Stores.Profiles.ActiveAvatar(player.ProfileId);
-        WorldObject? body = World.Subtree(player.AvatarId)
-            .Find(obj => obj.Type == WorldObjectType.Blueprint && obj.ParentId == player.AvatarId);
-        if (body is not null) Dress(body.Id, avatar);
+        foreach (int role in new[] { player.AvatarId, player.BuildAvatarId })
+            if (BodyOf(role) is int body and >= 0) Dress(body, avatar);
     }
 
     void Dress(int bodyId, int avatar) => Avatar.Dress(World, bodyId, avatar);

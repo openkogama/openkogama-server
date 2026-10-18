@@ -34,7 +34,7 @@ public static class ServerChat
     {
         foreach (Player player in session.Players)
         {
-            if (kind == ChatKind.Team && player.Team != sender.Team) continue;
+            if (!player.InWorld || kind == ChatKind.Team && player.Team != sender.Team) continue;
             int type = !player.ChatKinds ? SendChatMsg.ChatMessage : kind switch
             {
                 ChatKind.Team => TeamMessage,

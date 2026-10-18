@@ -17,7 +17,7 @@ public sealed class UpdateLineOfFire(Session session) : IOperationHandler
         evt.Parameters[(byte)ParameterKey.ActorNr] = (int)peer.Id;
 
         foreach (Player other in session.Players)
-            if (other.Peer != peer)
+            if (other.Peer != peer && other.InWorld)
                 other.Peer.Send(evt, reliable: false);
     }
 }

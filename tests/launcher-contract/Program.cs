@@ -21,6 +21,7 @@ ApiRequest Get(string path, params (string Key, string Value)[] parameters)
 
 var worlds = new TestWorlds();
 Stores.Worlds = worlds;
+Stores.Images = new TestImages();
 string image = Path.Combine(Path.GetTempPath(), "openkogama-contract-" + Guid.NewGuid() + ".png");
 string accounts = Path.Combine(Path.GetTempPath(), "openkogama-contract-" + Guid.NewGuid() + ".db");
 try
@@ -31,7 +32,7 @@ try
     GameMode selectedMode = GameMode.Edit;
     var api = new WebApi {
         ServerInfo = info,
-        SessionJson = (_, mode, world, _) => {
+        SessionJson = (_, mode, world, _, _) => {
             selectedWorld = world;
             selectedMode = mode;
             return "{}";
@@ -40,8 +41,8 @@ try
     var metadata = api.Route(Get("/api/server"));
     using (var json = JsonDocument.Parse(metadata.Body))
     {
-        Check(metadata.Status == 200 && json.RootElement.EnumerateObject().Count() == 3,
-            "launcher metadata exposes only its three tile fields");
+        Check(metadata.Status == 200 && json.RootElement.EnumerateObject().Count() == 5,
+            "launcher metadata exposes only its tile fields");
         Check(json.RootElement.GetProperty("clients").GetArrayLength() == 0, "every version is accepted when clients is not set");
         Check(json.RootElement.GetProperty("title").GetString()!.Length == 40, "title has a 40-character limit");
         Check(json.RootElement.GetProperty("thumbnail").GetString() == "/api/server/thumbnail", "thumbnail uses the fixed endpoint");
@@ -60,7 +61,7 @@ try
     var builder = new WebApi
     {
         ServerInfo = new ServerInfo { JoinWorld = 7, JoinMode = "build" },
-        SessionJson = (_, mode, world, _) =>
+        SessionJson = (_, mode, world, _, _) =>
         {
             selectedWorld = world;
             selectedMode = mode;
@@ -68,7 +69,7 @@ try
         },
     };
     builder.Route(Get("/session", ("mode", "play")));
-    Check(selectedWorld == 7 && selectedMode == GameMode.Edit, "joinMode build opens the entry world in the editor");
+    Check(selectedWorld == 7 && selectedMode == GameMode.Play, "joinMode build leaves the local player's own choice alone");
     SessionLocator.EntryWorld = info.EntryWorld;
     SessionLocator.GameServer = "example.com";
     string? legacy = SessionLocator.Answer("/PHP/GameSessionLocator.php", Get("/", ("PlanetName", "0")).Query);
@@ -79,7 +80,7 @@ try
     var filtered = new ServerInfo { Clients = ["3.5.20", "1.25.12.280-1.32.10.547"] };
     Check(filtered.Allows("3.5.20") && filtered.Allows("1.30.0.391") && !filtered.Allows("3.5.25") && !filtered.Allows(null),
         "clients accepts exact versions and inclusive ranges only");
-    var gated = new WebApi { ServerInfo = filtered, SessionJson = (_, _, _, _) => "{}" };
+    var gated = new WebApi { ServerInfo = filtered, SessionJson = (_, _, _, _, _) => "{}" };
     Check(gated.Route(Get("/session", ("mode", "play"), ("client", "3.5.25"))).Status == 403, "session refuses versions outside clients");
     Check(SessionToken.Parse(SessionToken.Create(4, " nightus ")) == (4, "nightus") && SessionToken.Parse("4") == (4, null),
         "session token carries the nickname");
@@ -111,4 +112,11 @@ sealed class TestWorlds : IWorldStore
     public void MarkPlayed(int id) => throw new NotSupportedException();
     public bool Rename(int id, string name) => false;
     public bool Delete(int id) => false;
+}
+
+sealed class TestImages : IImageStore
+{
+    public byte[]? Image(int type, int id) => null;
+    public void SaveImage(int type, int id, byte[] data) => throw new NotSupportedException();
+    public void DeleteImage(int type, int id) => throw new NotSupportedException();
 }

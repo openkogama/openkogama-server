@@ -22,6 +22,7 @@ public sealed class WebApi
     static readonly JsonSerializerOptions WorldJson = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
     static readonly byte[] PngSignature = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
     const int PlanetImage = 0;
+    const int AvatarImage = 1;
     const int MaxThumbnail = 2 * 1024 * 1024;
 
     public Func<int, GameMode, int, string?, string?, string> SessionJson { get; set; } = (_, _, _, _, _) => "{}";
@@ -83,8 +84,7 @@ public sealed class WebApi
             bool join = query["mode"] == "play";
             int world = int.TryParse(query["world"], out int chosen) ? chosen : 0;
             if (world == 0 && join) world = ServerInfo.EntryWorld();
-            (bool hostPlays, bool hostBuilds) = request.Via is not null ? HostIn(world) : (false, false);
-            bool build = hostPlays != hostBuilds ? hostBuilds : ServerInfo.BuildJoin && (ServerInfo.Accounts || request.Via is not null);
+            bool build = ServerInfo.BuildJoin && (ServerInfo.Accounts || request.Via is not null);
             GameMode mode = query["mode"] switch
             {
                 "play" => build ? GameMode.Edit : GameMode.Play,
@@ -97,6 +97,7 @@ public sealed class WebApi
             if (package is not null && (ServerInfo.Accounts || request.Via is not null))
                 PlayerPackages.Apply(profile, package, ServerInfo.PlayerAvatars, ServerInfo.PlayerInventory);
             string session = SessionJson(profile, mode, world, query["client"], request.Via);
+            Console.WriteLine($"profile {profile}: joins world {world} in {mode.ToString().ToLowerInvariant()} mode");
             if (query["name"] is not null && System.Text.Json.Nodes.JsonNode.Parse(session) is System.Text.Json.Nodes.JsonObject named)
             {
                 named["token"] = SessionToken.Create(profile, query["name"]);
@@ -169,6 +170,11 @@ public sealed class WebApi
             return ApiResponse.Json("{}", saved ? 200 : 400);
         }
 
+        if (path.TrimEnd('/') == "/api/inventory" || path.StartsWith("/api/inventory/"))
+            return request.Local && !ServerInfo.Accounts
+                ? InventoryApi.Route(path.TrimEnd('/'), request, ProfileOf(query))
+                : new ApiResponse(403, null, []);
+
         if (path.TrimEnd('/') == "/api/avatars")
         {
             int owner = ProfileOf(query);
@@ -189,6 +195,14 @@ public sealed class WebApi
                 && query["name"] is { Length: > 0 } name
                 && Stores.Profiles.RenameAvatar(ProfileOf(query), id, name.Trim());
             return ApiResponse.Json("{}", renamed ? 200 : 400);
+        }
+
+        if (path.TrimEnd('/') == "/api/avatars/delete" && request.Method == "POST")
+        {
+            if (!request.Local || ServerInfo.Accounts) return new ApiResponse(403, null, []);
+            bool deleted = int.TryParse(query["id"], out int id) && Stores.Profiles.DeleteAvatar(ProfileOf(query), id);
+            if (deleted) Stores.Images.DeleteImage(AvatarImage, id);
+            return ApiResponse.Json("{}", deleted ? 200 : 409);
         }
 
         if (path.TrimEnd('/') == "/api/avatars/export")
@@ -278,13 +292,6 @@ public sealed class WebApi
 
     static bool IsPng(byte[] data) => data.Length <= MaxThumbnail && data.AsSpan().StartsWith(PngSignature);
 
-    (bool Plays, bool Builds) HostIn(int world)
-    {
-        List<Session> hosted = [.. Sessions().Where(session => session.WorldId == world
-            && session.Players.ToList().Any(player => !P2p.Tunnel.Carries(player.Peer.EndPoint.Address)))];
-        return (hosted.Any(session => session.Play), hosted.Any(session => !session.Play));
-    }
-
     void GuestSeen(int port)
     {
         foreach (Player player in Sessions().SelectMany(session => session.Players.ToList()))
@@ -296,7 +303,7 @@ public sealed class WebApi
     }
 
     static bool Managing(string path) => path.TrimEnd('/') == "/shutdown"
-        || new[] { "/api/worlds", "/api/avatars", "/api/templates", "/api/profile", "/api/admin" }.Any(area => path == area || path.StartsWith(area + "/"));
+        || new[] { "/api/worlds", "/api/avatars", "/api/inventory", "/api/templates", "/api/profile", "/api/admin" }.Any(area => path == area || path.StartsWith(area + "/"));
 
     static int ProfileOf(NameValueCollection query) =>
         int.TryParse(query["profile"], out int profile) && profile > 0 ? profile : 1;

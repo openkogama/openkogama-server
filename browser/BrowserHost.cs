@@ -47,7 +47,7 @@ public static partial class BrowserHost
         var json = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
         _api = new WebApi
         {
-            SessionJson = (profile, mode, world, client) => JsonSerializer.Serialize(
+            SessionJson = (profile, mode, world, client, _) => JsonSerializer.Serialize(
                 new SessionData("127.0.0.1:5055", profile, world, mode, "en_US", false, profile.ToString(),
                     "http://127.0.0.1:8080/ping", "http://127.0.0.1:8080/disconnect", "http://127.0.0.1:8080/reward", client),
                 json),

@@ -89,6 +89,15 @@ Console.WriteLine($"udp {serverInfo.PhotonPort}");
 _ = server.RunWebSocketsAsync($"http://{serverInfo.ListenHost}:{serverInfo.PhotonPort}/").ContinueWith(failed =>
     Console.WriteLine($"websocket {serverInfo.PhotonPort} failed: {failed.Exception?.InnerException?.Message}"), TaskContinuationOptions.OnlyOnFaulted);
 Console.WriteLine($"websocket {serverInfo.PhotonPort}");
+if (publicUrl.IsLoopback && serverInfo.PhotonPort != Tunnel.Photon2012)
+{
+    if (new Relay2012(serverInfo.PhotonPort).Start())
+    {
+        SessionLocator.GameServer2012 = Relay2012.Address.ToString();
+        Console.WriteLine($"kogama 2012 {Relay2012.Address}:{Tunnel.Photon2012}");
+    }
+    else Console.WriteLine($"note {Relay2012.Address}:{Tunnel.Photon2012} is busy, so KoGaMa 2012 cannot join");
+}
 
 _ = Task.Run(async () =>
 {

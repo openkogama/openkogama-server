@@ -140,7 +140,8 @@ public sealed class Router2012
         {
             player.BuildTarget = 1;
             foreach (Player other in Newer(peer)) Operations.GetNextGameBatch.Introduce(session, player, other);
-            Operations.GetNextGameBatch.SendAdded(session, player.Actor, session.AvatarSnapshot(player), other => other.Peer.Protocol != PhotonProtocol.Protocol15);
+            foreach (Snapshot avatar in session.AvatarSnapshots(player))
+                Operations.GetNextGameBatch.SendAdded(session, player.Actor, avatar, other => other.Peer.Protocol != PhotonProtocol.Protocol15);
         }
         Console.WriteLine($"peer {peer.Id}: 2012 client joined as actor {player.Actor}");
     }

@@ -60,6 +60,7 @@ public sealed class WorldObjectData(Session session, DataChange change) : IOpera
             },
         };
         foreach (Player player in session.Players)
-            player.Peer.Send(evt);
+            if (player.InWorld)
+                player.Peer.Send(evt);
     }
 }

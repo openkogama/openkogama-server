@@ -389,6 +389,7 @@ public sealed partial class Session
         switch (interaction.Type)
         {
             case InteractionType.ImpulseGunHit:
+            case InteractionType.VehicleHit:
                 Push(npc, interaction.Impulse, now, noFriction: true);
                 break;
             case InteractionType.SwordHit:
@@ -417,6 +418,7 @@ public sealed partial class Session
             case InteractionType.ThrowingStarHit:
             case InteractionType.MultiThrowingStarHit:
             case InteractionType.SlapGunHit:
+            case InteractionType.CustomGunHit:
             case InteractionType.ProximityDamageAndImpulse:
                 Damage(npc, interaction.Damage, actor, KilledByOf(interaction), now);
                 Push(npc, interaction.Impulse, now, noFriction: false);

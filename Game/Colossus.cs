@@ -10,10 +10,11 @@ public static class Colossus
     const string OccupantKey = "occupantWOID";
 
     const byte SmallPackage = 17;
+    const int DefaultSize = 1;
     static readonly string[] Sizes = ["S", "M", "L", "XL"];
     static readonly float[] Scales = [4f, 8f, 20f, 40f];
 
-    public static byte PackageOf(WorldObject trigger) => PackageOf(trigger.Data.Find(pair => pair.Key == "size").Value as int? ?? 0);
+    public static byte PackageOf(WorldObject trigger) => PackageOf(trigger.Data.Find(pair => pair.Key == "size").Value as int? ?? DefaultSize);
 
     public static byte PackageOf(int size) => (byte)(SmallPackage + Math.Clamp(size, 0, Sizes.Length - 1));
 

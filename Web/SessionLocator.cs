@@ -10,6 +10,7 @@ public static class SessionLocator
     static readonly ConcurrentDictionary<int, string> Bundles = new();
 
     public static string GameServer { get; set; } = "127.0.0.1";
+    public static string? GameServer2012 { get; set; }
     public static string PublicUrl { get; set; } = "http://127.0.0.1:8080";
     public static Func<int> EntryWorld { get; set; } = () => 0;
 
@@ -37,7 +38,7 @@ public static class SessionLocator
         Console.WriteLine($"session locator: {(edit ? "edit" : "play")} planet '{planet}' {(found ? "found" : "missing")}");
 
         if (!found) return "STATUS:'1' GAMESERVERIP:'' GAMENAME:''";
-        string server = via is null ? GameServer : P2p.Tunnel.Address2012.ToString();
+        string server = via is null ? GameServer2012 ?? GameServer : P2p.Tunnel.Address2012.ToString();
         return edit ? $"STATUS:'3' GAMESERVERIP:'{server}'" : $"STATUS:'2' GAMESERVERIP:'{server}' GAMENAME:'{id}'";
     }
 }

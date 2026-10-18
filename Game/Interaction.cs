@@ -24,10 +24,12 @@ public enum InteractionType : byte
     MouseGunHit = 16,
     GrowthGunHit = 17,
     IceGunHit = 18,
+    CustomGunHit = 19,
     GodzillaLaserHit = 19,
     MultiThrowingStarHit = 24,
     DoubleSixShooterHit = 25,
     SlapGunHit = 26,
+    VehicleHit = 28,
 }
 
 public enum KilledBy : byte

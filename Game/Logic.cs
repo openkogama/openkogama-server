@@ -325,6 +325,19 @@ public sealed class Logic(Session session)
 
     public void ResetAll() => Reset(session.World.ToSnapshot().Objects.Where(obj => Stateful.Contains(obj.Type)).Select(obj => obj.Id));
 
+    public void Restart()
+    {
+        lock (_sync)
+        {
+            _clock.Restart();
+            _frame = 0;
+            _step = 0;
+            _inputs.Clear();
+            _pulses.Clear();
+        }
+        ResetAll();
+    }
+
     public void Reset(IEnumerable<int> ids)
     {
         lock (_sync)

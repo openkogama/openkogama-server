@@ -75,7 +75,7 @@ public sealed class UpdateWorldObjectRunTimeData(Session session) : IOperationHa
 
         bool builder = session.Players.Any(player => player.ExtraRole(objectId));
         foreach (Player player in session.Players)
-            if (player.Peer != peer && (!builder || player.SpawnRoles))
+            if (player.Peer != peer && player.InWorld && (!builder || player.SpawnRoles))
                 player.Peer.Send(withHand is not null && player.SpawnRoles ? withHand
                     : limited is not null && AvatarModifiers.Limited(player) ? limited : evt);
     }

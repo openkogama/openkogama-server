@@ -31,6 +31,8 @@ public interface IProfileStore
     List<Item> Items(int profile);
     Item AddItem(int profile, string name, int category, byte[] data, int author);
     bool RemoveItem(int profile, int itemId);
+    bool RenameItem(int profile, int itemId, string name);
+    bool SetItemData(int profile, int itemId, byte[] data);
 
     Dictionary<int, int> Slots(int profile);
     void SetSlots(int profile, Dictionary<int, int> slots);
@@ -44,6 +46,7 @@ public interface IProfileStore
     void SaveAvatar(int avatar, List<AvatarPart> parts);
     void SetActiveAvatar(int profile, int avatar);
     bool RenameAvatar(int profile, int avatar, string name);
+    bool DeleteAvatar(int profile, int avatar);
 
     List<WornAccessory> Accessories(int avatar);
     void SetAccessory(int avatar, int item, int slot, float offset, float scale = 1f);

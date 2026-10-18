@@ -16,7 +16,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\**\*.cs" Exclude="..\browser\**;..\api\**;..\examples\**;..\tests\**;..\bin\**;..\obj\**;..\Program.cs;..\Web\HttpServer.cs;..\Web\NullProxy.cs;..\Web\SocketPolicyServer.cs" />
+    <Compile Include="..\**\*.cs" Exclude="..\browser\**;..\api\**;..\examples\**;..\tests\**;..\bin\**;..\obj\**;..\Program.cs;..\Web\HttpServer.cs;..\Web\NullProxy.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -25,6 +25,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="LiteNetLib" Version="2.1.4" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.12" />
   </ItemGroup>
 
