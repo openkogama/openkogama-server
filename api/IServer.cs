@@ -21,6 +21,7 @@ public interface IServer
     event Action<IPlayer, AvatarItem>? PlayerSwitchedItem;
     event Action<IPlayer, AvatarItem>? PlayerPickedUp;
     ITemplates Templates { get; }
+    IAssets Assets { get; }
 
     IReadOnlyList<IPlayer> Players { get; }
     IReadOnlyList<IWorld> Worlds { get; }

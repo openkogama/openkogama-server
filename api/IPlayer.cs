@@ -17,6 +17,7 @@ public interface IPlayer
     bool IsAdmin { get; }
     Team Team { get; }
     AvatarItem Holding { get; }
+    int? SoundEmitter { get; }
 
     int AddXp(int amount);
     int AddGold(int amount);

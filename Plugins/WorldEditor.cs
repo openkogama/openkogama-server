@@ -123,6 +123,9 @@ sealed class WorldEditor(GameWorld world, Session? session) : IWorldBuilder
 
     public bool SetData(int id, string key, object value) => SetData(id, new Dictionary<string, object> { [key] = value });
 
+    public bool SetSound(int id, ISound sound) =>
+        Content.CustomContent.Sounds.Find(sound.Id) is { } known && SetData(id, "url", known.Url);
+
     public bool SetData(int id, IReadOnlyDictionary<string, object> values)
     {
         var change = values.ToDictionary(pair => (object)pair.Key, pair => (object?)pair.Value);

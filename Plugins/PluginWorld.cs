@@ -34,6 +34,8 @@ sealed class PluginWorld(Session session) : IWorld
 
     public bool SetData(int id, IReadOnlyDictionary<string, object> values) => _editor.SetData(id, values);
 
+    public bool SetSound(int id, ISound sound) => _editor.SetSound(id, sound);
+
     public INpc SpawnNpc(string name, Vector3 position, float yaw = 0, IPlayer? skinOf = null) =>
         SpawnNpc(name, position, yaw, skinOf?.Skin);
 

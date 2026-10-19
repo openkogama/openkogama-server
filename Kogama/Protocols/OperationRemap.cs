@@ -17,7 +17,7 @@ public sealed class OperationRemap(ProtocolTable client) : IMessageTranslator
     static readonly HashSet<byte> RowsOut =
     [
         (byte)ParameterKey.DBQueryOutData, (byte)ParameterKey.ItemBusinessData, (byte)ParameterKey.RentProductData, (byte)ParameterKey.Friends,
-        (byte)ParameterKey.MaterialList, (byte)ParameterKey.StreamingAssetInventory, (byte)ParameterKey.StreamingAssetInventoryItems,
+        (byte)ParameterKey.MaterialList, (byte)ParameterKey.StreamingAssetList, (byte)ParameterKey.StreamingAssetInventory, (byte)ParameterKey.StreamingAssetInventoryItems,
     ];
     static readonly HashSet<byte> RowResponses =
     [
@@ -121,18 +121,9 @@ public sealed class OperationRemap(ProtocolTable client) : IMessageTranslator
         if (_rows is null || !parameters.Keys.Any(Carries)) return parameters;
         var mapped = new Dictionary<byte, object?>(parameters);
         foreach (byte key in parameters.Keys.Where(Carries))
-            mapped[key] = Row(parameters[key], _rows);
+            mapped[key] = DbRows.Remap(parameters[key], _rows);
         return mapped;
     }
-
-    static object? Row(object? value, CodeMap rows) => value switch
-    {
-        PhotonDictionary list when list.Entries.Count > 0 && list.Entries.Values.All(entry => entry is PhotonDictionary) =>
-            new PhotonDictionary { KeyType = list.KeyType, ValueType = list.ValueType, Entries = list.Entries.ToDictionary(entry => entry.Key, entry => Row(entry.Value, rows)) },
-        PhotonDictionary row when row.Entries.Keys.All(key => key is byte) =>
-            new PhotonDictionary { KeyType = row.KeyType, ValueType = row.ValueType, Entries = Entries(row.Entries, rows) },
-        _ => value,
-    };
 
     Dictionary<byte, object?> States(Dictionary<byte, object?> parameters)
     {
@@ -162,23 +153,12 @@ public sealed class OperationRemap(ProtocolTable client) : IMessageTranslator
     static object? Inner(object? value, CodeMap keys) => value switch
     {
         PhotonDictionary dictionary when dictionary.KeyType == GpType.Byte || dictionary.Entries.Keys.All(key => key is byte) =>
-            new PhotonDictionary { KeyType = dictionary.KeyType, ValueType = dictionary.ValueType, Entries = Entries(dictionary.Entries, keys) },
+            new PhotonDictionary { KeyType = dictionary.KeyType, ValueType = dictionary.ValueType, Entries = DbRows.Entries(dictionary.Entries, keys) },
         PhotonDictionary dictionary =>
             new PhotonDictionary { KeyType = dictionary.KeyType, ValueType = dictionary.ValueType, Entries = dictionary.Entries.ToDictionary(entry => entry.Key, entry => Inner(entry.Value, keys)) },
-        Dictionary<object, object?> table when table.Keys.All(key => key is byte) => Entries(table, keys),
+        Dictionary<object, object?> table when table.Keys.All(key => key is byte) => DbRows.Entries(table, keys),
         _ => value,
     };
-
-    static Dictionary<object, object?> Entries(Dictionary<object, object?> entries, CodeMap keys)
-    {
-        var mapped = new Dictionary<object, object?>(entries.Count);
-        foreach ((object key, object? value) in entries)
-        {
-            if (key is not byte code) mapped[key] = value;
-            else if (keys.Map(code) is int target) mapped[(byte)target] = value;
-        }
-        return mapped;
-    }
 
     static Dictionary<string, int> Named(Dictionary<string, int> codes) =>
         codes.ToDictionary(pair => Synonyms.GetValueOrDefault(pair.Key, pair.Key), pair => pair.Value);

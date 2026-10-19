@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using OpenKogama.Content;
 using OpenKogama.Game;
 using OpenKogama.Hosting;
 using OpenKogama.PublicList;
@@ -31,6 +32,8 @@ if (args is ["rendezvous", .. var rendezvous])
     return Rendezvous.Run(rendezvous);
 if (args is ["list", .. var list])
     return ServerList.Run(list);
+if (args is ["client", "patch", .. var patch])
+    return ClientPatch.Run(patch);
 
 LogFile.Start("logs");
 AppDomain.CurrentDomain.UnhandledException += (_, crash) => Console.WriteLine($"error {(crash.ExceptionObject as Exception)?.Message}");

@@ -14,4 +14,5 @@ public interface IWorldBuilder
     bool Move(int id, Vector3 position, Quaternion? rotation = null, float seconds = 0);
     bool SetData(int id, string key, object value);
     bool SetData(int id, IReadOnlyDictionary<string, object> values);
+    bool SetSound(int id, ISound sound);
 }

@@ -26,6 +26,7 @@ public sealed class Player(PhotonPeer peer, int actor, int avatarId)
     public DateTime? BoostSince { get; set; }
     public long? NextFreeSpin { get; set; }
     public int? PendingReward { get; set; }
+    public int? SoundEmitter { get; set; }
     public string? Nickname { get; set; }
     public string Username => Nickname ?? $"Player{actor}";
     public string Region => "en_US";
@@ -150,6 +151,8 @@ public sealed class Player(PhotonPeer peer, int actor, int avatarId)
     static readonly Version ChatKindsVersion = new(1, 81, 2);
     static readonly Version AccessoryQueriesVersion = new(2, 3);
     static readonly Version ImmediateQueriesVersion = new(1, 34);
+    const string HealRayTarget = "S";
+    const int NoHealRayTarget = -1;
 
     bool NativeSince(Version since) => peer.Translator is not Kogama.Protocols.LegacyTranslator && Version.TryParse(ClientVersion, out Version? version) && version >= since;
 
@@ -158,15 +161,15 @@ public sealed class Player(PhotonPeer peer, int actor, int avatarId)
         if (!SpawnRoles) snapshot = Without(Without(snapshot, obj => obj.Type == World.WorldObjectType.BuildModeAvatar), obj => obj.Type == World.WorldObjectType.Avatar && obj.Transient);
         else if (Mode == GameMode.CharacterEditor) snapshot = Without(snapshot, obj => obj.Type == World.WorldObjectType.Avatar);
         else snapshot = snapshot with { Objects = [.. snapshot.Objects.Select(WithoutLaser)] };
-        snapshot = snapshot with { Objects = [.. snapshot.Objects.Select(obj => AvatarModifiers.For(this, Accessories.For(this, obj)))] };
+        snapshot = snapshot with { Objects = [.. snapshot.Objects.Select(obj => SoundEmitters.For(this, AvatarModifiers.For(this, Accessories.For(this, WithoutIdleHealRay(obj)))))] };
         if (Legacy) snapshot = snapshot with { Objects = [.. snapshot.Objects.Select(Named)] };
         if (peer.Translator is Kogama.Protocols.OperationRemap && Kogama.Protocols.ProtocolTable.For(ClientVersion).StateTypes is { Count: > 0 } types)
             snapshot = snapshot with { Objects = [.. snapshot.Objects.Select(obj => World.LegacyWorld.Retyped(obj, types))] };
         return World.WorldSerializer.Write(snapshot, linkState: LinkState, objectLinkState: ObjectLinkState, events: !package);
     }
 
-    static bool HoldsLaser(IEnumerable<(string Key, World.PackedType Type, object Value)> item) =>
-        item.FirstOrDefault(pair => pair.Key == "type").Value is { } type && Convert.ToInt32(type) == (int)Kogama.AvatarItemType.LaserPointer;
+    static bool Holds(IEnumerable<(string Key, World.PackedType Type, object Value)> item, Kogama.AvatarItemType held) =>
+        item.FirstOrDefault(pair => pair.Key == "type").Value is { } type && Convert.ToInt32(type) == (int)held;
 
     static World.WorldObject Named(World.WorldObject obj)
     {
@@ -191,33 +194,35 @@ public sealed class Player(PhotonPeer peer, int actor, int avatarId)
         };
     }
 
-    static World.WorldObject WithoutLaser(World.WorldObject obj)
-    {
-        if (obj.Type != World.WorldObjectType.Avatar
-            || obj.Runtime.Find(pair => pair.Key == "currentItem").Value is not List<(string Key, World.PackedType Type, object Value)> item
-            || !HoldsLaser(item))
-            return obj;
+    static List<(string Key, World.PackedType Type, object Value)>? CurrentItem(World.WorldObject obj) =>
+        obj.Runtime.Find(pair => pair.Key == "currentItem").Value as List<(string Key, World.PackedType Type, object Value)>;
 
-        return new World.WorldObject
-        {
-            Id = obj.Id,
-            ParentId = obj.ParentId,
-            ItemId = obj.ItemId,
-            Type = obj.Type,
-            Position = obj.Position,
-            Rotation = obj.Rotation,
-            Scale = obj.Scale,
-            Data = obj.Data,
-            Owner = obj.Owner,
-            PreviewOwner = obj.PreviewOwner,
-            Runtime =
-            [
-                .. obj.Runtime.Where(pair => pair.Key != "currentItem"),
-                ("currentItem", World.PackedType.Hashtable, new List<(string Key, World.PackedType Type, object Value)> { ("type", World.PackedType.Int32, (int)Kogama.AvatarItemType.Hand) }),
-            ],
-            Transient = obj.Transient,
-        };
-    }
+    static World.WorldObject WithoutLaser(World.WorldObject obj) =>
+        obj.Type == World.WorldObjectType.Avatar && CurrentItem(obj) is { } item && Holds(item, Kogama.AvatarItemType.LaserPointer)
+            ? WithItem(obj, [("type", World.PackedType.Int32, (int)Kogama.AvatarItemType.Hand)])
+            : obj;
+
+    static World.WorldObject WithoutIdleHealRay(World.WorldObject obj) =>
+        CurrentItem(obj) is { } item && Holds(item, Kogama.AvatarItemType.HealRay)
+            && item.Any(pair => pair.Key == HealRayTarget && pair.Value is NoHealRayTarget)
+            ? WithItem(obj, [.. item.Where(pair => pair.Key != HealRayTarget)])
+            : obj;
+
+    static World.WorldObject WithItem(World.WorldObject obj, List<(string Key, World.PackedType Type, object Value)> item) => new()
+    {
+        Id = obj.Id,
+        ParentId = obj.ParentId,
+        ItemId = obj.ItemId,
+        Type = obj.Type,
+        Position = obj.Position,
+        Rotation = obj.Rotation,
+        Scale = obj.Scale,
+        Data = obj.Data,
+        Owner = obj.Owner,
+        PreviewOwner = obj.PreviewOwner,
+        Runtime = [.. obj.Runtime.Where(pair => pair.Key != "currentItem"), ("currentItem", World.PackedType.Hashtable, item)],
+        Transient = obj.Transient,
+    };
 
     static World.Snapshot Without(World.Snapshot snapshot, Func<World.WorldObject, bool> hide)
     {

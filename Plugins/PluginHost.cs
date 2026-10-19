@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
 using OpenKogama.Api;
+using OpenKogama.Content;
 using OpenKogama.Game;
 using OpenKogama.World;
 
@@ -73,6 +74,7 @@ public static class PluginHost
             }
         }
         Loaded.Clear();
+        CustomContent.Clear();
         Server = new PluginServer();
     }
 
@@ -243,6 +245,7 @@ public static class PluginHost
         readonly Dictionary<string, PluginStorage> _storage = [];
 
         public ITemplates Templates { get; } = new PluginTemplates();
+        public IAssets Assets { get; } = new PluginAssets();
 
         public IReadOnlyList<IPlayer> Players => [.. Sessions.SelectMany(session => session.Players.Select(player => PlayerOf(session, player)))];
 

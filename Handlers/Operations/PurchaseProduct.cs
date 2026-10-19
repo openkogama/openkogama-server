@@ -17,6 +17,9 @@ public sealed class PurchaseProduct(Session session) : IOperationHandler
     const int ThemeProduct = 9;
     const int AccessoryBundleProduct = 10;
     const int GamePassTierProduct = 11;
+    const int GameBoosterProduct = 12;
+    const short InsufficientFunds = 1;
+    const int DefaultBoosterPrice = 10;
 
     public byte Code => (byte)OperationCode.PurchaseProduct;
 
@@ -31,6 +34,7 @@ public sealed class PurchaseProduct(Session session) : IOperationHandler
                 8 => ThemeProduct,
                 9 => AccessoryBundleProduct,
                 10 => GamePassTierProduct,
+                11 => GameBoosterProduct,
                 _ => type,
             };
 
@@ -55,6 +59,9 @@ public sealed class PurchaseProduct(Session session) : IOperationHandler
             case GamePassTierProduct when session.For(peer) is Player tierBuyer && Value(product, (byte)ParameterKey.Data) is { } tier:
                 short result = session.GamePasses.Purchase(tierBuyer, Convert.ToInt32(tier));
                 peer.Send(result == 0 ? Success(request, tierBuyer) : new OperationResponse(request) { ReturnCode = result });
+                break;
+            case GameBoosterProduct when session.For(peer) is Player boostBuyer && Value(product, (byte)ParameterKey.Data) is string boost:
+                BuyBooster(peer, request, boostBuyer, boost);
                 break;
             case ThemeProduct when !session.Play && Value(product, (byte)ParameterKey.Id) is { } theme:
                 bool applied = Themes.Apply(session, Convert.ToInt32(theme), PhotonValues.Table(Value(product, (byte)ParameterKey.MetaData)));
@@ -92,6 +99,30 @@ public sealed class PurchaseProduct(Session session) : IOperationHandler
         response.Parameters[(byte)ParameterKey.PurchaseProductData] = result;
         peer.Send(response);
         Console.WriteLine($"profile {player.ProfileId}: bought coin boost, {left / 60000} minutes left");
+    }
+
+    void BuyBooster(PhotonPeer peer, OperationRequest request, Player player, string boost)
+    {
+        int price = BoosterPrice(boost);
+        int gold = Stores.Profiles.Gold(player.ProfileId);
+        if (gold < price)
+        {
+            peer.Send(new OperationResponse(request) { ReturnCode = InsufficientFunds });
+            return;
+        }
+
+        int left = Stores.Profiles.AddGold(player.ProfileId, -price);
+        peer.Send(Success(request, player));
+        Console.WriteLine($"profile {player.ProfileId}: bought boost {boost} for {price} gold, {left} left");
+    }
+
+    int BoosterPrice(string boost)
+    {
+        static List<(string Key, PackedType Type, object Value)>? Table(List<(string Key, PackedType Type, object Value)>? data, string key) =>
+            data?.Find(pair => pair.Key == key).Value as List<(string Key, PackedType Type, object Value)>;
+
+        List<(string Key, PackedType Type, object Value)>? settings = Table(Table(session.World.FindFirst(WorldObjectType.GameBoosterDataObject)?.Data, "GameBoosterPrototypeSetting"), boost);
+        return settings?.Find(pair => pair.Key == "gsk").Value is int price && price >= 0 ? price : DefaultBoosterPrice;
     }
 
     static OperationResponse Success(OperationRequest request, Player? player) =>

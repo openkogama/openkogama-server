@@ -1,3 +1,4 @@
+using OpenKogama.Content;
 using OpenKogama.Game;
 using OpenKogama.Kogama;
 using OpenKogama.Photon;
@@ -40,6 +41,8 @@ public sealed class WorldObjectData(Session session, DataChange change) : IOpera
         }
 
         session.World.MarkChanged();
+        if (change != DataChange.Remove && CustomContent.IsBundleUrl(table.GetValueOrDefault("url")) && session.For(peer) is { } editor)
+            editor.SoundEmitter = objectId;
         if (session.World.Find(objectId)?.Type == WorldObjectType.AvatarSpawnRoleCreator)
         {
             AvatarClasses.SyncSkills(session.World, objectId);

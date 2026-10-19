@@ -19,6 +19,7 @@ public enum AvatarItemType
     NinjaRun = 14,
     CustomGun = 15,
     GodzillaLaser = 47,
+    HealRay = 70,
 }
 
 public enum PickupItemState

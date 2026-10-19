@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Web;
+using OpenKogama.Content;
 using OpenKogama.Game;
 using OpenKogama.Storage;
 
@@ -233,6 +234,9 @@ public sealed class WebApi
         if (path is "/ping" or "/disconnect")
             return ApiResponse.Json("{}");
 
+        if (path.TrimEnd('/') == "/api/content")
+            return ApiResponse.Json(CustomContent.Json(query["client"]));
+
         if (path is "/reward")
             return ApiResponse.Json("""{"rewardEnabled":false,"timeInSeconds":0,"xp":0}""");
 
@@ -335,6 +339,7 @@ public sealed class WebApi
         if (slash < 0) return null;
         string set = path["/bundles-".Length..slash];
         string file = BundleSets.FileOf(Uri.UnescapeDataString(path[(slash + 1)..]));
+        if (CustomContent.Bundle(set, file) is { } custom) return custom;
         if (set == "3x") return LegacyAssets?.Get(file);
         if (!AssetSets.ContainsKey(set)) return null;
 
