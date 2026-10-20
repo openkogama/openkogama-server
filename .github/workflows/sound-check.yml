@@ -1,0 +1,97 @@
+name: sound check
+
+on:
+  push:
+    branches: [custom-sounds]
+  workflow_dispatch:
+    inputs:
+      builds:
+        description: "builds to test, version@unity separated by spaces, 2012 for the 2012 build"
+        default: "2012 1.8.15.2 1.9.0.1 1.25.12.280 1.26.20.293@5.2.1 1.32.7.531 1.47.4 1.72.3 2.0.1 2.13.9 2.30.6 2.30.46 2.30.63@2022 3.1.29 3.5.25"
+      formats:
+        description: sound formats
+        default: wav,ogg,mp3
+
+env:
+  BUILDS: ${{ inputs.builds || '2012 1.8.15.2 1.9.0.1 1.25.12.280 1.26.20.293@5.2.1 1.32.7.531 1.47.4 1.72.3 2.0.1 2.13.9 2.30.6 2.30.46 2.30.63@2022 3.1.29 3.5.25' }}
+  FORMATS: ${{ inputs.formats || 'wav,ogg,mp3' }}
+
+jobs:
+  build:
+    runs-on: windows-latest
+    outputs:
+      builds: ${{ steps.plan.outputs.builds }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: openkogama-server
+      - uses: actions/checkout@v4
+        with:
+          repository: openkogama/openkogama-photon
+          path: openkogama-photon
+      - uses: actions/checkout@v4
+        with:
+          repository: openkogama/openkogama-player
+          path: openkogama-player
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet publish openkogama-server/openkogama-server.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o server
+      - run: |
+          dotnet build openkogama-server/examples/sounds/sounds.csproj -c Release -o plugins-build
+          dotnet build openkogama-server/.github/soundcheck/soundcheck.csproj -c Release -o plugins-build
+          New-Item -ItemType Directory -Force server/plugins | Out-Null
+          Copy-Item plugins-build/sounds.dll, plugins-build/soundcheck.dll server/plugins/
+        shell: pwsh
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x86
+      - run: |
+          cmake -S openkogama-player -B player-build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build player-build
+          New-Item -ItemType Directory player | Out-Null
+          Copy-Item player-build/openkogama-player.exe player/
+          Copy-Item -Recurse player-build/versions player/versions
+        shell: pwsh
+      - id: plan
+        shell: pwsh
+        run: '"builds=$($env:BUILDS.Split(" ") | ConvertTo-Json -Compress -AsArray)" >> $env:GITHUB_OUTPUT'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: server
+          path: server
+      - uses: actions/upload-artifact@v4
+        with:
+          name: player
+          path: player
+
+  listen:
+    needs: build
+    runs-on: windows-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        build: ${{ fromJson(needs.build.outputs.builds) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: LABSN/sound-ci-helpers@v1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install numpy soundcard soundfile lameenc
+      - uses: actions/download-artifact@v4
+        with:
+          name: server
+          path: server
+      - uses: actions/download-artifact@v4
+        with:
+          name: player
+          path: player
+      - run: ./.github/sound-check.ps1 -Build "${{ matrix.build }}" -Server server -Player player -Out out -Formats "$env:FORMATS"
+        shell: powershell
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sound-${{ matrix.build }}
+          path: out
