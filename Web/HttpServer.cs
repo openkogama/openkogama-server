@@ -62,6 +62,7 @@ public sealed class HttpServer(string prefix, WebApi api)
         ApiResponse result = api.Route(new ApiRequest(request.HttpMethod, path, request.QueryString, request.ContentType, body.ToArray(),
             IPAddress.IsLoopback(remote) && !tunneled, via));
 
+        if (Handlers.OperationRouter.Trace) Console.WriteLine($"http {request.HttpMethod} {request.Url?.PathAndQuery} {result.Status} {result.Body.Length}");
         response.StatusCode = result.Status;
         if (result.ContentType is not null) response.ContentType = result.ContentType;
         response.ContentLength64 = result.Body.Length;

@@ -37,6 +37,7 @@ public sealed class NullProxy(int port)
                     request.Append(Encoding.ASCII.GetString(buffer, 0, read));
                 }
 
+                if (Handlers.OperationRouter.Trace) Console.WriteLine($"proxy {request.ToString().Split("\r\n")[0]}");
                 await stream.WriteAsync(Ok);
             }
             catch (Exception)

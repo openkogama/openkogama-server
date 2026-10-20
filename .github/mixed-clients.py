@@ -371,4 +371,5 @@ async def main(app, wanted, out):
         print(line)
 
 
-asyncio.run(main(sys.argv[1], sys.argv[2], sys.argv[3]))
+if __name__ == "__main__":
+    asyncio.run(main(sys.argv[1], sys.argv[2], sys.argv[3]))

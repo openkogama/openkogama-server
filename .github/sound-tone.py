@@ -1,5 +1,6 @@
 import json
 import sys
+import warnings
 
 import numpy as np
 
@@ -26,6 +27,7 @@ def make(folder):
 
 
 def listen(seconds, path=None):
+    warnings.filterwarnings("ignore")
     import soundcard
 
     speaker = soundcard.default_speaker()

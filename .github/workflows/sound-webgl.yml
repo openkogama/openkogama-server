@@ -1,0 +1,80 @@
+name: sound check browser
+
+on:
+  push:
+    branches: [custom-sounds]
+  workflow_dispatch:
+    inputs:
+      builds:
+        description: "webgl builds to test, version@unity separated by spaces"
+        default: "1.26.20.293 1.47.4 1.72.3 2.0.1 2.13.9 2.30.6 2.30.46 2.30.63@2022 3.1.29 3.5.25"
+      formats:
+        description: sound formats
+        default: wav,ogg,mp3
+
+env:
+  BUILDS: ${{ inputs.builds || '1.26.20.293 1.47.4 1.72.3 2.0.1 2.13.9 2.30.6 2.30.46 2.30.63@2022 3.1.29 3.5.25' }}
+  FORMATS: ${{ inputs.formats || 'wav,ogg,mp3' }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      builds: ${{ steps.plan.outputs.builds }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: openkogama-server
+      - uses: actions/checkout@v4
+        with:
+          repository: openkogama/openkogama-photon
+          path: openkogama-photon
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet publish openkogama-server/openkogama-server.csproj -c Release -o app -p:UseAppHost=false
+      - run: |
+          dotnet build openkogama-server/examples/sounds/sounds.csproj -c Release -o plugins-build
+          dotnet build openkogama-server/.github/soundcheck/soundcheck.csproj -c Release -o plugins-build
+          mkdir -p app/plugins
+          cp plugins-build/sounds.dll plugins-build/soundcheck.dll app/plugins/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: server-app
+          path: app
+      - id: plan
+        run: echo "builds=$(python3 -c 'import json, sys; print(json.dumps(sys.argv[1].split()))' "$BUILDS")" >> "$GITHUB_OUTPUT"
+
+  listen:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        build: ${{ fromJSON(needs.build.outputs.builds) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: server-app
+          path: app
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: |
+          sudo apt-get install -y -qq tesseract-ocr > /dev/null
+          pip install playwright pytesseract pillow numpy soundfile lameenc
+          python -m playwright install --with-deps chromium
+      - run: python .github/sound-webgl.py app "${{ matrix.build }}" out "$FORMATS"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-${{ matrix.build }}
+          path: |
+            out/*.png
+            out/results.json
+            out/data/server.log

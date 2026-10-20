@@ -17,7 +17,8 @@ $tone = Join-Path $PSScriptRoot "sound-tone.py"
 . (Join-Path $PSScriptRoot "windows-clients.ps1")
 
 function Listen($seconds, $label) {
-    $line = & python $tone listen $seconds (Join-Path $Out "$label.wav") 2>&1 | Select-Object -Last 1
+    $ErrorActionPreference = "Continue"
+    $line = & python $tone listen $seconds (Join-Path $Out "$label.wav") 2>$null | Select-Object -Last 1
     try { return ($line | ConvertFrom-Json) } catch { Write-Host "listen failed: $line"; return $null }
 }
 
