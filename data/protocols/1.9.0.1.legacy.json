@@ -110,11 +110,6 @@
     "ItemData",
     "KogamaData"
   ],
-  "overrides": {
-    "Join": {
-      "AssetBundleRootUrl": "http://127.0.0.1:8080/bundles-3x/"
-    }
-  },
   "stateTypes": {
     "st": {
       "client": "int",

@@ -12,7 +12,8 @@ public sealed class RequestStreamingAssetList(Session session) : IOperationHandl
     {
         PhotonDictionary list = PhotonDictionary.Untyped();
         request.Parameters.TryGetValue((byte)ParameterKey.StreamingAssetTypeIDs, out object? types);
-        foreach (StreamingAsset asset in ClientContent.Streaming(peer, session.For(peer)?.Build).OfTypes(types))
+        Player? player = session.For(peer);
+        foreach (StreamingAsset asset in ClientContent.Streaming(peer, player?.Build).OfTypes(types).Concat(Content.CustomContent.Listed(peer, player, types)))
         {
             list.Add(asset.Id, asset.Describe());
         }

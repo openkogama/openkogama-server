@@ -15,8 +15,8 @@ public static class SoundEmitters
             || obj.Data.Exists(pair => pair.Key == Id) && obj.Data.Exists(pair => pair.Key == Name))
             return obj;
 
-        StreamingAsset? asset = viewer.Streaming.Assets.Find(asset => asset.Path == url);
-        string name = asset?.Name ?? CustomContent.Sounds.All.FirstOrDefault(sound => sound.Url == url)?.Name ?? Path.GetFileNameWithoutExtension(url);
+        StreamingAsset? asset = viewer.Streaming.Assets.Find(asset => asset.Path == url) ?? CustomContent.FindByUrl(url);
+        string name = asset?.Name ?? Path.GetFileNameWithoutExtension(url);
         return new WorldObject
         {
             Id = obj.Id,

@@ -5,11 +5,19 @@ namespace OpenKogama.Content;
 
 public sealed record ArchiveNode(string Name, byte[] Data, uint Flags);
 
+public sealed record ArchiveFormat(string Signature, uint Version, string Player, string Engine)
+{
+    public static ArchiveFormat Current(string engine) => new(UnityArchive.Signature, UnityArchive.Version, "5.x.x", engine);
+}
+
 public static class UnityArchive
 {
     public const uint SerializedFileNode = 4;
-    const string Signature = "UnityFS";
-    const uint Version = 8;
+    public const string Signature = "UnityFS";
+    public const uint Version = 8;
+    const string RawSignature = "UnityRaw";
+    const string WebSignature = "UnityWeb";
+    const uint RawVersion = 3;
     const uint CompressionMask = 0x3F;
     const uint CombinedInfo = 0x40;
     const uint InfoAtEnd = 0x80;
@@ -19,7 +27,7 @@ public static class UnityArchive
     public static string EngineOf(byte[] archive)
     {
         var reader = new ByteReader(archive);
-        if (reader.CString() != Signature) throw new InvalidDataException("not a Unity bundle");
+        if (reader.CString() is not (Signature or RawSignature or WebSignature)) throw new InvalidDataException("not a Unity bundle");
         reader.BigUInt();
         reader.CString();
         return reader.CString();
@@ -27,11 +35,52 @@ public static class UnityArchive
 
     public static (string Engine, List<ArchiveNode> Nodes) Read(byte[] archive)
     {
+        (ArchiveFormat format, List<ArchiveNode> nodes) = ReadWithFormat(archive);
+        return (format.Engine, nodes);
+    }
+
+    public static (ArchiveFormat Format, List<ArchiveNode> Nodes) ReadWithFormat(byte[] archive)
+    {
         var reader = new ByteReader(archive);
-        if (reader.CString() != Signature) throw new InvalidDataException("not a Unity bundle");
+        string signature = reader.CString();
+        if (signature == WebSignature) throw new NotSupportedException("compressed UnityWeb bundles are not supported, store them as UnityRaw");
+        if (signature is not (Signature or RawSignature)) throw new InvalidDataException("not a Unity bundle");
         uint version = reader.BigUInt();
-        reader.CString();
+        string player = reader.CString();
         string engine = reader.CString();
+        var format = new ArchiveFormat(signature, version, player, engine);
+        return (format, signature == RawSignature ? ReadRaw(archive, reader, version) : ReadFs(archive, reader, version));
+    }
+
+    static List<ArchiveNode> ReadRaw(byte[] archive, ByteReader reader, uint version)
+    {
+        if (version >= 4) reader.Skip(20);
+        reader.BigUInt();
+        int headerSize = (int)reader.BigUInt();
+        reader.BigUInt();
+        int levels = reader.BigInt();
+        int blockSize = 0;
+        for (int i = 0; i < levels; i++)
+        {
+            blockSize = (int)reader.BigUInt();
+            reader.BigUInt();
+        }
+
+        var block = new ByteReader(archive.AsSpan(headerSize, blockSize).ToArray());
+        int count = block.BigInt();
+        var nodes = new List<ArchiveNode>(count);
+        for (int i = 0; i < count; i++)
+        {
+            string name = block.CString();
+            int offset = (int)block.BigUInt();
+            int size = (int)block.BigUInt();
+            nodes.Add(new ArchiveNode(name, archive.AsSpan(headerSize + offset, size).ToArray(), name.Contains('.') ? 0 : SerializedFileNode));
+        }
+        return nodes;
+    }
+
+    static List<ArchiveNode> ReadFs(byte[] archive, ByteReader reader, uint version)
+    {
         long size = reader.BigLong();
         int packedInfo = (int)reader.BigUInt();
         int infoSize = (int)reader.BigUInt();
@@ -63,11 +112,58 @@ public static class UnityArchive
             uint nodeFlags = info.BigUInt();
             result.Add(new ArchiveNode(info.CString(), data.AsSpan((int)offset, (int)length).ToArray(), nodeFlags));
         }
-        return (engine, result);
+        return result;
     }
 
-    public static byte[] Write(string engine, IReadOnlyList<ArchiveNode> nodes)
+    public static byte[] Write(string engine, IReadOnlyList<ArchiveNode> nodes) => Write(ArchiveFormat.Current(engine), nodes);
+
+    public static byte[] Write(ArchiveFormat format, IReadOnlyList<ArchiveNode> nodes) =>
+        format.Signature == RawSignature ? WriteRaw(format, nodes) : WriteFs(format, nodes);
+
+    // UnityRaw is the uncompressed form of the UnityWeb bundles of Unity 3 to 5.2: one level, a directory, then the files.
+    static byte[] WriteRaw(ArchiveFormat format, IReadOnlyList<ArchiveNode> nodes)
     {
+        using var directory = new MemoryStream();
+        WriteUInt(directory, (uint)nodes.Count);
+        int directorySize = 4 + nodes.Sum(node => Encoding.UTF8.GetByteCount(node.Name) + 1 + 8);
+        directorySize = (directorySize + 3) / 4 * 4;
+        long offset = directorySize;
+        foreach (ArchiveNode node in nodes)
+        {
+            directory.Write(Encoding.UTF8.GetBytes(node.Name + "\0"));
+            WriteUInt(directory, (uint)offset);
+            WriteUInt(directory, (uint)node.Data.Length);
+            offset += node.Data.Length;
+        }
+        directory.Write(new byte[directorySize - directory.Length]);
+        long blockSize = offset;
+
+        byte[] strings = Encoding.ASCII.GetBytes(RawSignature + "\0");
+        int headerSize = strings.Length + 4 + Encoding.ASCII.GetByteCount(format.Player + "\0" + format.Engine + "\0") + 4 * 4 + 8 + 4 + 4;
+        headerSize = (headerSize + 3) / 4 * 4;
+        long total = headerSize + blockSize;
+
+        using var archive = new MemoryStream();
+        archive.Write(strings);
+        WriteUInt(archive, RawVersion);
+        archive.Write(Encoding.ASCII.GetBytes(format.Player + "\0" + format.Engine + "\0"));
+        WriteUInt(archive, (uint)total);
+        WriteUInt(archive, (uint)headerSize);
+        WriteUInt(archive, 1);
+        WriteUInt(archive, 1);
+        WriteUInt(archive, (uint)blockSize);
+        WriteUInt(archive, (uint)blockSize);
+        WriteUInt(archive, (uint)total);
+        WriteUInt(archive, (uint)directorySize);
+        archive.Write(new byte[headerSize - archive.Length]);
+        directory.WriteTo(archive);
+        foreach (ArchiveNode node in nodes) archive.Write(node.Data);
+        return archive.ToArray();
+    }
+
+    static byte[] WriteFs(ArchiveFormat format, IReadOnlyList<ArchiveNode> nodes)
+    {
+        bool aligned = format.Version >= 7;
         long size = nodes.Sum(node => (long)node.Data.Length);
         using var info = new MemoryStream();
         info.Write(new byte[16]);
@@ -88,15 +184,15 @@ public static class UnityArchive
 
         using var archive = new MemoryStream();
         archive.Write(Encoding.ASCII.GetBytes(Signature + "\0"));
-        WriteUInt(archive, Version);
-        archive.Write(Encoding.ASCII.GetBytes("5.x.x\0" + engine + "\0"));
+        WriteUInt(archive, format.Version);
+        archive.Write(Encoding.ASCII.GetBytes(format.Player + "\0" + format.Engine + "\0"));
         long headerEnd = archive.Position + 8 + 12;
-        long infoStart = Align16(headerEnd);
-        long dataStart = Align16(infoStart + info.Length);
+        long infoStart = aligned ? Align16(headerEnd) : headerEnd;
+        long dataStart = aligned ? Align16(infoStart + info.Length) : infoStart + info.Length;
         WriteLong(archive, dataStart + size);
         WriteUInt(archive, (uint)info.Length);
         WriteUInt(archive, (uint)info.Length);
-        WriteUInt(archive, CombinedInfo | PaddedInfo);
+        WriteUInt(archive, aligned ? CombinedInfo | PaddedInfo : CombinedInfo);
         archive.Write(new byte[infoStart - headerEnd]);
         info.WriteTo(archive);
         archive.Write(new byte[dataStart - infoStart - info.Length]);

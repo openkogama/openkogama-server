@@ -332,7 +332,11 @@ public sealed class WebApi
 
     byte[]? Bundle(string path)
     {
-        if (path.StartsWith("/bundles/")) return Assets?.Get(Uri.UnescapeDataString(path["/bundles/".Length..]));
+        if (path.StartsWith("/bundles/"))
+        {
+            string legacy = Uri.UnescapeDataString(path["/bundles/".Length..]);
+            return CustomContent.Bundle(BundleSets.Legacy, legacy) ?? Assets?.Get(legacy);
+        }
         if (!path.StartsWith("/bundles-")) return null;
 
         int slash = path.IndexOf('/', "/bundles-".Length);

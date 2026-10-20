@@ -12,6 +12,7 @@ sealed class ByteReader(byte[] data, int position = 0)
     public void Align(int size) => Position = (Position + size - 1) / size * size;
     public byte Byte() => data[Position++];
     public short Short() => BinaryPrimitives.ReadInt16LittleEndian(Take(2));
+    public ushort UShort() => BinaryPrimitives.ReadUInt16LittleEndian(Take(2));
     public int Int() => BinaryPrimitives.ReadInt32LittleEndian(Take(4));
     public long Long() => BinaryPrimitives.ReadInt64LittleEndian(Take(8));
     public ushort BigUShort() => BinaryPrimitives.ReadUInt16BigEndian(Take(2));

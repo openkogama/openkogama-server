@@ -47,25 +47,25 @@ public sealed class CustomSound : CustomAsset, ISound
     public required string Format { get; init; }
     public override string Kind => "sound";
 
-    public override bool Fits(string engine) => Format == Prebuilt
-        ? CustomContent.SameEngine(UnityArchive.EngineOf(Data), engine)
-        : CustomContent.Template(Kind, engine) is not null;
+    public override bool Fits(string key) => Format == Prebuilt
+        ? CustomContent.SameEngine(UnityArchive.EngineOf(Data), key)
+        : CustomContent.Template(Kind, key) is not null;
 
-    public override byte[]? BundleFor(string engine)
+    public override byte[]? BundleFor(string key)
     {
-        if (Format == Prebuilt) return Fits(engine) ? Data : null;
-        if (CustomContent.Template(Kind, engine) is not byte[] template) return null;
+        if (Format == Prebuilt) return Fits(key) ? Data : null;
+        if (CustomContent.Template(Kind, key) is not byte[] template) return null;
 
-        string cached = Path.Combine("bundles", "custom", engine, $"{Kind}-{Id}-{Version}.unity3d");
+        string cached = Path.Combine("bundles", "custom", key + "-" + VersionOf(template), $"{Kind}-{Id}-{Version}.unity3d");
         lock (Building)
         {
             if (File.Exists(cached)) return File.ReadAllBytes(cached);
             Pcm audio = AudioFiles.Decode(Data, "." + Format);
-            byte[] bundle = SoundBundles.Build(template, audio, $"{Id}-{Version}");
+            byte[] bundle = SoundBundles.Build(template, audio, $"{Id}-{Version}", new SoundFile(Data, Format));
             Directory.CreateDirectory(Path.GetDirectoryName(cached)!);
             File.WriteAllBytes(cached + ".tmp", bundle);
             File.Move(cached + ".tmp", cached, overwrite: true);
-            Console.WriteLine($"sound {Id} {Name}: {audio.Frames / audio.Rate} s, {audio.Channels} channels, {audio.Rate} Hz, bundle for {engine} {bundle.Length / 1024} KB");
+            Console.WriteLine($"sound {Id} {Name}: {audio.Frames / audio.Rate} s, {audio.Channels} channels, {audio.Rate} Hz, bundle for {key} {bundle.Length / 1024} KB");
             return bundle;
         }
     }

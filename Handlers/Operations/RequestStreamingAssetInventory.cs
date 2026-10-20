@@ -14,7 +14,8 @@ public sealed class RequestStreamingAssetInventory(Session session) : IOperation
     {
         PhotonDictionary inventory = PhotonDictionary.Untyped();
         request.Parameters.TryGetValue((byte)ParameterKey.StreamingAssetTypeIDs, out object? types);
-        foreach (StreamingAsset asset in ClientContent.Streaming(peer, session.For(peer)?.Build).OfTypes(types))
+        Player? player = session.For(peer);
+        foreach (StreamingAsset asset in ClientContent.Streaming(peer, player?.Build).OfTypes(types).Concat(Content.CustomContent.Listed(peer, player, types)))
         {
             PhotonDictionary entry = PhotonDictionary.Untyped();
             entry.Add((byte)DBQueryKey.StreamingAssetID, asset.Id);

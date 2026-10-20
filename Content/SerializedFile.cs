@@ -5,7 +5,7 @@ namespace OpenKogama.Content;
 public sealed class SerializedFile
 {
     public const int MonoBehaviourClass = 114;
-    const uint OldestVersion = 17;
+    const uint OldestVersion = 9;
     const uint WideVersion = 22;
     const int WideFileSize = 24;
     const int FileSize = 4;
@@ -16,6 +16,7 @@ public sealed class SerializedFile
 
     public uint Version { get; }
     public string Engine { get; }
+    public int Target { get; }
     public long DataOffset { get; }
     public IReadOnlyList<Entry> Objects { get; }
 
@@ -38,40 +39,71 @@ public sealed class SerializedFile
             reader.BigLong();
         }
         Engine = reader.CString();
-        reader.Int();
-        bool tree = reader.Byte() != 0;
+        Target = reader.Int();
+        bool tree = Version < 13 || reader.Byte() != 0;
 
         var classes = new List<int>();
         int types = reader.Int();
         for (int i = 0; i < types; i++)
         {
             int classId = reader.Int();
-            reader.Byte();
-            short script = reader.Short();
-            if (classId == MonoBehaviourClass || script >= 0) reader.Skip(16);
-            reader.Skip(16);
+            short script = -1;
+            if (Version >= 16) reader.Byte();
+            if (Version >= 17) script = reader.Short();
+            if (Version >= 13)
+            {
+                if (Version < 16 ? classId < 0 : classId == MonoBehaviourClass || script >= 0) reader.Skip(16);
+                reader.Skip(16);
+            }
             if (tree)
             {
-                int nodes = reader.Int();
-                int strings = reader.Int();
-                reader.Skip(nodes * (Version >= 19 ? 32 : 24) + strings);
-                if (Version >= 21) reader.Skip(4 * reader.Int());
+                if (Version >= 12 || Version == 10)
+                {
+                    int nodes = reader.Int();
+                    int strings = reader.Int();
+                    reader.Skip(nodes * (Version >= 19 ? 32 : 24) + strings);
+                    if (Version >= 21) reader.Skip(4 * reader.Int());
+                }
+                else
+                {
+                    SkipNode(reader);
+                }
             }
             classes.Add(classId);
         }
+        bool longIds = Version is >= 7 and < 14 && reader.Int() != 0;
 
         var objects = new List<Entry>();
         int count = reader.Int();
         for (int i = 0; i < count; i++)
         {
-            reader.Align(4);
-            long pathId = reader.Long();
+            long pathId;
+            if (longIds) pathId = reader.Long();
+            else if (Version < 14) pathId = reader.Int();
+            else
+            {
+                reader.Align(4);
+                pathId = reader.Long();
+            }
             int table = reader.Position;
             long start = Version >= WideVersion ? reader.Long() : (uint)reader.Int();
             int size = reader.Int();
-            objects.Add(new Entry(pathId, start, size, classes[reader.Int()], table));
+            int type = reader.Int();
+            int classId = Version < 16 ? reader.UShort() : classes[type];
+            if (Version < 17) reader.Skip(2);
+            if (Version is 15 or 16) reader.Skip(1);
+            objects.Add(new Entry(pathId, start, size, classId, table));
         }
         Objects = objects;
+    }
+
+    void SkipNode(ByteReader reader)
+    {
+        reader.CString();
+        reader.CString();
+        reader.Skip(Version == 3 ? 12 : 20);
+        int children = reader.Int();
+        for (int i = 0; i < children; i++) SkipNode(reader);
     }
 
     public byte[] ToArray() => (byte[])_bytes.Clone();

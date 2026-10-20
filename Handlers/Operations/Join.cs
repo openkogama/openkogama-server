@@ -63,7 +63,7 @@ public sealed class Join(Session session) : IOperationHandler
                 [(byte)ParameterKey.PublishLevel] = 0,
                 [(byte)ParameterKey.Format] = SecurityHelper.Encrypt("openkogama"),
                 [(byte)ParameterKey.APIUrl] = $"{SessionLocator.UrlFor(player.ProfileId)}/api/",
-                [(byte)ParameterKey.AssetBundleRootUrl] = peer.Translator is Kogama.Protocols.LegacyTranslator ? $"{SessionLocator.BundlesFor(player.ProfileId)}/bundles/" : BundleSets.Url(player.Build, peer.IsWebSocket, player.Unity, SessionLocator.BundlesFor(player.ProfileId)),
+                [(byte)ParameterKey.AssetBundleRootUrl] = peer.Translator is Kogama.Protocols.LegacyTranslator ? $"{SessionLocator.BundlesFor(player.ProfileId)}/bundles-3x/" : BundleSets.Url(player.Build, peer.IsWebSocket, player.Unity, SessionLocator.BundlesFor(player.ProfileId)),
                 [(byte)ParameterKey.LevelingSilentMode] = false,
                 [(byte)ParameterKey.SentryUrl] = SessionLocator.UrlFor(player.ProfileId).Replace("://", "://openkogama:openkogama@") + "/sentry/1",
                 [(byte)ParameterKey.AntiCheatData] = NoBannedTools,

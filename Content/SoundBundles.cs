@@ -9,47 +9,132 @@ public sealed record Pcm(byte[] Samples, int Channels, int Rate)
     public int Frames => Samples.Length / (2 * Channels);
 }
 
+public sealed record SoundFile(byte[] Data, string Format);
+
+// A sound bundle is one of the game's own sound bundles with the audio swapped. Each template keeps the
+// archive, serialized file and target platform of its era, so every client gets the layout it expects.
 public static class SoundBundles
 {
     const int AudioClipClass = 83;
+    const int WebGLTarget = 20;
+    const int UnityThreeVersion = 14;
+    const int DecompressOnLoad = 0;
     const int PcmCompression = 0;
+    const int VorbisType = 14;
+    const int WavType = 20;
     const int FsbPcm16 = 2;
     const int FsbHeaderSize = 60;
     static readonly int[] FsbRates = [8000, 11000, 11025, 16000, 22050, 24000, 32000, 44100, 48000];
 
     public static bool Supports(int rate) => Array.IndexOf(FsbRates, rate) >= 0;
 
-    public static byte[] Build(byte[] template, Pcm audio, string seed)
+    public static byte[] Build(byte[] template, Pcm audio, string seed, SoundFile? original = null)
     {
-        var file = new SerializedFile(template);
+        (ArchiveFormat format, List<ArchiveNode> nodes) = UnityArchive.ReadWithFormat(template);
+        int main = nodes.FindIndex(node => !node.Name.Contains('.'));
+        if (main < 0) throw new InvalidDataException("the sound template has no serialized file");
+
+        string id = nodes[main].Name[(nodes[main].Name.IndexOf('-') + 1)..];
+        string newId = Token(seed + "/cab", id.Length);
+        var file = new SerializedFile(Replace(nodes[main].Data.ToArray(), id, newId));
         SerializedFile.Entry clip = file.Objects.FirstOrDefault(entry => entry.ClassId == AudioClipClass)
             ?? throw new InvalidDataException("the sound template has no AudioClip");
+        string name = new ByteReader(file.ToArray(), file.Offset(clip)).Text();
+        string token = Token(seed + "/name", name.Length);
+        file = new SerializedFile(Replace(Replace(file.ToArray(), name, token), name.ToLowerInvariant(), token));
+        clip = file.Objects.First(entry => entry.PathId == clip.PathId);
 
-        var reader = new ByteReader(template, file.Offset(clip));
-        string name = reader.Text();
+        var built = new List<ArchiveNode>(nodes.Count);
+        if (file.Version < UnityThreeVersion)
+        {
+            built.Add(nodes[main] with { Name = nodes[main].Name.Replace(id, newId), Data = file.With(clip, EmbeddedClip(file.Data(clip), audio, original)) });
+            return UnityArchive.Write(format, built);
+        }
+
+        bool web = file.Target == WebGLTarget;
+        byte[] resource = web ? BrowserAudio(audio, original) : Fsb(audio);
+        byte[] serialized = file.ToArray();
+        var reader = new ByteReader(serialized, file.Offset(clip));
+        reader.Text();
+        int loadType = reader.Position;
         reader.Skip(4);
-        int format = reader.Position;
+        int channels = reader.Position;
         reader.Skip(28);
-        string cab = reader.Text().Split('/')[1]["CAB-".Length..];
-        int resource = reader.Position;
+        reader.Text();
+        int source = reader.Position;
 
-        byte[] fsb = Fsb(audio);
-        string newCab = Token(seed + "/cab", cab.Length);
-        byte[] serialized = Replace(Replace(file.ToArray(), cab, newCab), name, Token(seed + "/name", name.Length));
         Span<byte> data = serialized;
-        BinaryPrimitives.WriteInt32LittleEndian(data[format..], audio.Channels);
-        BinaryPrimitives.WriteInt32LittleEndian(data[(format + 4)..], audio.Rate);
-        BinaryPrimitives.WriteInt32LittleEndian(data[(format + 8)..], 16);
-        BinaryPrimitives.WriteSingleLittleEndian(data[(format + 12)..], (float)audio.Frames / audio.Rate);
-        BinaryPrimitives.WriteUInt64LittleEndian(data[resource..], 0);
-        BinaryPrimitives.WriteUInt64LittleEndian(data[(resource + 8)..], (ulong)fsb.Length);
-        BinaryPrimitives.WriteInt32LittleEndian(data[(resource + 16)..], PcmCompression);
+        if (web) BinaryPrimitives.WriteInt32LittleEndian(data[loadType..], DecompressOnLoad);
+        BinaryPrimitives.WriteInt32LittleEndian(data[channels..], audio.Channels);
+        BinaryPrimitives.WriteInt32LittleEndian(data[(channels + 4)..], audio.Rate);
+        BinaryPrimitives.WriteInt32LittleEndian(data[(channels + 8)..], 16);
+        BinaryPrimitives.WriteSingleLittleEndian(data[(channels + 12)..], (float)audio.Frames / audio.Rate);
+        BinaryPrimitives.WriteUInt64LittleEndian(data[source..], 0);
+        BinaryPrimitives.WriteUInt64LittleEndian(data[(source + 8)..], (ulong)resource.Length);
+        if (!web) BinaryPrimitives.WriteInt32LittleEndian(data[(source + 16)..], PcmCompression);
 
-        return UnityArchive.Write(file.Engine,
-        [
-            new ArchiveNode("CAB-" + newCab, serialized, UnityArchive.SerializedFileNode),
-            new ArchiveNode("CAB-" + newCab + ".resource", fsb, 0),
-        ]);
+        for (int i = 0; i < nodes.Count; i++)
+        {
+            string renamed = nodes[i].Name.Replace(id, newId);
+            if (i == main) built.Add(nodes[i] with { Name = renamed, Data = serialized });
+            else if (nodes[i].Name.EndsWith(".resource", StringComparison.Ordinal)) built.Add(nodes[i] with { Name = renamed, Data = resource });
+        }
+        return UnityArchive.Write(format, built);
+    }
+
+    // Unity 3 keeps the whole audio file inside the AudioClip: name, format, type, 3d, hardware, load type, then the bytes.
+    static byte[] EmbeddedClip(ReadOnlySpan<byte> old, Pcm audio, SoundFile? original)
+    {
+        var reader = new ByteReader(old.ToArray());
+        string name = reader.Text();
+        int format = reader.Int();
+        reader.Int();
+        byte threeD = reader.Byte();
+        byte hardware = reader.Byte();
+        reader.Align(4);
+        int stream = reader.Int();
+
+        bool vorbis = original is { Format: "ogg" } && original.Data.AsSpan(0, Math.Min(original.Data.Length, 64)).IndexOf("vorbis"u8) >= 0;
+        byte[] payload = vorbis ? original!.Data : Wav(audio);
+
+        using var clip = new MemoryStream();
+        byte[] text = Encoding.UTF8.GetBytes(name);
+        WriteInt(clip, text.Length);
+        clip.Write(text);
+        Pad(clip);
+        WriteInt(clip, format);
+        WriteInt(clip, vorbis ? VorbisType : WavType);
+        clip.WriteByte(threeD);
+        clip.WriteByte(hardware);
+        Pad(clip);
+        WriteInt(clip, vorbis ? stream : DecompressOnLoad);
+        WriteInt(clip, payload.Length);
+        clip.Write(payload);
+        Pad(clip);
+        return clip.ToArray();
+    }
+
+    // WebGL hands the clip to the browser to decode, an mp3 stays as it is and anything else goes as wav.
+    static byte[] BrowserAudio(Pcm audio, SoundFile? original) => original is { Format: "mp3" } ? original.Data : Wav(audio);
+
+    public static byte[] Wav(Pcm audio)
+    {
+        byte[] wav = new byte[44 + audio.Samples.Length];
+        Span<byte> span = wav;
+        "RIFF"u8.CopyTo(span);
+        BinaryPrimitives.WriteInt32LittleEndian(span[4..], 36 + audio.Samples.Length);
+        "WAVEfmt "u8.CopyTo(span[8..]);
+        BinaryPrimitives.WriteInt32LittleEndian(span[16..], 16);
+        BinaryPrimitives.WriteInt16LittleEndian(span[20..], 1);
+        BinaryPrimitives.WriteInt16LittleEndian(span[22..], (short)audio.Channels);
+        BinaryPrimitives.WriteInt32LittleEndian(span[24..], audio.Rate);
+        BinaryPrimitives.WriteInt32LittleEndian(span[28..], audio.Rate * audio.Channels * 2);
+        BinaryPrimitives.WriteInt16LittleEndian(span[32..], (short)(audio.Channels * 2));
+        BinaryPrimitives.WriteInt16LittleEndian(span[34..], 16);
+        "data"u8.CopyTo(span[36..]);
+        BinaryPrimitives.WriteInt32LittleEndian(span[40..], audio.Samples.Length);
+        audio.Samples.CopyTo(span[44..]);
+        return wav;
     }
 
     static byte[] Fsb(Pcm audio)
@@ -71,6 +156,18 @@ public static class SoundBundles
         BinaryPrimitives.WriteUInt64LittleEndian(span[FsbHeaderSize..], sample);
         audio.Samples.CopyTo(span[(FsbHeaderSize + headers)..]);
         return fsb;
+    }
+
+    static void WriteInt(Stream stream, int value)
+    {
+        Span<byte> bytes = stackalloc byte[4];
+        BinaryPrimitives.WriteInt32LittleEndian(bytes, value);
+        stream.Write(bytes);
+    }
+
+    static void Pad(Stream stream)
+    {
+        while (stream.Position % 4 != 0) stream.WriteByte(0);
     }
 
     static string Token(string seed, int length)

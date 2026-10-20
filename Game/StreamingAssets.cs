@@ -52,7 +52,7 @@ public static class StreamingAssets
     const string Accessories = "accessories";
 
     public static StreamingAsset? Find(int id) =>
-        For(Accessories).Assets.Find(asset => asset.Id == id) ?? For("2015").Assets.Find(asset => asset.Id == id);
+        For(Accessories).Assets.Find(asset => asset.Id == id) ?? For("2015").Assets.Find(asset => asset.Id == id) ?? Content.CustomContent.Find(id);
 
     public static StreamingAssetCatalog ForSet(string set)
     {
