@@ -134,8 +134,6 @@ function Start-Client($name, $entry, $world, $profile) {
             Move-Item $exe.FullName $renamed
             $exe = Get-Item $renamed
         }
-        $managed = Get-ChildItem $exe.DirectoryName -Recurse -Filter Assembly-CSharp.dll | Select-Object -First 1
-        if ($script:clientFix -and $managed) { Write-Host (& (Join-Path $Server "openkogama-server.exe") client fix $managed.FullName $managed.FullName) }
         $session = "http://127.0.0.1:8080/session?mode=play&world=$world&client=$version&unity=$($entry.unityVersion)&profile=$profile"
         $psi.FileName = $exe.FullName
         $psi.WorkingDirectory = $exe.DirectoryName

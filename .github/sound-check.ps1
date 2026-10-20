@@ -12,8 +12,6 @@ Remove-Item -Recurse -Force $work -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force $work | Out-Null
 $serverLog = Join-Path $work "server.log"
 $script:webPlayerReady = $false
-$script:clientFix = $Build.EndsWith("+fix")
-$Build = $Build -replace '\+fix$', ''
 $tone = Join-Path $PSScriptRoot "sound-tone.py"
 
 . (Join-Path $PSScriptRoot "windows-clients.ps1")
@@ -41,7 +39,7 @@ $entry = Pick $Build
 $results = @()
 try {
     foreach ($format in $Formats.Split(",")) {
-        $tag = "$($Build.Replace('@', '-'))$(if ($script:clientFix) { '-fix' })-$format"
+        $tag = "$($Build.Replace('@', '-'))-$format"
         $quiet = Listen 2 "$tag-quiet"
         $world = (Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/worlds?name=sound-$format&template=soundcheck-$format" -Body "").id
         $mark = (Log).Count
@@ -72,7 +70,7 @@ try {
         }
         $ok = $null -ne $heardAfter
         $result = [ordered]@{
-            build = $Build; fix = $script:clientFix; version = $client.version; unity = $client.unity; format = $format; stage = $client.stage; key = $key
+            build = $Build; version = $client.version; unity = $client.unity; format = $format; stage = $client.stage; key = $key
             quiet = $quiet; heard = $heard; heardAfter = $heardAfter; ok = $ok; errors = $errors; clientErrors = $clientErrors
         }
         $results += $result
