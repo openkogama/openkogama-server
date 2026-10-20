@@ -1,0 +1,112 @@
+--- a/api/IServer.cs
++++ b/api/IServer.cs
+@@ -20,6 +20,8 @@
+     event Action<IPlayer, AvatarAnimation>? PlayerAnimated;
+     event Action<IPlayer, AvatarItem>? PlayerSwitchedItem;
+     event Action<IPlayer, AvatarItem>? PlayerPickedUp;
++    event Action<IPlayer, IWorldObject>? GhostKilled;
++    Func<IPlayer, IPlayer?, float, float>? DamageModifier { get; set; }
+     ITemplates Templates { get; }
+ 
+     IReadOnlyList<IPlayer> Players { get; }
+--- a/Plugins/PluginHost.cs
++++ b/Plugins/PluginHost.cs
+@@ -202,6 +202,12 @@
+     public static void NpcKilled(Session session, Npc npc, Player? by) =>
+         Server.OnNpcKilled(new PluginNpc(session, npc), by is null ? null : PlayerOf(session, by));
+ 
++    public static void GhostKilled(Session session, Player by, WorldObject ghost) =>
++        Server.OnGhostKilled(PlayerOf(session, by), new PluginObject(ghost));
++
++    public static float AdjustDamage(Session session, Player attacker, Player? victim, float damage) =>
++        Server.AdjustDamage(PlayerOf(session, attacker), victim is null ? null : PlayerOf(session, victim), damage);
++
+     public static void Added(Session session, WorldObject obj, Player? by) =>
+         Server.OnAdded(WorldOf(session), new PluginObject(obj), by is null ? null : PlayerOf(session, by));
+ 
+@@ -238,6 +244,9 @@
+         public event Action<IPlayer, AvatarAnimation>? PlayerAnimated;
+         public event Action<IPlayer, AvatarItem>? PlayerSwitchedItem;
+         public event Action<IPlayer, AvatarItem>? PlayerPickedUp;
++        public event Action<IPlayer, IWorldObject>? GhostKilled;
++
++        public Func<IPlayer, IPlayer?, float, float>? DamageModifier { get; set; }
+ 
+         readonly Dictionary<string, Action<IPlayer, string[]>> _commands = new(StringComparer.OrdinalIgnoreCase);
+         readonly Dictionary<string, PluginStorage> _storage = [];
+@@ -357,6 +366,26 @@
+                 Guard(() => handler(npc, by));
+         }
+ 
++        public void OnGhostKilled(IPlayer player, IWorldObject ghost)
++        {
++            foreach (Action<IPlayer, IWorldObject> handler in Handlers(GhostKilled))
++                Guard(() => handler(player, ghost));
++        }
++
++        public float AdjustDamage(IPlayer attacker, IPlayer? victim, float damage)
++        {
++            if (DamageModifier is not { } modifier) return damage;
++            try
++            {
++                return modifier(attacker, victim, damage);
++            }
++            catch (Exception error)
++            {
++                Console.WriteLine($"plugin handler failed: {error}");
++                return damage;
++            }
++        }
++
+         static IEnumerable<T> Handlers<T>(T? handlers) where T : Delegate =>
+             handlers?.GetInvocationList().Cast<T>() ?? [];
+ 
+--- a/Handlers/Operations/WorldObjectRPC.cs
++++ b/Handlers/Operations/WorldObjectRPC.cs
+@@ -15,6 +15,22 @@
+         int targetId = Convert.ToInt32(request[(byte)ParameterKey.WorldObjectID]);
+         List<Interaction> interactions = Interaction.Parse(rpcData);
+ 
++        if (session.For(peer) is Player source && interactions.Exists(interaction => interaction.Damage > 0f))
++        {
++            Player? target = session.Players.FirstOrDefault(player => player.PlayAvatar == targetId);
++            bool changed = false;
++            for (int i = 0; i < interactions.Count; i++)
++            {
++                if (interactions[i].Damage <= 0f) continue;
++                float damage = Plugins.PluginHost.AdjustDamage(session, source, target == source ? null : target, interactions[i].Damage);
++                if (damage == interactions[i].Damage) continue;
++                interactions[i] = interactions[i] with { Damage = damage };
++                changed = true;
++            }
++            // Parse reads only key 0, so there is one interaction to write back.
++            if (changed && interactions.Count == 1) rpcData = Repack(rpcData, interactions[0]);
++        }
++
+         if (session.For(peer) is Player shooter
+             && session.World.Find(targetId) is { Type: WorldObjectType.AdvancedGhost } ghost
+             && interactions.Find(interaction => interaction.Damage > 0f) is { Damage: > 0f } hit)
+@@ -41,4 +57,13 @@
+         foreach (Player player in session.Players)
+             player.Peer.Send(evt);
+     }
++
++    static object? Repack(object? rpcData, Interaction interaction)
++    {
++        Dictionary<object, object?> table = PhotonValues.Table(rpcData);
++        foreach (object key in table.Keys.ToList())
++            if (Convert.ToInt32(key) == 0 && table[key] is byte[] { Length: > 0 })
++                table[key] = interaction.ToBytes();
++        return table;
++    }
+ }
+--- a/Game/Round.cs
++++ b/Game/Round.cs
+@@ -75,6 +75,7 @@
+         }
+         if (!killed) return;
+ 
++        Plugins.PluginHost.GhostKilled(session, shooter, ghost);
+         int count = Score(shooter, GameStatCounterType.OculusKill);
+         if (count >= Limit(WorldObjectType.OculusKillLimit)) End(GameStateReason.None, shooter.Actor);
+     }

@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\openkogama-server\api\openkogama-api.csproj" Private="false" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>killstreak</AssemblyName>
+    <RootNamespace>Killstreak</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!-- <DefineConstants>$(DefineConstants);SERVER_HOOKS</DefineConstants> -->
+  </PropertyGroup>
+
+</Project>
