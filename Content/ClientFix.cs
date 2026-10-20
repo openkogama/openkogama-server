@@ -8,6 +8,8 @@ public static class ClientFix
 {
     const byte Ret = 0x2A;
     const byte Nop = 0x00;
+    const byte TinyHeader = 0x2;
+    const byte MoreSections = 0x8;
 
     sealed record Silence(string Namespace, string Type, string Method, string Done);
 
@@ -39,21 +41,24 @@ public static class ClientFix
 
     public static List<string> Fix(byte[] assembly)
     {
-        var bodies = new List<(int Start, int Length, string Done)>();
+        var bodies = new List<(int Header, int Length, string Done)>();
         using (var pe = new PEReader(new MemoryStream(assembly, false)))
         {
             if (!pe.HasMetadata) throw new InvalidDataException("not a .net assembly");
             MetadataReader metadata = pe.GetMetadataReader();
             foreach (Silence silence in Silenced)
-                if (Body(pe, metadata, assembly, silence) is (int start, int length))
-                    bodies.Add((start, length, silence.Done));
+                if (Body(pe, metadata, silence) is (int header, int length))
+                    bodies.Add((header, length, silence.Done));
         }
 
         var fixes = new List<string>();
-        foreach ((int start, int length, string done) in bodies)
+        foreach ((int header, int length, string done) in bodies)
         {
-            Span<byte> code = assembly.AsSpan(start, length);
-            if (code[0] == Ret && !code[1..].ContainsAnyExcept(Nop)) continue;
+            bool tiny = (assembly[header] & 3) == TinyHeader;
+            Span<byte> code = assembly.AsSpan(header + (tiny ? 1 : (BinaryPrimitives.ReadUInt16LittleEndian(assembly.AsSpan(header)) >> 12) * 4), length);
+            if (code[0] == Ret && !code[1..].ContainsAnyExcept(Nop) && (assembly[header] & MoreSections) == 0) continue;
+            // the try blocks of the old body would be left around nops
+            if (!tiny) assembly[header] &= unchecked((byte)~MoreSections);
             code[0] = Ret;
             code[1..].Fill(Nop);
             fixes.Add(done);
@@ -61,7 +66,7 @@ public static class ClientFix
         return fixes;
     }
 
-    static (int Start, int Length)? Body(PEReader pe, MetadataReader metadata, byte[] assembly, Silence silence)
+    static (int Header, int Length)? Body(PEReader pe, MetadataReader metadata, Silence silence)
     {
         string[] path = silence.Type.Split('/');
         foreach (TypeDefinitionHandle handle in metadata.TypeDefinitions)
@@ -72,12 +77,8 @@ public static class ClientFix
             {
                 MethodDefinition method = metadata.GetMethodDefinition(methodHandle);
                 if (!metadata.StringComparer.Equals(method.Name, silence.Method) || method.RelativeVirtualAddress == 0 || !TakesNothing(metadata, method)) continue;
-                MethodBodyBlock body = pe.GetMethodBody(method.RelativeVirtualAddress);
-                if (body.ExceptionRegions.Length > 0) return null;
-                int at = FileOffset(pe, method.RelativeVirtualAddress);
-                int start = at + ((assembly[at] & 3) == 2 ? 1 : (BinaryPrimitives.ReadUInt16LittleEndian(assembly.AsSpan(at)) >> 12) * 4);
-                int length = body.GetILReader().Length;
-                return length > 0 ? (start, length) : null;
+                int length = pe.GetMethodBody(method.RelativeVirtualAddress).GetILReader().Length;
+                return length > 0 ? (FileOffset(pe, method.RelativeVirtualAddress), length) : null;
             }
         }
         return null;
