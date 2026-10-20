@@ -3,6 +3,7 @@ name: sound check browser
 on:
   push:
     branches: [custom-sounds]
+    paths: ["Content/**", "Game/**", "Handlers/**", "Kogama/**", "Web/**", "data/**", "examples/sounds/**", ".github/soundcheck/**", ".github/sound-webgl.py", ".github/sound-tone.py", ".github/mixed-clients.py"]
   workflow_dispatch:
     inputs:
       builds:

@@ -1,4 +1,4 @@
-param([string]$Build, [string]$Server, [string]$Player, [string]$Out, [string]$Formats = "wav,ogg,mp3", [int]$Timeout = 300)
+param([string]$Build, [string]$Server, [string]$Player, [string]$Out, [string]$Formats = "wav,ogg,mp3", [int]$Timeout = 300, [int]$Wait = 150)
 $ErrorActionPreference = "Stop"
 $Server = (Resolve-Path $Server).Path
 $Player = (Resolve-Path $Player).Path
@@ -12,6 +12,8 @@ Remove-Item -Recurse -Force $work -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force $work | Out-Null
 $serverLog = Join-Path $work "server.log"
 $script:webPlayerReady = $false
+$script:clientFix = $Build.EndsWith("+fix")
+$Build = $Build -replace '\+fix$', ''
 $tone = Join-Path $PSScriptRoot "sound-tone.py"
 
 . (Join-Path $PSScriptRoot "windows-clients.ps1")
@@ -39,10 +41,11 @@ $entry = Pick $Build
 $results = @()
 try {
     foreach ($format in $Formats.Split(",")) {
-        $tag = "$($Build.Replace('@', '-'))-$format"
+        $tag = "$($Build.Replace('@', '-'))$(if ($script:clientFix) { '-fix' })-$format"
         $quiet = Listen 2 "$tag-quiet"
         $world = (Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/worlds?name=sound-$format&template=soundcheck-$format" -Body "").id
         $mark = (Log).Count
+        $clock = [Diagnostics.Stopwatch]::StartNew()
         $client = Start-Client "a" $entry $world 1
         Find-Window $client
         Enter-World $client $mark | Out-Null
@@ -51,8 +54,11 @@ try {
             Find-Window $client
             if ($client.unity.StartsWith("3.") -or (Press-Play $client)) { $client.stage = "playing" }
         }
-        Start-Sleep 15
-        $heard = Listen 5 "$tag-heard"
+        $heardAfter = $null
+        do {
+            $heard = Listen 5 "$tag-heard"
+            if ($heard -and $heard.tone -gt 0.2 -and $heard.rms -gt 0.003) { $heardAfter = [int]$clock.Elapsed.TotalSeconds }
+        } until ($heardAfter -or $clock.Elapsed.TotalSeconds -ge $Wait)
         Shot $client $format
         $lines = Lines $mark
         $built = $lines | Where-Object { $_ -match "sound \d+ tone-${format}: .* bundle for (\S+)" } | Select-Object -First 1
@@ -64,10 +70,10 @@ try {
             $clientErrors = @(Get-Content $clientLog -ErrorAction SilentlyContinue | Where-Object { $_ -match "Could not find asset info|Failed sound|SoundEmitter error|AssetBundle|can't be loaded|FMOD|audio" } | Select-Object -First 12)
             Copy-Item $clientLog (Join-Path $Out "$tag-client.log")
         }
-        $ok = $heard -and $heard.tone -gt 0.2 -and $heard.rms -gt 0.003
+        $ok = $null -ne $heardAfter
         $result = [ordered]@{
-            build = $Build; version = $client.version; unity = $client.unity; format = $format; stage = $client.stage; key = $key
-            quiet = $quiet; heard = $heard; ok = $ok; errors = $errors; clientErrors = $clientErrors
+            build = $Build; fix = $script:clientFix; version = $client.version; unity = $client.unity; format = $format; stage = $client.stage; key = $key
+            quiet = $quiet; heard = $heard; heardAfter = $heardAfter; ok = $ok; errors = $errors; clientErrors = $clientErrors
         }
         $results += $result
         Write-Host ($result | ConvertTo-Json -Compress -Depth 4)
