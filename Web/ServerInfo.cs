@@ -1,7 +1,11 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
+using OpenKogama.Accounts;
 using OpenKogama.Storage;
 
 namespace OpenKogama.Web;
+
+public enum AccountMode { Offline, Optional, Online }
 
 public sealed class ServerInfo
 {
@@ -25,10 +29,24 @@ public sealed class ServerInfo
     public bool PlayerInventory { get; init; } = true;
     public string List { get; init; } = PublicList.Announcer.DefaultList;
 
-    public bool Accounts => Uri.TryCreate(PublicUrl, UriKind.Absolute, out Uri? url) && !url.IsLoopback;
+    public bool Shared => Uri.TryCreate(PublicUrl, UriKind.Absolute, out Uri? url) && !url.IsLoopback;
+    public AccountMode Accounts { get; init; } = AccountMode.Optional;
+    public string AccountsUrl { get; init; } = "https://accounts.openkogama.org";
+    public string[] Addresses { get; init; } = [];
+
+    public static readonly string[] Features = ["player", "player-deflate", "content"];
+
+    public string[] FeaturesNow() => Accounts == AccountMode.Offline || CentralKey.Current is null ? Features
+        : Accounts == AccountMode.Online ? [.. Features, "accounts", "accounts-required"] : [.. Features, "accounts"];
+
+    public bool Accepts(string audience)
+    {
+        string wanted = AccountTickets.Audience(audience);
+        return AccountTickets.Audience(PublicUrl) == wanted || Addresses.Any(address => AccountTickets.Audience(address) == wanted);
+    }
 
     public static ServerInfo Load(string path) => File.Exists(path)
-        ? JsonSerializer.Deserialize<ServerInfo>(File.ReadAllText(path), new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+        ? JsonSerializer.Deserialize<ServerInfo>(File.ReadAllText(path), new JsonSerializerOptions { PropertyNameCaseInsensitive = true, Converters = { new JsonStringEnumConverter() } })
             ?? new ServerInfo()
         : new ServerInfo();
 

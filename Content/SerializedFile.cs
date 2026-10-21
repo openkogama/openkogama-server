@@ -5,6 +5,7 @@ namespace OpenKogama.Content;
 public sealed class SerializedFile
 {
     public const int MonoBehaviourClass = 114;
+    public const int WebGLTarget = 20;
     const uint OldestVersion = 9;
     const uint WideVersion = 22;
     const int WideFileSize = 24;

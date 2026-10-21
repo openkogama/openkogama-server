@@ -157,6 +157,12 @@ public sealed class Database
         """
         ALTER TABLE avatars ADD COLUMN from_player INTEGER NOT NULL DEFAULT 0;
         """,
+        """
+        CREATE TABLE account_profiles (
+            account INTEGER PRIMARY KEY,
+            profile INTEGER NOT NULL UNIQUE
+        );
+        """,
     ];
 
     readonly string _connectionString;

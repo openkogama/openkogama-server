@@ -54,6 +54,13 @@ public static class StreamingAssets
     public static StreamingAsset? Find(int id) =>
         For(Accessories).Assets.Find(asset => asset.Id == id) ?? For("2015").Assets.Find(asset => asset.Id == id) ?? Content.CustomContent.Find(id);
 
+    public static StreamingAsset? FindAccessory(string path)
+    {
+        string file = System.IO.Path.GetFileNameWithoutExtension(path);
+        return file.Length == 0 ? null : For(Accessories).Assets.Find(asset =>
+            string.Equals(System.IO.Path.GetFileNameWithoutExtension(asset.Path), file, StringComparison.OrdinalIgnoreCase));
+    }
+
     public static StreamingAssetCatalog ForSet(string set)
     {
         StreamingAssetCatalog common = For("2015");

@@ -1,5 +1,6 @@
 using OpenKogama.Game;
 using OpenKogama.Kogama;
+using OpenKogama.Kogama.Protocols;
 using OpenKogama.Photon;
 using OpenKogama.World;
 
@@ -13,7 +14,7 @@ public sealed class WorldObjectRPC(Session session) : IOperationHandler
     {
         object? rpcData = request[(byte)ParameterKey.WorldObjectRPCData];
         int targetId = Convert.ToInt32(request[(byte)ParameterKey.WorldObjectID]);
-        List<Interaction> interactions = Interaction.Parse(rpcData);
+        List<Interaction> interactions = Interaction.Parse(rpcData, session.For(peer)?.Build ?? ClientProtocols.ServerVersion);
 
         if (session.For(peer) is Player shooter
             && session.World.Find(targetId) is { Type: WorldObjectType.AdvancedGhost } ghost

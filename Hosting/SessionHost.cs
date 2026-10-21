@@ -335,7 +335,7 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
         if (mode == (int)GameMode.CharacterEditor)
         {
             Console.WriteLine($"peer {peer.Id}: character editor");
-            int parsed = SessionToken.Parse(request.Parameters.GetValueOrDefault((byte)ParameterKey.Token) as string).Profile;
+            int parsed = SessionTokens.Find(request.Parameters.GetValueOrDefault((byte)ParameterKey.Token) as string).Profile;
             int profile = parsed > 0 ? parsed : 1;
             return Create(Session.CharacterEditor(peer.Id, profile), editor: true);
         }
@@ -346,7 +346,7 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
         bool play = mode == (int)GameMode.Play;
         string client = mixedClients ? "" : (peer.Translator as LegacyTranslator)?.Version ?? "";
         if (_worlds.TryGetValue((id, play, client), out Entry? open)) return open;
-        int requester = SessionToken.Parse(request.Parameters.GetValueOrDefault((byte)ParameterKey.Token) as string).Profile;
+        int requester = SessionTokens.Find(request.Parameters.GetValueOrDefault((byte)ParameterKey.Token) as string).Profile;
         if (!play && EditLocked(id) && !TakeOver(id, peer, requester))
         {
             Console.WriteLine($"peer {peer.Id}: world {id} is already edited by another client version");

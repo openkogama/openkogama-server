@@ -37,11 +37,19 @@ public static class ModelFiles
 
     public static Item? Import(int profile, string? name, byte[] file, float? scale)
     {
-        if (file.Length > MaxBytes || Read(file) is not (CubeModel cubes, float own)) return null;
-        float chosen = scale ?? own;
-        if (cubes.Count == 0 || !ValidScale(chosen)) return null;
+        if (file.Length > MaxBytes) return null;
+        if (!file.AsSpan().StartsWith(Magic) && !file.AsSpan().StartsWith(KsCubesMagic)
+            && RegamaFile.Read(file, RegamaFile.Model) is (var title, { Prototypes: [Prototype prototype], Objects: [WorldObject obj] }))
+            return Add(profile, title ?? name, prototype.Cubes, scale ?? prototype.Scale, obj.Scale);
+        return Read(file) is (CubeModel cubes, float own) ? Add(profile, name, cubes, scale ?? own, [1f, 1f, 1f]) : null;
+    }
 
-        byte[] data = ModelInventory.Pack(new Prototype(1, chosen, profile, cubes), [1f, 1f, 1f]);
+    static Item? Add(int profile, string? name, CubeModel cubes, float scale, float[] objectScale)
+    {
+        if (cubes.Count == 0 || !ValidScale(scale)) return null;
+        if (objectScale is not [_, _, _] || !objectScale.All(ValidScale)) objectScale = [1f, 1f, 1f];
+
+        byte[] data = ModelInventory.Pack(new Prototype(1, scale, profile, cubes), objectScale);
         return Inventories.Add(profile, CleanName(name) ?? ModelInventory.ModelName, ModelInventory.ModelCategory, data, profile);
     }
 

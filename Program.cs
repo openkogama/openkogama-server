@@ -32,6 +32,8 @@ if (args is ["rendezvous", .. var rendezvous])
     return Rendezvous.Run(rendezvous);
 if (args is ["list", .. var list])
     return ServerList.Run(list);
+if (args is ["accounts", .. var accounts])
+    return OpenKogama.Accounts.AccountService.Run(accounts);
 if (args is ["client", "patch", .. var patch])
     return ClientPatch.Run(patch);
 
@@ -39,6 +41,8 @@ LogFile.Start("logs");
 AppDomain.CurrentDomain.UnhandledException += (_, crash) => Console.WriteLine($"error {(crash.ExceptionObject as Exception)?.Message}");
 AssetCache.Offline = args.Contains("--offline");
 var serverInfo = ServerInfo.Load("server.json");
+if (serverInfo.Shared && serverInfo.Accounts != AccountMode.Offline)
+    OpenKogama.Accounts.CentralKey.Start(serverInfo.AccountsUrl, "accounts.pub");
 if (int.TryParse(Tunnel.Option(args, "http"), out int httpPort)) serverInfo.UseHttpPort(httpPort);
 if (int.TryParse(Tunnel.Option(args, "photon"), out int photonPort)) serverInfo.PhotonPort = photonPort;
 var publicUrl = new Uri(serverInfo.PublicUrl.TrimEnd('/'));
@@ -176,7 +180,7 @@ var api = new WebApi
     Players = () => host.Sessions().Sum(session => session.Players.Count),
     Sessions = host.Sessions,
 };
-if (serverInfo.Public && serverInfo.Accounts)
+if (serverInfo.Public && serverInfo.Shared)
 {
     Announcer.Start(serverInfo.List, () => new { url = publicBase }, () => new { url = publicBase, left = true });
     Console.WriteLine($"listed on {serverInfo.List}");

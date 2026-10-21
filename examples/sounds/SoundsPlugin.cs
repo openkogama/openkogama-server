@@ -5,32 +5,55 @@ namespace Sounds;
 public sealed class SoundsPlugin : IPlugin
 {
     const string Folder = "plugins/data/sounds";
-    const string DefaultGroup = "Custom";
+    const string ReplaceFolder = "Replace";
     static readonly string[] Formats = [".mp3", ".ogg", ".wav", ".unity3d"];
 
     public void Load(IServer server)
     {
-        Directory.CreateDirectory(Folder);
+        Directory.CreateDirectory(Path.Combine(Folder, ReplaceFolder));
         foreach (string file in Directory.EnumerateFiles(Folder, "*", SearchOption.AllDirectories)
             .Where(file => Formats.Contains(Path.GetExtension(file).ToLowerInvariant())))
         {
             try
             {
-                server.Assets.Sounds.Add(Path.GetFileNameWithoutExtension(file), File.ReadAllBytes(file), Path.GetExtension(file), GroupOf(file));
+                Add(server, file);
             }
             catch (Exception error)
             {
                 server.Log($"sounds: {Path.GetFileName(file)} skipped, {error.Message}");
             }
         }
-        server.Log($"sounds: {server.Assets.Sounds.All.Count} from {Folder}");
+        server.Log($"sounds: {server.Assets.Sounds.All.Count} from {Folder}, {server.Assets.Sounds.Replaced.Count} game sounds replaced");
         server.AddCommand("sound", (player, arguments) => Choose(server, player, arguments));
     }
 
-    static string GroupOf(string file)
+    static void Add(IServer server, string file)
+    {
+        string name = Path.GetFileNameWithoutExtension(file);
+        byte[] data = File.ReadAllBytes(file);
+        string folder = FolderOf(file);
+        if (folder.Equals(ReplaceFolder, StringComparison.OrdinalIgnoreCase))
+        {
+            if (!TryName(name, out GameSound sound)) throw new ArgumentException($"{name} is no game sound, name the file like GunShotgun or HitExplosion");
+            server.Assets.Sounds.Replace(sound, data);
+        }
+        else if (TryName(folder, out SoundGroup group))
+            server.Assets.Sounds.Add(name, data, group);
+        else
+            server.Assets.Sounds.Add(name, data, Path.GetExtension(file), folder);
+    }
+
+    static string FolderOf(string file)
     {
         string folder = Path.GetRelativePath(Folder, Path.GetDirectoryName(file)!);
-        return folder == "." ? DefaultGroup : folder.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)[0];
+        return folder == "." ? nameof(SoundGroup.MusicLoop) : folder.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)[0];
+    }
+
+    static bool TryName<T>(string text, out T value) where T : struct, Enum
+    {
+        string? name = Enum.GetNames<T>().FirstOrDefault(candidate => candidate.Equals(text, StringComparison.OrdinalIgnoreCase));
+        value = name is null ? default : Enum.Parse<T>(name);
+        return name is not null;
     }
 
     static void Choose(IServer server, IPlayer player, string[] arguments)

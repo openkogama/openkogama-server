@@ -3,13 +3,14 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Web;
+using OpenKogama.Accounts;
 using OpenKogama.Content;
 using OpenKogama.Game;
 using OpenKogama.Storage;
 
 namespace OpenKogama.Web;
 
-public sealed record ApiRequest(string Method, string Path, NameValueCollection Query, string? ContentType, byte[] Body, bool Local, string? Via = null);
+public sealed record ApiRequest(string Method, string Path, NameValueCollection Query, string? ContentType, byte[] Body, bool Local, string? Via = null, string? Encoding = null);
 
 public sealed record ApiResponse(int Status, string? ContentType, byte[] Body)
 {
@@ -46,7 +47,7 @@ public sealed class WebApi
             return new ApiResponse(403, null, []);
 
         if (path.StartsWith("/api/admin/"))
-            return request.Local && request.Via is null && !ServerInfo.Accounts
+            return request.Local && request.Via is null && !ServerInfo.Shared
                 ? AdminApi.Route(path.TrimEnd('/'), request, Sessions())
                 : new ApiResponse(403, null, []);
 
@@ -59,6 +60,7 @@ public sealed class WebApi
                 clients = ServerInfo.Clients ?? [],
                 players = Players(),
                 @public = ServerInfo.Public,
+                features = ServerInfo.FeaturesNow(),
             }));
         }
 
@@ -66,6 +68,9 @@ public sealed class WebApi
             return Thumbnail(WorldOf(query)) is byte[] thumbnail
                 ? new ApiResponse(200, "application/octet-stream", thumbnail)
                 : ApiResponse.NotFound;
+
+        if (path.TrimEnd('/') == "/api/name")
+            return ApiResponse.Json(JsonSerializer.Serialize(new { claimed = NameClaimed(SessionToken.Clean(query["name"])) }));
 
         if (SessionLocator.Answer(path, query, request.Via) is string located)
             return new ApiResponse(200, "text/html", Encoding.UTF8.GetBytes(located));
@@ -78,14 +83,28 @@ public sealed class WebApi
             if (!ServerInfo.Allows(query["client"]))
                 return ApiResponse.Json(JsonSerializer.Serialize(new { error = $"This server accepts {string.Join(", ", ServerInfo.Clients)}" }), 403);
             int profile = request.Via is null && int.TryParse(query["profile"], out int requested) && requested > 0 ? requested : 1;
-            if ((ServerInfo.Accounts || request.Via is not null) && SessionToken.Clean(query["name"]) is string name) profile = Stores.Profiles.ForName(name);
-            if (request.Via is not null && profile == 1)
-                return ApiResponse.Json(JsonSerializer.Serialize(new { error = "Pick another nickname" }), 403);
+            string? nickname = SessionToken.Clean(query["name"]);
+            bool remote = ServerInfo.Shared || request.Via is not null;
+            if (remote && ServerInfo.Accounts != AccountMode.Offline && AccountTickets.Accept(query["ticket"], ServerInfo.Accepts) is Ticket ticket)
+            {
+                profile = Stores.Profiles.ForAccount(ticket.Account, ticket.Name);
+                nickname = ticket.Name;
+            }
+            else if (remote && ServerInfo.Accounts == AccountMode.Online)
+                return Refused("This server needs an OpenKogama account, sign in with the launcher");
+            else if (remote && nickname is not null)
+            {
+                profile = Stores.Profiles.ForName(nickname);
+                if (ServerInfo.Accounts == AccountMode.Optional && Stores.Profiles.Claimed(profile))
+                    return Refused("That name belongs to an OpenKogama account, sign in with the launcher to use it");
+            }
+            if (remote && !request.Local && profile == 1)
+                return Refused("Pick a nickname in the launcher settings");
             SessionLocator.Remember(profile, request.Via, int.TryParse(query["local"], out int local) && local is > 0 and < 65536 ? local : 0);
             bool join = query["mode"] == "play";
             int world = int.TryParse(query["world"], out int chosen) ? chosen : 0;
             if (world == 0 && join) world = ServerInfo.EntryWorld();
-            bool build = ServerInfo.BuildJoin && (ServerInfo.Accounts || request.Via is not null);
+            bool build = ServerInfo.BuildJoin && remote;
             GameMode mode = query["mode"] switch
             {
                 "play" => build ? GameMode.Edit : GameMode.Play,
@@ -95,14 +114,14 @@ public sealed class WebApi
             ClientEngines.Remember(profile, query["unity"]);
             PlayerPackage? package = PlayerPackages.Find(query["key"]);
             ProfileSettings.Remember(profile, ServerInfo.PlayerSettings ? query["key"] : null, ServerInfo.PlayerSettings ? package?.Settings?.GetRawText() : null);
-            if (package is not null && (ServerInfo.Accounts || request.Via is not null))
+            if (package is not null && remote)
                 PlayerPackages.Apply(profile, package, ServerInfo.PlayerAvatars, ServerInfo.PlayerInventory);
             string session = SessionJson(profile, mode, world, query["client"], request.Via);
             Console.WriteLine($"profile {profile}: joins world {world} in {mode.ToString().ToLowerInvariant()} mode");
-            if (query["name"] is not null && System.Text.Json.Nodes.JsonNode.Parse(session) is System.Text.Json.Nodes.JsonObject named)
+            if (System.Text.Json.Nodes.JsonNode.Parse(session) is System.Text.Json.Nodes.JsonObject issued)
             {
-                named["token"] = SessionToken.Create(profile, query["name"]);
-                session = named.ToJsonString();
+                issued["token"] = SessionTokens.Issue(profile, nickname);
+                session = issued.ToJsonString();
             }
             if (query["transport"] == "ws" && System.Text.Json.Nodes.JsonNode.Parse(session) is System.Text.Json.Nodes.JsonObject web)
             {
@@ -114,7 +133,7 @@ public sealed class WebApi
 
         if (path.TrimEnd('/') == "/api/tunnel/guest" && request.Method == "POST")
         {
-            if (!request.Local || ServerInfo.Accounts || !int.TryParse(query["port"], out int port) || port is <= 0 or > 65535
+            if (!request.Local || ServerInfo.Shared || !int.TryParse(query["port"], out int port) || port is <= 0 or > 65535
                 || !System.Net.IPAddress.TryParse(query["ip"], out System.Net.IPAddress? address))
                 return new ApiResponse(403, null, []);
             TunnelGuests.Report(port, address);
@@ -123,10 +142,10 @@ public sealed class WebApi
         }
 
         if (path.TrimEnd('/') == "/api/player" && request.Method == "POST")
-            return ApiResponse.Json("{}", PlayerPackages.Offer(query["key"], request.Body) ? 200 : 400);
+            return ApiResponse.Json("{}", PlayerPackages.Offer(query["key"], request.Body, request.Encoding) ? 200 : 400);
 
         if (path.TrimEnd('/') == "/api/profile/export")
-            return request.Local && !ServerInfo.Accounts ? ApiResponse.Json(PlayerPackages.Export(ProfileOf(query))) : new ApiResponse(403, null, []);
+            return request.Local && !ServerInfo.Shared ? ApiResponse.Json(PlayerPackages.Export(ProfileOf(query))) : new ApiResponse(403, null, []);
 
         if (path.TrimEnd('/') == "/api/settings")
             return ProfileSettings.ForKey(query["key"]) is string settings ? ApiResponse.Json(settings) : ApiResponse.NotFound;
@@ -172,7 +191,7 @@ public sealed class WebApi
         }
 
         if (path.TrimEnd('/') == "/api/inventory" || path.StartsWith("/api/inventory/"))
-            return request.Local && !ServerInfo.Accounts
+            return request.Local && !ServerInfo.Shared
                 ? InventoryApi.Route(path.TrimEnd('/'), request, ProfileOf(query))
                 : new ApiResponse(403, null, []);
 
@@ -200,7 +219,7 @@ public sealed class WebApi
 
         if (path.TrimEnd('/') == "/api/avatars/delete" && request.Method == "POST")
         {
-            if (!request.Local || ServerInfo.Accounts) return new ApiResponse(403, null, []);
+            if (!request.Local || ServerInfo.Shared) return new ApiResponse(403, null, []);
             bool deleted = int.TryParse(query["id"], out int id) && Stores.Profiles.DeleteAvatar(ProfileOf(query), id);
             if (deleted) Stores.Images.DeleteImage(AvatarImage, id);
             return ApiResponse.Json("{}", deleted ? 200 : 409);
@@ -215,7 +234,7 @@ public sealed class WebApi
 
         if (path.TrimEnd('/') == "/api/avatars/import" && request.Method == "POST")
         {
-            return AvatarFiles.Import(ProfileOf(query), Encoding.UTF8.GetString(request.Body)) is int id
+            return AvatarFiles.Import(ProfileOf(query), request.Body) is int id
                 ? ApiResponse.Json(JsonSerializer.Serialize(new { id }))
                 : ApiResponse.Json("{}", 400);
         }
@@ -306,6 +325,11 @@ public sealed class WebApi
             }
     }
 
+    bool NameClaimed(string? name) =>
+        name is not null && ServerInfo.Accounts == AccountMode.Optional && Stores.Profiles.Named(name) is int profile && Stores.Profiles.Claimed(profile);
+
+    static ApiResponse Refused(string message) => ApiResponse.Json(JsonSerializer.Serialize(new { error = message }), 403);
+
     static bool Managing(string path) => path.TrimEnd('/') == "/shutdown"
         || new[] { "/api/worlds", "/api/avatars", "/api/inventory", "/api/templates", "/api/profile", "/api/admin" }.Any(area => path == area || path.StartsWith(area + "/"));
 
@@ -344,6 +368,11 @@ public sealed class WebApi
         string set = path["/bundles-".Length..slash];
         string file = BundleSets.FileOf(Uri.UnescapeDataString(path[(slash + 1)..]));
         if (CustomContent.Bundle(set, file) is { } custom) return custom;
+        return Original(set, file) is { } original ? CustomContent.Replace(set, file, original) : null;
+    }
+
+    byte[]? Original(string set, string file)
+    {
         if (set == "3x") return LegacyAssets?.Get(file);
         if (!AssetSets.ContainsKey(set)) return null;
 

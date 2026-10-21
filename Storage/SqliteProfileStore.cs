@@ -16,6 +16,47 @@ public sealed class SqliteProfileStore(Database database) : IProfileStore
         return (int)(long)command.ExecuteScalar()!;
     }
 
+    public int? Named(string name)
+    {
+        using SqliteConnection connection = database.Open();
+        using SqliteCommand command = Command(connection, "SELECT id FROM profiles WHERE name = $name COLLATE NOCASE ORDER BY id LIMIT 1", ("$name", name));
+        return command.ExecuteScalar() is long id ? (int)id : null;
+    }
+
+    public int ForAccount(long account, string name)
+    {
+        using SqliteConnection connection = database.Open();
+        using SqliteTransaction transaction = connection.BeginTransaction();
+        Scalar(connection, transaction, "INSERT OR IGNORE INTO profiles (id) VALUES (1)");
+        if (Scalar(connection, transaction, "SELECT profile FROM account_profiles WHERE account = $account", ("$account", account)) is long linked)
+            return (int)linked;
+
+        long profile = Scalar(connection, transaction, """
+            SELECT id FROM profiles WHERE name = $name COLLATE NOCASE AND id <> 1 AND id NOT IN (SELECT profile FROM account_profiles)
+            """, ("$name", name)) as long?
+            ?? (long)Scalar(connection, transaction, """
+                INSERT INTO profiles (name) VALUES (CASE WHEN EXISTS (SELECT 1 FROM profiles WHERE name = $name COLLATE NOCASE) THEN NULL ELSE $name END)
+                RETURNING id
+                """, ("$name", name))!;
+        Scalar(connection, transaction, "INSERT INTO account_profiles (account, profile) VALUES ($account, $profile)", ("$account", account), ("$profile", profile));
+        transaction.Commit();
+        return (int)profile;
+    }
+
+    public bool Claimed(int profile)
+    {
+        using SqliteConnection connection = database.Open();
+        using SqliteCommand command = Command(connection, "SELECT EXISTS (SELECT 1 FROM account_profiles WHERE profile = $profile)", ("$profile", profile));
+        return (long)command.ExecuteScalar()! != 0;
+    }
+
+    static object? Scalar(SqliteConnection connection, SqliteTransaction transaction, string sql, params (string Name, object Value)[] parameters)
+    {
+        using SqliteCommand command = Command(connection, sql, parameters);
+        command.Transaction = transaction;
+        return command.ExecuteScalar();
+    }
+
     public string? Name(int profile)
     {
         using SqliteConnection connection = database.Open();

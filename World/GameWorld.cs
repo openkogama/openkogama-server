@@ -179,6 +179,7 @@ public sealed class GameWorld
     {
         lock (_sync)
         {
+            if (Get(parentId) is not { } parent || Leaves.Contains(parent.Type)) parentId = RootId;
             var prototypeIds = item.Prototypes.ToDictionary(p => p.Id, _ => _nextPrototypeId++);
             var objectIds = item.Objects.ToDictionary(o => o.Id, _ => _nextObjectId++);
 
@@ -326,6 +327,8 @@ public sealed class GameWorld
         lock (_sync) return Get(id);
     }
 
+    static readonly HashSet<WorldObjectType> Leaves = [WorldObjectType.CubeModel, WorldObjectType.PointLight, WorldObjectType.SoundEmitter];
+
     public int RootId
     {
         get { lock (_sync) return _objects.Find(obj => obj.ParentId == -1)?.Id ?? -1; }
@@ -467,10 +470,12 @@ public sealed class GameWorld
             ?? objects.Find(obj => obj.Type == WorldObjectType.SpawnPointBlue)?.Position
             ?? world.Spawn;
 
+        int root = (objects.Find(obj => obj.ParentId == -1 && obj.Type == WorldObjectType.Group) ?? objects.Find(obj => obj.ParentId == -1))?.Id ?? -1;
+        int extraRoots = objects.Count(obj => obj.ParentId == -1 && obj.Id != root);
         var kept = new HashSet<int>();
         foreach (WorldObject obj in objects)
         {
-            bool parentKept = obj.ParentId == -1 || kept.Contains(obj.ParentId);
+            bool parentKept = obj.ParentId == -1 ? obj.Id == root : kept.Contains(obj.ParentId);
             if (!parentKept || keep?.Invoke(obj) == false) continue;
 
             kept.Add(obj.Id);
@@ -485,6 +490,12 @@ public sealed class GameWorld
         var used = world.UsedPrototypes(world._objects).Select(prototype => prototype.Id).ToHashSet();
         foreach (int id in world._prototypes.Keys.Where(id => !used.Contains(id)).ToList())
             world._prototypes.Remove(id);
+
+        if (extraRoots > 0)
+        {
+            world.MarkChanged();
+            Console.WriteLine($"dropped {extraRoots} objects placed outside the world's root");
+        }
 
         int repaired = BlueprintMaps.Repair(world._objects);
         if (repaired > 0)

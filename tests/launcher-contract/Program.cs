@@ -1,5 +1,7 @@
 using System.Collections.Specialized;
+using System.Security.Cryptography;
 using System.Text.Json;
+using OpenKogama.Accounts;
 using OpenKogama.Game;
 using OpenKogama.Storage;
 using OpenKogama.Web;
@@ -41,8 +43,8 @@ try
     var metadata = api.Route(Get("/api/server"));
     using (var json = JsonDocument.Parse(metadata.Body))
     {
-        Check(metadata.Status == 200 && json.RootElement.EnumerateObject().Count() == 5,
-            "launcher metadata exposes only its tile fields");
+        Check(metadata.Status == 200 && json.RootElement.EnumerateObject().Count() == 6,
+            "launcher metadata exposes only its tile fields and features");
         Check(json.RootElement.GetProperty("clients").GetArrayLength() == 0, "every version is accepted when clients is not set");
         Check(json.RootElement.GetProperty("title").GetString()!.Length == 40, "title has a 40-character limit");
         Check(json.RootElement.GetProperty("thumbnail").GetString() == "/api/server/thumbnail", "thumbnail uses the fixed endpoint");
@@ -82,13 +84,45 @@ try
         "clients accepts exact versions and inclusive ranges only");
     var gated = new WebApi { ServerInfo = filtered, SessionJson = (_, _, _, _, _) => "{}" };
     Check(gated.Route(Get("/session", ("mode", "play"), ("client", "3.5.25"))).Status == 403, "session refuses versions outside clients");
-    Check(SessionToken.Parse(SessionToken.Create(4, " nightus ")) == (4, "nightus") && SessionToken.Parse("4") == (4, null),
-        "session token carries the nickname");
+    using (JsonDocument server = JsonDocument.Parse(api.Route(Get("/api/server")).Body))
+        Check(server.RootElement.GetProperty("features").EnumerateArray().Select(feature => feature.GetString()).ToHashSet()
+            .SetEquals(["player", "player-deflate", "content"]), "the server lists what newer launchers may use");
+    Check(api.Route(Get("/session", ("mode", "play"), ("ticket", "from-a-newer-launcher"), ("future", "1"))).Status == 200,
+        "session ignores parameters it does not know, so newer launchers still get in");
+    string issued = SessionTokens.Issue(4, " nightus ");
+    Check(SessionTokens.Find(issued) == (4, "nightus") && SessionTokens.Find("4") == (0, null) && SessionTokens.Find("4-6E69676874757573") == (0, null),
+        "session tokens are random, carry the nickname and cannot be forged from a profile number");
     var profiles = new SqliteProfileStore(new Database(accounts, writeAhead: false));
     int first = profiles.ForName("Nightus");
     Check(profiles.ForName("nightus") == first && profiles.ForName("Other") != first && profiles.Name(first) == "Nightus",
         "every nickname gets one profile, letter case aside");
-    Check(new ServerInfo { PublicUrl = "https://example.com" }.Accounts && !new ServerInfo().Accounts, "accounts only on a public server");
+    Check(new ServerInfo { PublicUrl = "https://example.com" }.Shared && !new ServerInfo().Shared, "accounts only on a public server");
+    Stores.Profiles = profiles;
+    using var central = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+    CentralKey.Current = central;
+    WebApi Server(AccountMode mode) => new() { ServerInfo = new ServerInfo { PublicUrl = "https://Example.com/", Accounts = mode }, SessionJson = (_, _, _, _, _) => "{}" };
+    (int Profile, string? Name) Joined(ApiResponse response) =>
+        response.Status == 200 ? SessionTokens.Find(JsonDocument.Parse(response.Body).RootElement.GetProperty("token").GetString()) : (0, null);
+    WebApi optional = Server(AccountMode.Optional);
+    string ticket = Tickets.Issue(central, 77, "Nightus", "https://example.com");
+    Check(Joined(optional.Route(Get("/session", ("mode", "play"), ("ticket", ticket)))) == (first, "Nightus"),
+        "a ticket signs the account in and takes over the profile with its name");
+    Check(optional.Route(Get("/session", ("mode", "play"), ("ticket", ticket))).Status == 403, "a ticket works only once");
+    Check(optional.Route(Get("/session", ("mode", "play"), ("ticket", Tickets.Issue(central, 78, "Other", "https://evil.example")))).Status == 403,
+        "a ticket made for another server does not work here");
+    Check(optional.Route(Get("/session", ("mode", "play"), ("name", "nightus"))).Status == 403, "a name that belongs to an account needs that account");
+    Check(Joined(optional.Route(Get("/session", ("mode", "play"), ("name", "Guest")))).Name == "Guest", "players without an account still get in with a free name");
+    Check(optional.Route(Get("/session", ("mode", "play"))).Status == 403, "a remote player without a name never gets the owner's profile");
+    Check(Server(AccountMode.Online).Route(Get("/session", ("mode", "play"), ("name", "Guest"))).Status == 403, "an online server needs an account");
+    Check(Server(AccountMode.Offline).Route(Get("/session", ("mode", "play"), ("name", "nightus"))).Status == 200, "an offline server takes any name");
+    bool Claimed(WebApi server, string name) => JsonDocument.Parse(server.Route(Get("/api/name", ("name", name))).Body).RootElement.GetProperty("claimed").GetBoolean();
+    Check(Claimed(optional, "NIGHTUS") && !Claimed(optional, "Guest"), "launchers can ask whether a name belongs to an account");
+    Check(!Claimed(optional, "Nobody123") && profiles.Named("Nobody123") is null, "asking about a name does not make a profile");
+    Check(!Claimed(Server(AccountMode.Offline), "nightus"), "on an offline server no name is taken");
+    using (JsonDocument online = JsonDocument.Parse(Server(AccountMode.Online).Route(Get("/api/server")).Body))
+        Check(online.RootElement.GetProperty("features").EnumerateArray().Select(feature => feature.GetString()).Contains("accounts-required"),
+            "an online server tells launchers that an account is required");
+    CentralKey.Current = null;
     Console.WriteLine($"{checks} contract checks passed.");
 }
 finally

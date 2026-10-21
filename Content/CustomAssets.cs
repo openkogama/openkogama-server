@@ -41,11 +41,20 @@ public sealed class CustomSound : CustomAsset, ISound
 {
     public const string Prebuilt = "unity3d";
     public static readonly string[] Formats = ["mp3", "ogg", "wav", Prebuilt];
-    static readonly object Building = new();
 
     public required byte[] Data { get; init; }
     public required string Format { get; init; }
     public override string Kind => "sound";
+
+    public static string FormatOf(byte[] file)
+    {
+        ReadOnlySpan<byte> head = file.AsSpan(0, Math.Min(file.Length, 12));
+        if (head.StartsWith("OggS"u8)) return "ogg";
+        if (head.StartsWith("RIFF"u8) && head.Length == 12 && head[8..].SequenceEqual("WAVE"u8)) return "wav";
+        if (head.StartsWith("ID3"u8) || head.Length >= 2 && head[0] == 0xFF && (head[1] & 0xE0) == 0xE0) return "mp3";
+        if (head.StartsWith("Unity"u8)) return Prebuilt;
+        throw new ArgumentException($"a sound has to be {string.Join(", ", Formats)}");
+    }
 
     public override bool Fits(string key) => Format == Prebuilt
         ? CustomContent.SameEngine(UnityArchive.EngineOf(Data), key)
@@ -57,17 +66,13 @@ public sealed class CustomSound : CustomAsset, ISound
         if (CustomContent.Template(Kind, key) is not byte[] template) return null;
 
         string cached = Path.Combine("bundles", "custom", key + "-" + VersionOf(template), $"{Kind}-{Id}-{Version}.unity3d");
-        lock (Building)
+        return CustomContent.Built(cached, () =>
         {
-            if (File.Exists(cached)) return File.ReadAllBytes(cached);
             Pcm audio = AudioFiles.Decode(Data, "." + Format);
             byte[] bundle = SoundBundles.Build(template, audio, $"{Id}-{Version}", new SoundFile(Data, Format));
-            Directory.CreateDirectory(Path.GetDirectoryName(cached)!);
-            File.WriteAllBytes(cached + ".tmp", bundle);
-            File.Move(cached + ".tmp", cached, overwrite: true);
             Console.WriteLine($"sound {Id} {Name}: {audio.Frames / audio.Rate} s, {audio.Channels} channels, {audio.Rate} Hz, bundle for {key} {bundle.Length / 1024} KB");
             return bundle;
-        }
+        });
     }
 }
 

@@ -79,7 +79,7 @@ public sealed class BytePackerReader(byte[] data)
 
     public List<(string Key, PackedType Type, object Value)> ReadPairs()
     {
-        int count = ReadInt32();
+        int count = ReadCount();
         var pairs = new List<(string, PackedType, object)>(count);
 
         for (int i = 0; i < count; i++)
@@ -110,8 +110,15 @@ public sealed class BytePackerReader(byte[] data)
 
     T[] ReadArray<T>(Func<T> read)
     {
-        var items = new T[ReadInt32()];
+        var items = new T[ReadCount()];
         for (int i = 0; i < items.Length; i++) items[i] = read();
         return items;
+    }
+
+    int ReadCount()
+    {
+        int count = ReadInt32();
+        if (count < 0 || count > data.Length - _offset) throw new InvalidDataException($"BytePacker: bad count {count}");
+        return count;
     }
 }

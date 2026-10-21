@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.Text;
+using SharpCompress.Compressors.LZMA;
 
 namespace OpenKogama.Content;
 
@@ -226,9 +227,20 @@ public static class UnityArchive
     static byte[] Unpack(ReadOnlySpan<byte> packed, int size, uint compression) => compression switch
     {
         0 => packed.ToArray(),
+        1 => Lzma(packed, size),
         2 or 3 => Lz4(packed, size),
         _ => throw new NotSupportedException($"bundle compression {compression} is not supported"),
     };
+
+    static byte[] Lzma(ReadOnlySpan<byte> source, int size)
+    {
+        const int Properties = 5;
+        byte[] target = new byte[size];
+        using var input = new MemoryStream(source[Properties..].ToArray());
+        using Stream lzma = LzmaStream.Create(source[..Properties].ToArray(), input, input.Length, size, leaveOpen: false);
+        lzma.ReadExactly(target);
+        return target;
+    }
 
     static byte[] Lz4(ReadOnlySpan<byte> source, int size)
     {

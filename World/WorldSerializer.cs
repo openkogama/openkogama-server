@@ -50,10 +50,24 @@ public static class WorldSerializer
     public static byte[] Write(IReadOnlyList<Prototype> prototypes, IReadOnlyList<WorldObject> objects) =>
         Write(new Snapshot(prototypes, objects, [], []));
 
-    public static Snapshot Read(byte[] data, bool runtime = true)
+    public static Snapshot Read(byte[] data, bool runtime = true) => Read(new BytePackerReader(data), runtime);
+
+    public static Snapshot? ReadExact(byte[] data, bool runtime)
     {
         var reader = new BytePackerReader(data);
+        try
+        {
+            Snapshot snapshot = Read(reader, runtime);
+            return reader.AtEnd ? snapshot : null;
+        }
+        catch (Exception e) when (e is IndexOutOfRangeException or ArgumentException or InvalidDataException or NotSupportedException)
+        {
+            return null;
+        }
+    }
 
+    static Snapshot Read(BytePackerReader reader, bool runtime)
+    {
         var prototypes = new List<Prototype>();
         for (int i = reader.ReadInt32(); i > 0; i--)
             prototypes.Add(ReadPrototype(reader));

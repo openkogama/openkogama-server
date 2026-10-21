@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Text.Json;
 using OpenKogama.Api;
 using OpenKogama.Storage;
@@ -29,8 +30,10 @@ public static class PlayerPackages
     static readonly Dictionary<string, (PlayerPackage Package, DateTime At)> Waiting = [];
     static readonly Lazy<HashSet<int>> Catalog = new(() => [.. Items.Catalog.Items.Select(item => item.Id)]);
 
-    public static bool Offer(string? key, byte[] body)
+    public static bool Offer(string? key, byte[] body, string? encoding = null)
     {
+        if (encoding is "deflate" && Inflated(body) is byte[] inflated) body = inflated;
+        else if (encoding is not null) return false;
         if (ProfileSettings.CleanKey(key) is not string clean || body.Length > MaxBytes) return false;
         PlayerPackage? package;
         try
@@ -104,6 +107,26 @@ public static class PlayerPackages
         }
         Stores.Profiles.SetSlots(profile, slots);
         return brought;
+    }
+
+    static byte[]? Inflated(byte[] packed)
+    {
+        try
+        {
+            using var input = new ZLibStream(new MemoryStream(packed), CompressionMode.Decompress);
+            using var output = new MemoryStream();
+            byte[] buffer = new byte[81920];
+            for (int read; (read = input.Read(buffer)) > 0;)
+            {
+                output.Write(buffer, 0, read);
+                if (output.Length > MaxBytes) return null;
+            }
+            return output.ToArray();
+        }
+        catch (InvalidDataException)
+        {
+            return null;
+        }
     }
 
     static byte[]? Model(string? data)

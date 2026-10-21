@@ -29,6 +29,7 @@ public enum InteractionType : byte
     MultiThrowingStarHit = 24,
     DoubleSixShooterHit = 25,
     SlapGunHit = 26,
+    HealRayHit = 27,
     VehicleHit = 28,
 }
 
@@ -36,6 +37,7 @@ public enum KilledBy : byte
 {
     None, CenterGun, BazookaGun, RailGun, Suicide, Impact, Environmental, Sword, Explosive, Fire, FallOffWorld, Mutant, Shotgun,
     FlameThrower, Crushed, Ghost, AdvancedGhost, SixShooter, DoubleSixShooter, ThrowingStar, MultiThrowingStar, GodzillaLaser, KillZone, SlapGun,
+    RayHealGun, CustomGun,
 }
 
 public readonly record struct Interaction(InteractionType Type, float Damage, Vector3 Impulse, KilledBy KilledBy)
@@ -59,7 +61,7 @@ public readonly record struct Interaction(InteractionType Type, float Damage, Ve
         [InteractionType.SlapGunHit] = 35f,
     };
 
-    public byte[] ToBytes()
+    public byte[] ToBytes(string build)
     {
         var writer = new BytePackerWriter();
         byte flags = HasType;
@@ -77,27 +79,28 @@ public readonly record struct Interaction(InteractionType Type, float Damage, Ve
             writer.WriteSingle(Impulse.Y);
             writer.WriteSingle(Impulse.Z);
         }
-        if (KilledBy != KilledBy.None)
+        byte reason = KillReasons.ToClient(KilledBy, build);
+        if (reason != (byte)KilledBy.None)
         {
             flags |= HasKilledBy;
-            writer.WriteByte((byte)KilledBy);
+            writer.WriteByte(reason);
         }
         byte[] packet = writer.ToArray();
         packet[0] = flags;
         return packet;
     }
 
-    public static List<Interaction> Parse(object? rpcData)
+    public static List<Interaction> Parse(object? rpcData, string build)
     {
         var interactions = new List<Interaction>();
         if (PhotonValues.Normalize(rpcData) is not Dictionary<object, object?> table) return interactions;
         foreach ((object key, object? value) in table)
-            if (Convert.ToInt32(key) == 0 && value is byte[] { Length: > 0 } packet && Read(packet) is Interaction interaction)
+            if (Convert.ToInt32(key) == 0 && value is byte[] { Length: > 0 } packet && Read(packet, build) is Interaction interaction)
                 interactions.Add(interaction);
         return interactions;
     }
 
-    static Interaction? Read(byte[] packet)
+    static Interaction? Read(byte[] packet, string build)
     {
         try
         {
@@ -106,7 +109,7 @@ public readonly record struct Interaction(InteractionType Type, float Damage, Ve
             var type = (flags & HasType) != 0 ? (InteractionType)reader.ReadByte() : InteractionType.None;
             float damage = (flags & HasDamage) != 0 ? reader.ReadSingle() : SharedDamage.GetValueOrDefault(type);
             Vector3 impulse = (flags & HasImpulse) != 0 ? new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle()) : Vector3.Zero;
-            var killedBy = (flags & HasKilledBy) != 0 ? (KilledBy)reader.ReadByte() : KilledBy.None;
+            var killedBy = (flags & HasKilledBy) != 0 ? KillReasons.FromClient(reader.ReadByte(), build) : KilledBy.None;
             return new Interaction(type, damage, impulse, killedBy);
         }
         catch (ArgumentOutOfRangeException)

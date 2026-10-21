@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using OpenKogama.Api;
 using OpenKogama.Game;
 using OpenKogama.Photon;
 
@@ -9,15 +10,44 @@ public static partial class CustomContent
 {
     public static readonly AssetLibrary<CustomSound> Sounds = new("sound");
     public static readonly AssetLibrary<CustomBundle> Bundles = new("bundle");
+    public static readonly ReplacedSounds ReplacedSounds = new();
+    public static readonly ReplacedBundles ReplacedBundles = new();
     static readonly Dictionary<string, byte[]?> Templates = [];
+    static readonly object Building = new();
     const int AmbientAudio = 1;
     const string WebPlayerSet = "3x";
     static readonly string[] Categories = ["", "Nature", "Machinery", "Urban", "MusicLoop", "Alarms", "Horror", "Delight", "Suspense", "Robotic"];
+    static readonly Dictionary<string, string> CategoryAliases = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Music"] = "MusicLoop",
+        ["Alarm"] = "Alarms",
+        ["Suspence"] = "Suspense",
+    };
 
     public static void Clear()
     {
         Sounds.Clear();
         Bundles.Clear();
+        ReplacedSounds.Clear();
+        ReplacedBundles.Clear();
+    }
+
+    public static byte[] Replace(string set, string file, byte[] original) =>
+        ReplacedBundles.For(set, file) ?? ReplacedSounds.Apply(set, file, original);
+
+    public static string GroupName(SoundGroup group) => group == SoundGroup.Suspense ? "Suspence" : group.ToString();
+
+    public static byte[] Built(string file, Func<byte[]> build)
+    {
+        lock (Building)
+        {
+            if (File.Exists(file)) return File.ReadAllBytes(file);
+            byte[] bundle = build();
+            Directory.CreateDirectory(Path.GetDirectoryName(file)!);
+            File.WriteAllBytes(file + ".tmp", bundle);
+            File.Move(file + ".tmp", file, overwrite: true);
+            return bundle;
+        }
     }
 
     public static bool IsBundleUrl(object? value) => value is string url && url.EndsWith(".unity3d", StringComparison.OrdinalIgnoreCase);
@@ -52,6 +82,9 @@ public static partial class CustomContent
         return JsonSerializer.Serialize(new
         {
             sounds = Sounds.All.Where(sound => key is null || sound.Fits(key)).Select(sound => new { url = sound.Url, name = sound.Name, group = sound.Group }),
+            replaced = ReplacedSounds.All.Select(GameSoundFiles.CacheName)
+                .Concat(ReplacedBundles.All.Select(GameBundles.CacheName))
+                .Distinct(StringComparer.OrdinalIgnoreCase),
         });
     }
 
@@ -103,7 +136,8 @@ public static partial class CustomContent
     static int Category(string group)
     {
         string wanted = group.Replace(" ", "");
-        int index = Array.FindIndex(Categories, name => name.Length > 0 && (name.Equals(wanted, StringComparison.OrdinalIgnoreCase) || name == "MusicLoop" && wanted.Equals("Music", StringComparison.OrdinalIgnoreCase)));
+        wanted = CategoryAliases.GetValueOrDefault(wanted, wanted);
+        int index = Array.FindIndex(Categories, name => name.Length > 0 && name.Equals(wanted, StringComparison.OrdinalIgnoreCase));
         return index > 0 ? index : 1;
     }
 

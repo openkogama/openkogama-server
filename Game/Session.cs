@@ -285,6 +285,10 @@ public sealed partial class Session
 
     public static int ImportWorld(string name, byte[] file, string? client = null)
     {
+        if (RegamaFile.Read(file, RegamaFile.Planet) is (var title, Snapshot planet)
+            && planet.Objects.Any(obj => obj.ParentId == -1 && obj.Type == WorldObjectType.Group))
+            (name, file) = (title ?? name, WorldSerializer.Write(planet));
+
         GameWorld world = WorldConverter.Import(file, client, out Dictionary<int, int> dropped);
         int id = Stores.Worlds.Create(KgmapFile.Title(file) ?? name, 0, world.ToData());
 

@@ -344,6 +344,7 @@ public sealed class Logic(Session session)
         {
             foreach (int id in ids)
             {
+                _inputs.Remove(id);
                 WorldObject? obj = session.World.Find(id);
                 switch (obj?.Type)
                 {
@@ -368,7 +369,7 @@ public sealed class Logic(Session session)
                 }
             }
         }
-        Evaluate(react: false);
+        Evaluate();
     }
 
     bool OnEdge(WorldObject obj, bool rising, int outputCount)

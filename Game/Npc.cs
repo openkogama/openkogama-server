@@ -51,6 +51,8 @@ public sealed class Npc(int actor, int avatarId, string name, float[] position, 
     internal long NoFrictionUntil { get; set; }
     internal long BurnUntil { get; set; }
     internal int BurnActor { get; set; }
+    internal long HealRayUntil { get; set; }
+    internal int HealRayActor { get; set; }
     internal Dictionary<string, byte> Modifiers { get; } = [];
     internal bool HealthChanged { get; set; }
     internal bool ModeChanged { get; set; }

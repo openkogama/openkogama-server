@@ -28,7 +28,7 @@ public sealed class Join(Session session) : IOperationHandler
         }
         if (request[(byte)ParameterKey.GameMode] is { } mode) player.Mode = (GameMode)Convert.ToInt32(mode);
         if (request[(byte)ParameterKey.ClientBuildTarget] is byte target) player.BuildTarget = target;
-        (int profile, string? nickname) = SessionToken.Parse(request[(byte)ParameterKey.Token] as string);
+        (int profile, string? nickname) = SessionTokens.Find(request[(byte)ParameterKey.Token] as string);
         if (profile > 0) player.ProfileId = profile;
         nickname ??= profile > 0 ? Storage.Stores.Profiles.Name(profile) : null;
         if (nickname is not null)

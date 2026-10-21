@@ -60,7 +60,7 @@ public sealed class HttpServer(string prefix, WebApi api)
         using var body = new MemoryStream();
         if (request.HasEntityBody) request.InputStream.CopyTo(body);
         ApiResponse result = api.Route(new ApiRequest(request.HttpMethod, path, request.QueryString, request.ContentType, body.ToArray(),
-            IPAddress.IsLoopback(remote) && !tunneled, via));
+            IPAddress.IsLoopback(remote) && !tunneled, via, request.Headers["Content-Encoding"]));
 
         if (Handlers.OperationRouter.Trace) Console.WriteLine($"http {request.HttpMethod} {request.Url?.PathAndQuery} {result.Status} {result.Body.Length}");
         response.StatusCode = result.Status;

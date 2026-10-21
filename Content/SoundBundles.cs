@@ -16,7 +16,6 @@ public sealed record SoundFile(byte[] Data, string Format);
 public static class SoundBundles
 {
     const int AudioClipClass = 83;
-    const int WebGLTarget = 20;
     const int UnityThreeVersion = 14;
     const int DecompressOnLoad = 0;
     const int PcmCompression = 0;
@@ -31,27 +30,32 @@ public static class SoundBundles
     public static byte[] Build(byte[] template, Pcm audio, string seed, SoundFile? original = null)
     {
         (ArchiveFormat format, List<ArchiveNode> nodes) = UnityArchive.ReadWithFormat(template);
-        int main = nodes.FindIndex(node => !node.Name.Contains('.'));
-        if (main < 0) throw new InvalidDataException("the sound template has no serialized file");
+        int main = MainNode(nodes);
 
         string id = nodes[main].Name[(nodes[main].Name.IndexOf('-') + 1)..];
         string newId = Token(seed + "/cab", id.Length);
         var file = new SerializedFile(Replace(nodes[main].Data.ToArray(), id, newId));
-        SerializedFile.Entry clip = file.Objects.FirstOrDefault(entry => entry.ClassId == AudioClipClass)
-            ?? throw new InvalidDataException("the sound template has no AudioClip");
-        string name = new ByteReader(file.ToArray(), file.Offset(clip)).Text();
+        string name = new ByteReader(file.ToArray(), file.Offset(Clip(file))).Text();
         string token = Token(seed + "/name", name.Length);
-        file = new SerializedFile(Replace(Replace(file.ToArray(), name, token), name.ToLowerInvariant(), token));
-        clip = file.Objects.First(entry => entry.PathId == clip.PathId);
+        byte[] renamed = Replace(Replace(file.ToArray(), name, token), name.ToLowerInvariant(), token);
+        nodes = [.. nodes.Select((node, i) => node with { Name = node.Name.Replace(id, newId), Data = i == main ? renamed : node.Data })];
+        return Swap(format, nodes, main, audio, original);
+    }
 
-        var built = new List<ArchiveNode>(nodes.Count);
+    public static byte[] Swap(byte[] bundle, Pcm audio, SoundFile? original = null)
+    {
+        (ArchiveFormat format, List<ArchiveNode> nodes) = UnityArchive.ReadWithFormat(bundle);
+        return Swap(format, nodes, MainNode(nodes), audio, original);
+    }
+
+    static byte[] Swap(ArchiveFormat format, List<ArchiveNode> nodes, int main, Pcm audio, SoundFile? original)
+    {
+        var file = new SerializedFile(nodes[main].Data);
+        SerializedFile.Entry clip = Clip(file);
         if (file.Version < UnityThreeVersion)
-        {
-            built.Add(nodes[main] with { Name = nodes[main].Name.Replace(id, newId), Data = file.With(clip, EmbeddedClip(file.Data(clip), audio, original)) });
-            return UnityArchive.Write(format, built);
-        }
+            return UnityArchive.Write(format, [nodes[main] with { Data = file.With(clip, EmbeddedClip(file.Data(clip), audio, original)) }]);
 
-        bool web = file.Target == WebGLTarget;
+        bool web = file.Target == SerializedFile.WebGLTarget;
         byte[] resource = web ? BrowserAudio(audio, original) : Fsb(audio);
         byte[] serialized = file.ToArray();
         var reader = new ByteReader(serialized, file.Offset(clip));
@@ -73,14 +77,23 @@ public static class SoundBundles
         BinaryPrimitives.WriteUInt64LittleEndian(data[(source + 8)..], (ulong)resource.Length);
         if (!web) BinaryPrimitives.WriteInt32LittleEndian(data[(source + 16)..], PcmCompression);
 
+        var built = new List<ArchiveNode>(nodes.Count);
         for (int i = 0; i < nodes.Count; i++)
         {
-            string renamed = nodes[i].Name.Replace(id, newId);
-            if (i == main) built.Add(nodes[i] with { Name = renamed, Data = serialized });
-            else if (nodes[i].Name.EndsWith(".resource", StringComparison.Ordinal)) built.Add(nodes[i] with { Name = renamed, Data = resource });
+            if (i == main) built.Add(nodes[i] with { Data = serialized });
+            else if (nodes[i].Name.EndsWith(".resource", StringComparison.Ordinal)) built.Add(nodes[i] with { Data = resource });
         }
         return UnityArchive.Write(format, built);
     }
+
+    static int MainNode(List<ArchiveNode> nodes)
+    {
+        int main = nodes.FindIndex(node => !node.Name.Contains('.'));
+        return main >= 0 ? main : throw new InvalidDataException("the sound bundle has no serialized file");
+    }
+
+    static SerializedFile.Entry Clip(SerializedFile file) =>
+        file.Objects.FirstOrDefault(entry => entry.ClassId == AudioClipClass) ?? throw new InvalidDataException("the sound bundle has no AudioClip");
 
     // Unity 3 keeps the whole audio file inside the AudioClip: name, format, type, 3d, hardware, load type, then the bytes.
     static byte[] EmbeddedClip(ReadOnlySpan<byte> old, Pcm audio, SoundFile? original)

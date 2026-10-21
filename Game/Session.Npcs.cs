@@ -19,6 +19,8 @@ public sealed partial class Session
     const int NoFrictionMs = 200;
     const int BurnMs = 500;
     const float BurnDamagePerSecond = 25f;
+    const int HealRayMs = 1000;
+    const float HealRayDamagePerSecond = 7f;
     const float FallBelowWorld = 200f;
     const int KillNotification = 1;
     const int AvatarKilledMessage = 0;
@@ -364,6 +366,7 @@ public sealed partial class Session
 
         float seconds = MathF.Min((now - npc.LastStep) / 1000f, MaxCatchUpSeconds);
         if (now < npc.BurnUntil) Damage(npc, BurnDamagePerSecond * seconds, npc.BurnActor, KilledBy.FlameThrower, now);
+        if (now < npc.HealRayUntil) Damage(npc, HealRayDamagePerSecond * seconds, npc.HealRayActor, KilledBy.RayHealGun, now);
         if (now >= npc.NoFrictionUntil) RemoveModifier(npc, "_NoFriction");
         if (npc.OnFire && !npc.Modifiers.ContainsKey("_Fire")) AddModifier(npc, "_Fire");
         if (!npc.OnFire) RemoveModifier(npc, "_Fire");
@@ -401,6 +404,10 @@ public sealed partial class Session
                 break;
             case InteractionType.MutantHit:
                 Damage(npc, interaction.Damage, actor, KilledBy.Mutant, now);
+                break;
+            case InteractionType.HealRayHit:
+                npc.HealRayUntil = now + HealRayMs;
+                npc.HealRayActor = actor;
                 break;
             case InteractionType.FlamethrowerHit:
                 AddModifier(npc, "_FlamerBurn");
@@ -475,27 +482,26 @@ public sealed partial class Session
         npc.Target = null;
         npc.JumpUntil = 0;
 
-        var message = new EventData((byte)EventCode.PostGameMsg)
-        {
-            Parameters =
-            {
-                [(byte)ParameterKey.GameMsgType] = AvatarKilledMessage,
-                [(byte)ParameterKey.GameMsgData] = new Dictionary<object, object?> { [(byte)0] = npc.Actor, [(byte)1] = killerActor, [(byte)2] = (byte)killedBy },
-            },
-        };
-        var notification = new EventData((byte)EventCode.NotificationEvent)
-        {
-            Parameters =
-            {
-                [(byte)ParameterKey.NotificationType] = KillNotification,
-                [(byte)ParameterKey.NotificationData] = new Dictionary<object, object?> { [(byte)7] = npc.Actor, [(byte)6] = killerActor, [(byte)8] = (byte)killedBy },
-            },
-        };
         foreach (Player player in _players.Where(player => player.Saw(npc.Actor)))
         {
-            player.Peer.Send(message);
+            byte reason = KillReasons.ToClient(killedBy, player.Build);
+            player.Peer.Send(new EventData((byte)EventCode.PostGameMsg)
+            {
+                Parameters =
+                {
+                    [(byte)ParameterKey.GameMsgType] = AvatarKilledMessage,
+                    [(byte)ParameterKey.GameMsgData] = new Dictionary<object, object?> { [(byte)0] = npc.Actor, [(byte)1] = killerActor, [(byte)2] = reason },
+                },
+            });
             if (!SilentKills.Contains(killedBy) && player.Peer.Translator is Kogama.Protocols.OperationRemap)
-                player.Peer.Send(notification);
+                player.Peer.Send(new EventData((byte)EventCode.NotificationEvent)
+                {
+                    Parameters =
+                    {
+                        [(byte)ParameterKey.NotificationType] = KillNotification,
+                        [(byte)ParameterKey.NotificationData] = new Dictionary<object, object?> { [(byte)7] = npc.Actor, [(byte)6] = killerActor, [(byte)8] = reason },
+                    },
+                });
         }
 
         Player? killer = killerActor == npc.Actor ? null : PlayerOf(killerActor);
@@ -521,6 +527,7 @@ public sealed partial class Session
         }
         npc.NoFrictionUntil = 0;
         npc.BurnUntil = 0;
+        npc.HealRayUntil = 0;
         npc.Target = null;
         npc.Position = [position.X, position.Y, position.Z];
         npc.Teleported = true;
@@ -537,7 +544,7 @@ public sealed partial class Session
             {
                 [(byte)ParameterKey.ActorNr] = attackerActor,
                 [(byte)ParameterKey.WorldObjectID] = victim.PlayAvatar,
-                [(byte)ParameterKey.WorldObjectRPCData] = new Dictionary<object, object?> { [(byte)0] = hit.ToBytes() },
+                [(byte)ParameterKey.WorldObjectRPCData] = new Dictionary<object, object?> { [(byte)0] = hit.ToBytes(victim.Build) },
             },
         });
     }
