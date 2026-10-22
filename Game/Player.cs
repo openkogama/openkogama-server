@@ -161,7 +161,7 @@ public sealed class Player(PhotonPeer peer, int actor, int avatarId)
         if (!SpawnRoles) snapshot = Without(Without(snapshot, obj => obj.Type == World.WorldObjectType.BuildModeAvatar), obj => obj.Type == World.WorldObjectType.Avatar && obj.Transient);
         else if (Mode == GameMode.CharacterEditor) snapshot = Without(snapshot, obj => obj.Type == World.WorldObjectType.Avatar);
         else snapshot = snapshot with { Objects = [.. snapshot.Objects.Select(WithoutLaser)] };
-        snapshot = snapshot with { Objects = [.. snapshot.Objects.Select(obj => SoundEmitters.For(this, AvatarModifiers.For(this, Accessories.For(this, WithoutIdleHealRay(obj)))))] };
+        snapshot = snapshot with { Objects = [.. snapshot.Objects.Select(obj => AntiCheat.TextObject(SoundEmitters.For(this, AvatarModifiers.For(this, Accessories.For(this, WithoutIdleHealRay(obj))))))] };
         if (Legacy) snapshot = snapshot with { Objects = [.. snapshot.Objects.Select(Named)] };
         if (peer.Translator is Kogama.Protocols.OperationRemap && Kogama.Protocols.ProtocolTable.For(ClientVersion).StateTypes is { Count: > 0 } types)
             snapshot = snapshot with { Objects = [.. snapshot.Objects.Select(obj => World.LegacyWorld.Retyped(obj, types))] };

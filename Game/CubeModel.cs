@@ -142,6 +142,25 @@ public sealed class CubeModel
         }
     }
 
+    public static List<(CubeAction Action, short X, short Y, short Z, byte[]? Cube)> Changes(byte[] changes)
+    {
+        var list = new List<(CubeAction, short, short, short, byte[]?)>();
+        int offset = 0;
+        while (offset < changes.Length)
+        {
+            var action = (CubeAction)changes[offset++];
+            short x = ReadInt16(changes, ref offset);
+            short y = ReadInt16(changes, ref offset);
+            short z = ReadInt16(changes, ref offset);
+            list.Add((action, x, y, z, action is CubeAction.Added or CubeAction.FaceChanged or CubeAction.CornersChangedDone ? ReadCube(changes, ref offset) : null));
+        }
+        return list;
+    }
+
+    public static int Row(byte[] cube) => Math.Max(cube[0] >> 2, 1);
+
+    public static byte[] Materials(byte[] cube) => cube[(1 + ((cube[0] & DefaultCorners) != 0 ? 0 : 8))..];
+
     public byte[] ToBytes()
     {
         lock (_sync) return ToBytesUnsafe();

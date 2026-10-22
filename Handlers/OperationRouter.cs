@@ -8,10 +8,12 @@ public sealed class OperationRouter
 {
     readonly Dictionary<byte, IOperationHandler> _handlers = [];
     readonly Action<string>? _log;
+    readonly Session _session;
 
     public OperationRouter(PhotonServer server, Session session, Action<string>? log = null)
     {
         _log = log;
+        _session = session;
         Register(new Join(session));
         Register(new Leave());
         Register(new GetCreditStatus(session));
@@ -172,6 +174,16 @@ public sealed class OperationRouter
         _ => $"{value.GetType().Name}:{value}",
     };
 
+    void Refuse(PhotonPeer peer, OperationRequest request)
+    {
+        var code = (Kogama.OperationCode)request.OperationCode;
+        Player? player = _session.For(peer);
+        if (AntiCheat.FirstRefusal(player, request.OperationCode))
+            _log?.Invoke($"peer {peer.Id}: anti-cheat refused {code} from {player?.Username}");
+        if (code is not (Kogama.OperationCode.UpdateWorldObject or Kogama.OperationCode.RuntimeEvent))
+            peer.Send(new OperationResponse(request) { ReturnCode = -1 });
+    }
+
     internal static readonly bool Trace = Environment.GetEnvironmentVariable("OPENKOGAMA_TRACE") == "1";
 
     public void Handle(PhotonPeer peer, OperationRequest request)
@@ -185,6 +197,11 @@ public sealed class OperationRouter
 
         try
         {
+            if (!AntiCheat.Allows(_session, _session.For(peer), request))
+            {
+                Refuse(peer, request);
+                return;
+            }
             handler.Handle(peer, request);
         }
         catch (Exception error)

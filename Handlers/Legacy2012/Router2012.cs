@@ -29,6 +29,14 @@ public sealed class Router2012
 
     public void Handle(PhotonPeer peer, OperationRequest request)
     {
+        if (!AntiCheat.Allows(session, session.For(peer), (Op2012)request.OperationCode, request))
+        {
+            if (AntiCheat.FirstRefusal(session.For(peer), request.OperationCode))
+                Console.WriteLine($"peer {peer.Id}: anti-cheat refused 2012 {(Op2012)request.OperationCode} from {session.For(peer)?.Username}");
+            if ((Op2012)request.OperationCode != Op2012.UpdateWorldObject) Reply(peer, request, returnCode: -1);
+            return;
+        }
+
         switch ((Op2012)request.OperationCode)
         {
             case Op2012.Join: Join(peer, request); break;
@@ -581,7 +589,7 @@ public sealed class Router2012
 
     void SendChatMsg(PhotonPeer peer, OperationRequest request)
     {
-        if (session.For(peer) is not Player player || request[(byte)Key2012.ChatMsg] is not string message) return;
+        if (session.For(peer) is not Player player || AntiCheat.Chat(player, request[(byte)Key2012.ChatMsg] as string) is not { } message) return;
 
         if (Plugins.PluginHost.Chat(session, player, message) is not { } allowed) return;
         message = allowed;

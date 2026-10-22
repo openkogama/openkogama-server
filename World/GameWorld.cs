@@ -339,6 +339,11 @@ public sealed class GameWorld
         lock (_sync) return _objects.Find(obj => obj.Type == type);
     }
 
+    public List<WorldObject> FindAll(WorldObjectType type)
+    {
+        lock (_sync) return _objects.FindAll(obj => obj.Type == type);
+    }
+
     public Prototype? FindPrototype(int id)
     {
         lock (_sync) return _prototypes.GetValueOrDefault(id);
@@ -369,6 +374,11 @@ public sealed class GameWorld
     public void AddRuntimeEvent(byte[] runtimeEvent)
     {
         lock (_sync) _runtimeEvents.Add(runtimeEvent);
+    }
+
+    public int RuntimeEventCount
+    {
+        get { lock (_sync) return _runtimeEvents.Count; }
     }
 
     public void ClearRuntimeEvents()

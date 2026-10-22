@@ -27,6 +27,10 @@ public sealed class ServerInfo
     public bool PlayerSettings { get; init; } = true;
     public bool PlayerAvatars { get; init; } = true;
     public bool PlayerInventory { get; init; } = true;
+    public bool AntiCheatCrash { get; init; } = true;
+    public bool AntiCheatSpam { get; init; } = true;
+    public bool AntiCheatSpoof { get; init; } = true;
+    public bool AntiCheatBuild { get; init; } = true;
     public string List { get; init; } = PublicList.Announcer.DefaultList;
 
     public bool Shared => Uri.TryCreate(PublicUrl, UriKind.Absolute, out Uri? url) && !url.IsLoopback;

@@ -92,6 +92,78 @@ try
     string issued = SessionTokens.Issue(4, " nightus ");
     Check(SessionTokens.Find(issued) == (4, "nightus") && SessionTokens.Find("4") == (0, null) && SessionTokens.Find("4-6E69676874757573") == (0, null),
         "session tokens are random, carry the nickname and cannot be forged from a profile number");
+    Check(SessionTokens.Find(SessionTokens.Issue(5, "<size=1>Rev>")).Name == "size=1Rev", "nicknames cannot carry rich text tags");
+    Check(AntiCheat.Text("<quad size=-2147483648 width=2147483648>hi <b>bold</b> <color=#ff0000>red</color> <size=999>big</size>")
+        == "hi <b>bold</b> <color=#ff0000>red</color> big", "chat keeps bold, italics and colors and drops every other rich text tag");
+    Check(AntiCheat.Text("<<quad>quad size=9 width=9>") == "quad size=9 width=9" && AntiCheat.Text("i <3 you") == "i 3 you",
+        "leftover angle brackets cannot rebuild a tag");
+    Check(AntiCheat.Text(" \n<quad>\t ") is null && AntiCheat.Text(new string('x', 300))!.Length == 256, "chat drops empty lines and keeps 256 characters");
+    Check(AntiCheat.TextObject("<size=50><color=#00000000>Hi</color></size><quad size=-2147483648 width=2147483648><size=-2147483648>x<size=2147483648>y<material=1>z</material>")
+        == "<size=50><color=#00000000>Hi</color></size>xyz" && AntiCheat.TextObject("<<quad>quad size=9>") == "" && AntiCheat.TextObject("i <3 you") == "i <3 you",
+        "text objects keep their formatting but lose quads, materials and broken sizes");
+    var label = new OpenKogama.World.WorldObject { Type = OpenKogama.World.WorldObjectType.TextMsg, Data = [("text", OpenKogama.World.PackedType.String, "<quad>hi")] };
+    var edit = new Dictionary<object, object?> { ["text"] = "<quad>hi" };
+    AntiCheat.TextObject(label, edit);
+    Check(AntiCheat.TextObject(label).Data[0].Value as string == "hi" && label.Data[0].Value as string == "<quad>hi" && edit["text"] as string == "hi",
+        "players get text objects and their edits without crash tags");
+    var terrain = new OpenKogama.World.GameWorld();
+    var ground = new CubeModel();
+    var groundCubes = new List<byte>();
+    CubeModel.AppendAdded(groundCubes, 0, 0, 0, 56);
+    CubeModel.AppendAdded(groundCubes, 1, 0, 0, 0);
+    ground.Apply([.. groundCubes]);
+    int fineId = terrain.NewPrototypeId(), coarseId = terrain.NewPrototypeId();
+    terrain.Add(new OpenKogama.World.Prototype(fineId, 0.25f, 0, new CubeModel()));
+    terrain.Add(new OpenKogama.World.Prototype(coarseId, 1f, 0, ground));
+    OpenKogama.World.WorldObject Placed(OpenKogama.World.WorldObjectType type, List<(string Key, OpenKogama.World.PackedType Type, object Value)> data)
+    {
+        var placed = new OpenKogama.World.WorldObject { Id = terrain.NewObjectId(), Type = type, Data = data };
+        terrain.Add(placed);
+        return placed;
+    }
+    Placed(OpenKogama.World.WorldObjectType.CubeModelTerrainFineGrained, [("protoTypeID", OpenKogama.World.PackedType.Int32, fineId)]);
+    Placed(OpenKogama.World.WorldObjectType.CubeModelPrototypeTerrain, [("protoTypeID", OpenKogama.World.PackedType.Int32, coarseId)]);
+    Placed(OpenKogama.World.WorldObjectType.PickupCubeGun, [("itemData", OpenKogama.World.PackedType.Hashtable,
+        new List<(string Key, OpenKogama.World.PackedType Type, object Value)> { ("material", OpenKogama.World.PackedType.Byte, (byte)57) })]);
+    Placed(OpenKogama.World.WorldObjectType.PickupCubeGun, []);
+    var claimed = Placed(OpenKogama.World.WorldObjectType.CubeModel, []);
+    claimed.Owner = 3;
+    var play = new Session(terrain, null, "anti-cheat", play: true);
+    var build = new Session(new OpenKogama.World.GameWorld(), null, "anti-cheat");
+    OpenKogama.Photon.OperationRequest Request(OpenKogama.Kogama.OperationCode code, params (OpenKogama.Kogama.ParameterKey Key, object Value)[] parameters)
+    {
+        var request = new OpenKogama.Photon.OperationRequest { OperationCode = (byte)code };
+        foreach (var (key, value) in parameters) request.Parameters[(byte)key] = value;
+        return request;
+    }
+    bool Event(params byte[] data)
+    {
+        bool allowed = AntiCheat.Allows(play, null, Request(OpenKogama.Kogama.OperationCode.RuntimeEvent, (OpenKogama.Kogama.ParameterKey.Data, data)));
+        if (allowed) terrain.AddRuntimeEvent(data);
+        return allowed;
+    }
+    Check(Event(2, 0, 1, 0, 1, 0, 1) && !Event(2, 0, 5, 0, 0, 0, 0) && !Event(2, 0, 40, 0, 0, 0, 0),
+        "only destructible terrain can be destroyed");
+    Check(Event(1, 57, 0, 9, 0, 9, 0, 9) && Event(5, 0, 9, 0, 9, 0, 9) && !Event(1, 58, 0, 8, 0, 8, 0, 8) && !Event(1, 0, 0, 8, 0, 8, 0, 8),
+        "the cube gun adds only the destructible materials of the map's cube guns, and its cubes can be destroyed");
+    Check(Event(3, 0, 0, 0, 0, 0, 0) && !Event(2, 0, 0) && !Event(99, 0, 0, 0, 0, 0, 0), "explosions pass, broken or unknown terrain events do not");
+    byte[] Cubes(byte material)
+    {
+        var changes = new List<byte>();
+        CubeModel.AppendAdded(changes, 3, 3, 3, material);
+        return [.. changes];
+    }
+    bool Changes(int prototype, byte material) => AntiCheat.Allows(play, null, Request(OpenKogama.Kogama.OperationCode.UpdatePrototype,
+        (OpenKogama.Kogama.ParameterKey.WorldInventoryID, prototype), (OpenKogama.Kogama.ParameterKey.WorldInventoryData, Cubes(material))));
+    Check(Changes(fineId, 24) && !Changes(fineId, 0) && !Changes(coarseId, 24), "in play the cube gun builds only in its own terrain and with its own material");
+    var register = Request(OpenKogama.Kogama.OperationCode.RegisterWorldObject);
+    var remove = Request(OpenKogama.Kogama.OperationCode.UnregisterWorldObject, (OpenKogama.Kogama.ParameterKey.WorldObjectID, 1));
+    Check(!AntiCheat.Allows(play, null, register) && !AntiCheat.Allows(play, null, remove) && AntiCheat.Allows(build, null, register),
+        "a play session refuses what only the editor does");
+    Check(terrain.Find(claimed.Id)?.Owner is null, "a play session starts with nobody owning what the editor left behind");
+    AntiCheat.Crash = false;
+    Check(AntiCheat.Text("<quad>") == "<quad>" && new ServerInfo().AntiCheatCrash, "antiCheatCrash is on by default and can be turned off");
+    AntiCheat.Crash = true;
     var profiles = new SqliteProfileStore(new Database(accounts, writeAhead: false));
     int first = profiles.ForName("Nightus");
     Check(profiles.ForName("nightus") == first && profiles.ForName("Other") != first && profiles.Name(first) == "Nightus",

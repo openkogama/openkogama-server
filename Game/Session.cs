@@ -25,6 +25,7 @@ public sealed partial class Session
         Name = name;
         foreach (WorldObject obj in World.ToSnapshot().Objects)
             World.Modify(obj.Id, RuntimeDefaults.Reset);
+        if (play) AntiCheat.Disown(World);
         _avatarPrototypes = Avatar.AddPrototypes(World);
         AvatarClasses.AddPreviews(World);
         if (play) WorldMarkers.Hide(World);

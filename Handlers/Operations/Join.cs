@@ -30,7 +30,7 @@ public sealed class Join(Session session) : IOperationHandler
         if (request[(byte)ParameterKey.ClientBuildTarget] is byte target) player.BuildTarget = target;
         (int profile, string? nickname) = SessionTokens.Find(request[(byte)ParameterKey.Token] as string);
         if (profile > 0) player.ProfileId = profile;
-        nickname ??= profile > 0 ? Storage.Stores.Profiles.Name(profile) : null;
+        nickname ??= profile > 0 ? SessionToken.Clean(Storage.Stores.Profiles.Name(profile)) : null;
         if (nickname is not null)
             player.Nickname = session.Players.Any(other => other != player && other.Username == nickname) ? $"{nickname} {player.Actor}" : nickname;
         player.Unity = ClientEngines.Of(player.ProfileId);

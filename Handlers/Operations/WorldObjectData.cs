@@ -22,6 +22,7 @@ public sealed class WorldObjectData(Session session, DataChange change) : IOpera
         int objectId = Convert.ToInt32(request[(byte)ParameterKey.WorldObjectID]);
         byte dataKey = (byte)(change == DataChange.Remove ? ParameterKey.WorldObjectDataToRemove : ParameterKey.WorldObjectData);
         object? raw = request[dataKey];
+        if (change != DataChange.Remove) AntiCheat.TextObject(session.World.Find(objectId), raw);
         var table = (Dictionary<object, object?>)PhotonValues.Normalize(raw)!;
 
         bool found = session.World.Modify(objectId, obj =>

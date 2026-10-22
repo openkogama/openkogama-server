@@ -12,8 +12,8 @@ public sealed class PostChatMsg(Session session) : IOperationHandler
     {
         if (session.For(peer) is not Player sender) return;
 
-        Dictionary<object, object?> data = PhotonValues.Table(request[(byte)ParameterKey.GameMsgData]);
-        if (!Plugins.PluginHost.Chat(session, sender, data)) return;
+        if (AntiCheat.Chat(sender, PhotonValues.Table(request[(byte)ParameterKey.GameMsgData])) is not { } data
+            || !Plugins.PluginHost.Chat(session, sender, data)) return;
 
         int type = request[(byte)ParameterKey.GameMsgType] is { } value ? Convert.ToInt32(value) : 0;
         ServerChat.Relay(session, sender, ServerChat.KindOf(sender, type), data);

@@ -15,7 +15,7 @@ public sealed class SendChatMsg : ILegacyHandler
 
     public void Handle(PhotonPeer peer, OperationRequest request, LegacyTranslator protocol, Session session)
     {
-        if (session.For(peer) is not Player sender || request[protocol.Key("ChatMsg")] is not string message) return;
+        if (session.For(peer) is not Player sender || AntiCheat.Chat(sender, request[protocol.Key("ChatMsg")] as string) is not { } message) return;
         if (Plugins.PluginHost.Chat(session, sender, message) is not { } text) return;
         Console.WriteLine($"{sender.Username}: {text}");
 

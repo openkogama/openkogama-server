@@ -65,6 +65,10 @@ Stores.Images = new SqliteImageStore(database);
 Stores.Market = new SqliteMarketStore(database);
 Session.EnsureDefaultWorld();
 Session.KeepPlayChanges = serverInfo.KeepPlayChanges;
+AntiCheat.Crash = serverInfo.AntiCheatCrash;
+AntiCheat.Spam = serverInfo.AntiCheatSpam;
+AntiCheat.Spoof = serverInfo.AntiCheatSpoof;
+AntiCheat.Build = serverInfo.AntiCheatBuild;
 
 PhotonServer server;
 try

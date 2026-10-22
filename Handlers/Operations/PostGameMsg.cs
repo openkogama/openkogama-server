@@ -15,34 +15,38 @@ public sealed class PostGameMsg(Session session) : IOperationHandler
 
     public void Handle(PhotonPeer peer, OperationRequest request)
     {
-        if (Convert.ToInt32(request[(byte)ParameterKey.GameMsgType]) == AvatarKilled
-            && PhotonValues.Normalize(request[(byte)ParameterKey.GameMsgData]) is Dictionary<object, object?> data
-            && session.For(peer) is Player victim
-            && Actor(data, Killer) is int killerActor
-            && Actor(data, Victim) == victim.Actor)
-        {
-            if (session.Players.FirstOrDefault(player => player.Actor == killerActor) is Player killer)
-            {
-                session.Round.ReportKill(killer, victim);
-                Plugins.PluginHost.Killed(session, victim, killer);
-            }
-            else if (session.Npcs.FirstOrDefault(npc => npc.Actor == killerActor) is Npc npc)
-            {
-                Plugins.PluginHost.KilledByNpc(session, victim, npc);
-            }
-        }
+        if (session.For(peer) is not Player sender) return;
+        int type = Convert.ToInt32(request[(byte)ParameterKey.GameMsgType]);
+        Dictionary<object, object?> data = PhotonValues.Table(request[(byte)ParameterKey.GameMsgData]);
 
-        if (Convert.ToInt32(request[(byte)ParameterKey.GameMsgType]) == Chat && session.For(peer) is Player sender)
+        if (type == Chat)
         {
-            Dictionary<object, object?> chat = PhotonValues.Table(request[(byte)ParameterKey.GameMsgData]);
-            if (Plugins.PluginHost.Chat(session, sender, chat))
+            if (AntiCheat.Chat(sender, data) is { } chat && Plugins.PluginHost.Chat(session, sender, chat))
                 ServerChat.Relay(session, sender, ChatKind.Everyone, chat);
             return;
         }
 
+        if (AntiCheat.GameMessage(sender, type, data) is not { } message) return;
+        if (type == AvatarKilled && Actor(message, Victim) == sender.Actor && Actor(message, Killer) is int killerActor)
+        {
+            if (session.Players.FirstOrDefault(player => player.Actor == killerActor) is Player killer)
+            {
+                session.Round.ReportKill(killer, sender);
+                Plugins.PluginHost.Killed(session, sender, killer);
+            }
+            else if (session.Npcs.FirstOrDefault(npc => npc.Actor == killerActor) is Npc npc)
+            {
+                Plugins.PluginHost.KilledByNpc(session, sender, npc);
+            }
+        }
+
         var evt = new EventData((byte)EventCode.PostGameMsg)
         {
-            Parameters = new Dictionary<byte, object?>(request.Parameters),
+            Parameters =
+            {
+                [(byte)ParameterKey.GameMsgType] = type,
+                [(byte)ParameterKey.GameMsgData] = message,
+            },
         };
 
         foreach (Player player in session.Players)
