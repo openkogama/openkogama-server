@@ -92,7 +92,7 @@ try
     string issued = SessionTokens.Issue(4, " nightus ");
     Check(SessionTokens.Find(issued) == (4, "nightus") && SessionTokens.Find("4") == (0, null) && SessionTokens.Find("4-6E69676874757573") == (0, null),
         "session tokens are random, carry the nickname and cannot be forged from a profile number");
-    Check(SessionTokens.Find(SessionTokens.Issue(5, "<size=1>Rev>")).Name == "size=1Rev", "nicknames cannot carry rich text tags");
+    Check(SessionTokens.Find(SessionTokens.Issue(5, "<size=1>Rev>")).Name == "Rev>", "nicknames cannot carry rich text tags");
     Check(AntiCheat.Text("<quad size=-2147483648 width=2147483648>hi <b>bold</b> <color=#ff0000>red</color> <size=999>big</size>")
         == "hi <b>bold</b> <color=#ff0000>red</color> big", "chat keeps bold, italics and colors and drops every other rich text tag");
     Check(AntiCheat.Text("<<quad>quad size=9 width=9>") == "quad size=9 width=9" && AntiCheat.Text("i <3 you") == "i 3 you",
@@ -101,6 +101,10 @@ try
     Check(AntiCheat.TextObject("<size=50><color=#00000000>Hi</color></size><quad size=-2147483648 width=2147483648><size=-2147483648>x<size=2147483648>y<material=1>z</material>")
         == "<size=50><color=#00000000>Hi</color></size>xyz" && AntiCheat.TextObject("<<quad>quad size=9>") == "" && AntiCheat.TextObject("i <3 you") == "i <3 you",
         "text objects keep their formatting but lose quads, materials and broken sizes");
+    Check(!AntiCheat.TextObject(string.Concat(Enumerable.Repeat("<", 20)) + string.Concat(Enumerable.Repeat("quad>", 20))).Contains('<'),
+        "deeply nested tags in a text object end up without angle brackets");
+    Check(AntiCheat.Name(">war4<") == ">war4<" && AntiCheat.Name("i <3 u") == "i <3 u" && AntiCheat.Name("<b>bo</b>b<quad") == "bobquad",
+        "names keep lone angle brackets and lose only tags");
     var label = new OpenKogama.World.WorldObject { Type = OpenKogama.World.WorldObjectType.TextMsg, Data = [("text", OpenKogama.World.PackedType.String, "<quad>hi")] };
     var edit = new Dictionary<object, object?> { ["text"] = "<quad>hi" };
     AntiCheat.TextObject(label, edit);
@@ -161,6 +165,26 @@ try
     Check(!AntiCheat.Allows(play, null, register) && !AntiCheat.Allows(play, null, remove) && AntiCheat.Allows(build, null, register),
         "a play session refuses what only the editor does");
     Check(terrain.Find(claimed.Id)?.Owner is null, "a play session starts with nobody owning what the editor left behind");
+    var tree = new OpenKogama.World.GameWorld();
+    var top = new OpenKogama.World.WorldObject { Id = tree.NewObjectId(), Type = OpenKogama.World.WorldObjectType.Group };
+    var group = new OpenKogama.World.WorldObject { Id = tree.NewObjectId(), ParentId = top.Id, Type = OpenKogama.World.WorldObjectType.Group };
+    var light = new OpenKogama.World.WorldObject { Id = tree.NewObjectId(), ParentId = group.Id, Type = OpenKogama.World.WorldObjectType.PointLight };
+    tree.Add(top);
+    tree.Add(group);
+    tree.Add(light);
+    Check(!tree.SetParent(top.Id, light.Id) && !tree.SetParent(group.Id, light.Id) && tree.SetParent(light.Id, top.Id) && tree.HasRootGroup,
+        "the root group never gets a parent and nothing moves under its own children");
+    Check(!OpenKogama.World.GameWorld.FromData("wiped", null, [new byte[20]]).HasRootGroup, "an emptied world has no root group, so it is neither saved nor loaded");
+    var seat = Request(OpenKogama.Kogama.OperationCode.AttachWorldObjectToSeat,
+        (OpenKogama.Kogama.ParameterKey.WorldObjectIDs, new Dictionary<object, object?> { [(byte)0] = top.Id, [(byte)4] = group.Id }));
+    var spawn = Request(OpenKogama.Kogama.OperationCode.SpawnVehicleWithDriver,
+        (OpenKogama.Kogama.ParameterKey.WorldObjectIDs, new Dictionary<object, object?> { [(byte)0] = top.Id, [(byte)1] = group.Id }));
+    var detach = Request(OpenKogama.Kogama.OperationCode.DetachWorldObjectFromVehicle, (OpenKogama.Kogama.ParameterKey.WorldObjectID, top.Id));
+    Check(!AntiCheat.Allows(play, null, seat) && !AntiCheat.Allows(play, null, spawn) && !AntiCheat.Allows(play, null, detach) && AntiCheat.Allows(build, null, detach),
+        "a play session seats, spawns and detaches only a player's own avatar");
+    Check(!AntiCheat.Registers(play, new OpenKogama.World.WorldObject { Type = OpenKogama.World.WorldObjectType.PointLight })
+        && AntiCheat.Registers(play, new OpenKogama.World.WorldObject { Type = OpenKogama.World.WorldObjectType.Avatar }),
+        "2012 clients register only their avatar in a play session");
     AntiCheat.Crash = false;
     Check(AntiCheat.Text("<quad>") == "<quad>" && new ServerInfo().AntiCheatCrash, "antiCheatCrash is on by default and can be turned off");
     AntiCheat.Crash = true;

@@ -14,6 +14,7 @@ public static class PluginHost
     const byte ChatText = 5;
     const int TickMs = 1000;
 
+    static readonly AssemblyName ApiAssembly = typeof(IPlugin).Assembly.GetName();
     static PluginServer Server = new();
     static readonly object Sync = new();
     static readonly HashSet<string> UnknownAnimations = [];
@@ -88,6 +89,12 @@ public static class PluginHost
             try
             {
                 Assembly assembly = FromFile(context, path);
+                if (assembly.GetReferencedAssemblies().FirstOrDefault(reference => reference.Name == ApiAssembly.Name)?.Version is Version needed && needed > ApiAssembly.Version)
+                {
+                    Console.WriteLine($"plugin {Path.GetFileName(path)} needs plugin API {needed.ToString(2)}, this server has {ApiAssembly.Version!.ToString(2)}, update the server");
+                    context.Unload();
+                    continue;
+                }
                 foreach (Type type in assembly.GetTypes().Where(type => typeof(IPlugin).IsAssignableFrom(type) && !type.IsAbstract))
                 {
                     var plugin = (IPlugin)Activator.CreateInstance(type)!;
@@ -195,7 +202,7 @@ public static class PluginHost
             lock (UnknownAnimations)
                 if (UnknownAnimations.Add(state)) Console.WriteLine($"animation state {state} has no AvatarAnimation value");
         }
-        Server.OnAnimated(PlayerOf(session, player), animation);
+        Server.OnAnimated(PlayerOf(session, player), animation, state);
     }
 
     public static void NpcDamaged(Session session, Npc npc, Player? by, float amount) =>
@@ -240,6 +247,8 @@ public static class PluginHost
         public event Action<IPlayer, AvatarAnimation>? PlayerAnimated;
         public event Action<IPlayer, AvatarItem>? PlayerSwitchedItem;
         public event Action<IPlayer, AvatarItem>? PlayerPickedUp;
+        public event Action<IPlayer, string>? Gesture;
+        public event Action<IPlayer, string>? Animation;
 
         readonly Dictionary<string, Action<IPlayer, string[]>> _commands = new(StringComparer.OrdinalIgnoreCase);
         readonly Dictionary<string, PluginStorage> _storage = [];
@@ -371,12 +380,17 @@ public static class PluginHost
         {
             foreach (Action<IPlayer, Gesture> handler in Handlers(PlayerGestured))
                 Guard(() => handler(player, gesture));
+            string name = gesture.ToString().ToLowerInvariant();
+            foreach (Action<IPlayer, string> handler in Handlers(Gesture))
+                Guard(() => handler(player, name));
         }
 
-        public void OnAnimated(IPlayer player, AvatarAnimation animation)
+        public void OnAnimated(IPlayer player, AvatarAnimation animation, string state)
         {
             foreach (Action<IPlayer, AvatarAnimation> handler in Handlers(PlayerAnimated))
                 Guard(() => handler(player, animation));
+            foreach (Action<IPlayer, string> handler in Handlers(Animation))
+                Guard(() => handler(player, state));
         }
 
         public void OnSwitchedItem(IPlayer player, AvatarItem item)

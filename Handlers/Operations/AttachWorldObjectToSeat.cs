@@ -20,26 +20,23 @@ public sealed class AttachWorldObjectToSeat(Session session) : IOperationHandler
         byte seat = Convert.ToByte(request[(byte)ParameterKey.SeatID]);
         Player? player = session.For(peer);
 
-        if (player is null || session.World.Find(vehicleId) is null)
+        if (player is null || !Seat(session, player, driverId, vehicleId, seat))
         {
             Console.WriteLine($"peer {peer.Id}: cannot sit in {vehicleId}");
             peer.Send(new OperationResponse(request) { ReturnCode = -1 });
             return;
         }
 
-        Seat(session, player, driverId, vehicleId, seat);
         peer.Send(new OperationResponse(request));
     }
 
-    public static void Seat(Session session, Player player, int driverId, int vehicleId, byte seat)
+    public static bool Seat(Session session, Player player, int driverId, int vehicleId, byte seat)
     {
-        foreach (WorldObject part in session.World.Subtree(vehicleId))
+        List<WorldObject> parts = session.World.Subtree(vehicleId);
+        if (!session.World.SetParent(driverId, vehicleId)) return false;
+        foreach (WorldObject part in parts)
             session.World.Modify(part.Id, obj => obj.Owner = player.Actor);
-        session.World.Modify(driverId, obj =>
-        {
-            obj.ParentId = vehicleId;
-            obj.SetRuntime("seat", PackedType.Int32, (int)seat);
-        });
+        session.World.Modify(driverId, obj => obj.SetRuntime("seat", PackedType.Int32, (int)seat));
 
         PhotonDictionary seated = PhotonDictionary.Untyped();
         seated.Add(Driver, driverId);
@@ -56,5 +53,6 @@ public sealed class AttachWorldObjectToSeat(Session session) : IOperationHandler
         };
         foreach (Player other in session.Players)
             other.Peer.Send(evt);
+        return true;
     }
 }

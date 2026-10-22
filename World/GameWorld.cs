@@ -299,6 +299,17 @@ public sealed class GameWorld
         }
     }
 
+    public bool SetParent(int id, int parentId)
+    {
+        lock (_sync)
+        {
+            WorldObject? obj = Get(id);
+            if (obj is null || obj.ParentId == -1 || !_byId.ContainsKey(parentId) || Subtree(id).Any(o => o.Id == parentId)) return false;
+            obj.ParentId = parentId;
+            return true;
+        }
+    }
+
     Matrix4x4 WorldMatrix(int id)
     {
         Matrix4x4 matrix = Matrix4x4.Identity;
@@ -332,6 +343,11 @@ public sealed class GameWorld
     public int RootId
     {
         get { lock (_sync) return _objects.Find(obj => obj.ParentId == -1)?.Id ?? -1; }
+    }
+
+    public bool HasRootGroup
+    {
+        get { lock (_sync) return _objects.Find(obj => obj.ParentId == -1) is { Type: WorldObjectType.Group }; }
     }
 
     public WorldObject? FindFirst(WorldObjectType type)

@@ -12,19 +12,13 @@ public sealed class DetachWorldObjectFromVehicle(Session session) : IOperationHa
     public void Handle(PhotonPeer peer, OperationRequest request)
     {
         int objectId = Convert.ToInt32(request[(byte)ParameterKey.WorldObjectID]);
-        int rootId = session.World.RootId;
-
-        bool found = session.World.Modify(objectId, obj =>
+        if (!session.World.SetParent(objectId, session.World.RootId))
         {
-            obj.ParentId = rootId;
-            obj.SetRuntime("seat", PackedType.Int32, -1);
-        });
-        if (!found)
-        {
-            Console.WriteLine($"peer {peer.Id}: cannot detach unknown object {objectId}");
+            Console.WriteLine($"peer {peer.Id}: cannot detach {objectId}");
             peer.Send(new OperationResponse(request) { ReturnCode = -1 });
             return;
         }
+        session.World.Modify(objectId, obj => obj.SetRuntime("seat", PackedType.Int32, -1));
 
         var evt = new EventData((byte)EventCode.DetachWorldObjectFromVehicle)
         {

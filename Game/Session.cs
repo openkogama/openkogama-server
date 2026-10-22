@@ -228,6 +228,11 @@ public sealed partial class Session
             _playSavedAt = Environment.TickCount64;
         }
         if (!World.TakeChanged()) return;
+        if (!World.HasRootGroup)
+        {
+            Console.WriteLine($"world {id}: not saved, it has no root group");
+            return;
+        }
 
         try
         {
@@ -261,7 +266,9 @@ public sealed partial class Session
             {
                 try
                 {
-                    return new Session(GameWorld.FromData(stored.Name, null, [saved]), id, stored.Name, play);
+                    GameWorld world = GameWorld.FromData(stored.Name, null, [saved]);
+                    if (world.HasRootGroup) return new Session(world, id, stored.Name, play);
+                    Console.WriteLine($"world {id}: saved play changes have no root group, skipped");
                 }
                 catch (Exception error)
                 {
@@ -275,7 +282,7 @@ public sealed partial class Session
 
     public void Publish()
     {
-        if (Play || _worldId is not int id) return;
+        if (Play || _worldId is not int id || !World.HasRootGroup) return;
         SaveIfChanged();
         Stores.Worlds.Publish(id, World.ToData());
         Console.WriteLine($"world {id} published");

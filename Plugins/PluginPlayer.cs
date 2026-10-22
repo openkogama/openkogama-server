@@ -11,7 +11,6 @@ sealed class PluginPlayer(Player player, Session session) : IPlayer
 {
     const byte DriverSeat = 0;
     const int PlayingMode = 1;
-    static readonly HashSet<WorldObjectType> Vehicles = [WorldObjectType.HoverCraft, WorldObjectType.MonoPlane, WorldObjectType.JetPack, WorldObjectType.HamsterWheel];
 
     public int Actor => player.Actor;
     public int ProfileId => player.ProfileId;
@@ -73,9 +72,8 @@ sealed class PluginPlayer(Player player, Session session) : IPlayer
         if (!Free || session.World.Find(vehicle.Id) is not { } target || !player.Knows(session.World.SubtreeSnapshot(target.Id))) return false;
         if (target.Type == WorldObjectType.WorldObjectSpawnerVehicle)
             return SpawnVehicleWithDriver.Spawn(session, player, player.PlayAvatar, target, DriverSeat, player.Peer.ServerTime) is not null;
-        if (!Vehicles.Contains(target.Type) || session.World.Find(target.ParentId)?.Type == WorldObjectType.WorldObjectSpawnerVehicle) return false;
-        AttachWorldObjectToSeat.Seat(session, player, player.PlayAvatar, target.Id, DriverSeat);
-        return true;
+        if (!Vehicles.Types.Contains(target.Type) || session.World.Find(target.ParentId)?.Type == WorldObjectType.WorldObjectSpawnerVehicle) return false;
+        return AttachWorldObjectToSeat.Seat(session, player, player.PlayAvatar, target.Id, DriverSeat);
     }
 
     public bool BecomeColossus(IWorldObject trigger) =>

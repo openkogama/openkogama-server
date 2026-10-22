@@ -21,6 +21,7 @@ public interface IPlayer
 
     int AddXp(int amount);
     int AddGold(int amount);
+    void Message(string text) => Message(text, null);
     void Message(string text, string? color = null);
     void Say(string text);
     void Notify(string text, bool brief = false);

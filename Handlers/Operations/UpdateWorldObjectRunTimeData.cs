@@ -14,7 +14,7 @@ public sealed class UpdateWorldObjectRunTimeData(Session session) : IOperationHa
         int objectId = Convert.ToInt32(request[(byte)ParameterKey.WorldObjectID]);
         if (Teleports.IsPrivate(objectId)) return;
         EventData? withHand = null;
-        EventData? limited = null;
+        Dictionary<object, object?>? runtime = null;
         if (PhotonValues.Normalize(request[(byte)ParameterKey.WorldObjectRunTimeData]) is Dictionary<object, object?> changes)
         {
             if (changes.GetValueOrDefault("animation") is { } animation && session.For(peer) is Player mover && mover.Owns(objectId)
@@ -40,17 +40,7 @@ public sealed class UpdateWorldObjectRunTimeData(Session session) : IOperationHa
                 };
             }
 
-            if (AvatarModifiers.Without(changes) is { } known)
-            {
-                limited = new EventData((byte)EventCode.UpdateWorldObjectRunTimeData)
-                {
-                    Parameters = new Dictionary<byte, object?>(request.Parameters)
-                    {
-                        [(byte)ParameterKey.WorldObjectRunTimeData] = known,
-                        [(byte)ParameterKey.ActorNr] = (int)peer.Id,
-                    },
-                };
-            }
+            runtime = changes;
 
             try
             {
@@ -77,6 +67,15 @@ public sealed class UpdateWorldObjectRunTimeData(Session session) : IOperationHa
         foreach (Player player in session.Players)
             if (player.Peer != peer && player.InWorld && (!builder || player.SpawnRoles))
                 player.Peer.Send(withHand is not null && player.SpawnRoles ? withHand
-                    : limited is not null && AvatarModifiers.Limited(player) ? limited : evt);
+                    : runtime is not null && AvatarModifiers.Without(player, runtime) is { } known ? WithRuntime(known) : evt);
+
+        EventData WithRuntime(Dictionary<object, object?> known) => new((byte)EventCode.UpdateWorldObjectRunTimeData)
+        {
+            Parameters = new Dictionary<byte, object?>(request.Parameters)
+            {
+                [(byte)ParameterKey.WorldObjectRunTimeData] = known,
+                [(byte)ParameterKey.ActorNr] = (int)peer.Id,
+            },
+        };
     }
 }

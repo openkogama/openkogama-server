@@ -307,7 +307,8 @@ public sealed partial class Session
             {
                 if (npc.Resized.Contains(player) ? !renew : !npc.SeenAt.TryGetValue(player, out long seen) || now - seen < ResizeDelayMs) continue;
                 npc.Resized.Add(player);
-                player.Peer.Send(RuntimeEvent(npc, new Dictionary<object, object?> { ["modifiers"] = ModifiersOf(npc, resized: true) }));
+                var resized = new Dictionary<object, object?> { ["modifiers"] = ModifiersOf(npc, resized: true) };
+                player.Peer.Send(RuntimeEvent(npc, AvatarModifiers.Without(player, resized) ?? resized));
                 player.Peer.Send(TransformEvent(npc, [.. npc.Position], TransformPackage.Teleport, player.Peer.ServerTime));
             }
         }
@@ -635,13 +636,17 @@ public sealed partial class Session
         npc.HealthChanged = npc.ModeChanged = npc.ModifiersChanged = npc.MaxHealthChanged = false;
         World.Modify(npc.AvatarId, obj => PackedData.Merge(obj.Runtime, changes));
 
-        EventData runtime = RuntimeEvent(npc, changes);
-        EventData? resizedRuntime = modifiers && npc.SizeModifier is not null
-            ? RuntimeEvent(npc, new Dictionary<object, object?>(changes) { ["modifiers"] = ModifiersOf(npc, resized: true) })
+        Dictionary<object, object?>? resized = modifiers && npc.SizeModifier is not null
+            ? new Dictionary<object, object?>(changes) { ["modifiers"] = ModifiersOf(npc, resized: true) }
             : null;
+        EventData runtime = RuntimeEvent(npc, changes);
+        EventData? resizedRuntime = resized is not null ? RuntimeEvent(npc, resized) : null;
         lock (npc.SeenAt)
             foreach (Player player in audience)
-                player.Peer.Send(resizedRuntime is not null && npc.Resized.Contains(player) ? resizedRuntime : runtime);
+            {
+                bool big = resized is not null && npc.Resized.Contains(player);
+                player.Peer.Send(AvatarModifiers.Without(player, big ? resized! : changes) is { } known ? RuntimeEvent(npc, known) : big ? resizedRuntime! : runtime);
+            }
         npc.SentAnimation = animation;
     }
 }

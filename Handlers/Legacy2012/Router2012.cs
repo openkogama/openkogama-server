@@ -922,6 +922,12 @@ public sealed class Router2012
         }
 
         WorldObject obj = WorldObjects2012.Read(request, session.World.NewObjectId(), ProtocolTable.For(Version));
+        if (!AntiCheat.Registers(session, obj))
+        {
+            Console.WriteLine($"peer {peer.Id}: anti-cheat refused registering {obj.Type} from {player.Username}");
+            Reply(peer, request, returnCode: -1);
+            return;
+        }
         obj.Owner = player.Actor;
         session.World.Add(obj);
         if (obj.Type == WorldObjectType.Avatar && Shared(peer)) player.ClassicAvatarId = obj.Id;
@@ -942,14 +948,16 @@ public sealed class Router2012
     void UnregisterWorldObject(PhotonPeer peer, OperationRequest request)
     {
         int objectId = Convert.ToInt32(request[(byte)Key2012.WorldObjectID]);
-        if (session.World.Find(objectId) is not WorldObject obj || obj.Type == WorldObjectType.Avatar)
+        if (session.World.Find(objectId) is not WorldObject obj || obj.Type == WorldObjectType.Avatar || obj.ParentId == -1)
         {
             Console.WriteLine($"peer {peer.Id}: cannot delete object {objectId}");
             Reply(peer, request, returnCode: -1);
             return;
         }
 
+        int count = session.World.Subtree(objectId).Count;
         List<int> removedPrototypes = session.World.RemoveTree(objectId);
+        Console.WriteLine($"peer {peer.Id}: removed {obj.Type} {objectId} ({count} objects)");
         session.World.MarkChanged();
         session.Logic.Evaluate();
 

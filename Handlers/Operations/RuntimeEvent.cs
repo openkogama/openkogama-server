@@ -11,7 +11,7 @@ public sealed class RuntimeEvent(Session session) : IOperationHandler
     public void Handle(PhotonPeer peer, OperationRequest request)
     {
         var data = (byte[])request[(byte)ParameterKey.Data]!;
-        session.World.AddRuntimeEvent(data);
+        if (AntiCheat.Records(session.World)) session.World.AddRuntimeEvent(data);
 
         var evt = new EventData((byte)EventCode.RuntimeEvent)
         {

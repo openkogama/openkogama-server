@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
+using OpenKogama.Handlers;
 using OpenKogama.Handlers.Legacy2012;
 using OpenKogama.Kogama;
 using OpenKogama.Photon;
@@ -20,6 +21,11 @@ public static partial class AntiCheat
     const byte CubeAdd = 1;
     const byte CubeRemove = 2;
     const byte AddedCubeRemove = 5;
+    const byte Driver = 0;
+    const byte Spawner = 1;
+    const byte Vehicle = 4;
+    const int MaxVehicles = 4;
+    const long VehicleWindowMs = 30_000;
 
     static readonly HashSet<byte> Explosions = [3, 4, 6, 7, 8, 9, 10, 15, 16];
     static readonly HashSet<OperationCode> EditorOnly =
@@ -47,6 +53,7 @@ public static partial class AntiCheat
     ];
     static readonly ConditionalWeakTable<GameWorld, Terrain> Terrains = new();
     static readonly ConditionalWeakTable<Player, Queue<long>> Events = new();
+    static readonly ConditionalWeakTable<Player, Queue<long>> Spawned = new();
     static readonly ConditionalWeakTable<Player, HashSet<byte>> Refused = new();
     static readonly Lazy<Dictionary<int, float>> Toughness = new(() => Materials.For("2015").Concat(Materials.For("2025"))
         .GroupBy(material => material.Id).ToDictionary(group => group.Key, group => group.Last().Physical is { Length: > 4 } physical ? physical[4] : 0f));
@@ -76,9 +83,25 @@ public static partial class AntiCheat
             OperationCode.UploadScreenshot => Convert.ToInt32(request[(byte)ParameterKey.ImageType]) is not (Planet or Item),
             OperationCode.UpdatePrototype => CubeGun(session, player, Convert.ToInt32(request[(byte)ParameterKey.WorldInventoryID]),
                 request[(byte)ParameterKey.WorldInventoryData] as byte[]),
+            OperationCode.AttachWorldObjectToSeat => Seats(session, player, PhotonValues.Table(request[(byte)ParameterKey.WorldObjectIDs])),
+            OperationCode.SpawnVehicleWithDriver => Spawns(session, player, PhotonValues.Table(request[(byte)ParameterKey.WorldObjectIDs])),
+            OperationCode.DetachWorldObjectFromVehicle => player is not null && player.Owns(Convert.ToInt32(request[(byte)ParameterKey.WorldObjectID])),
             _ => true,
         };
     }
+
+    static bool Seats(Session session, Player? player, Dictionary<object, object?> ids) =>
+        player is not null && Id(ids, Driver) is int driver && player.Owns(driver)
+        && Id(ids, Vehicle) is int id && session.World.Find(id) is { } vehicle && Vehicles.Types.Contains(vehicle.Type)
+        && !(session.World.Find(vehicle.ParentId) is { } parent && Vehicles.Spawners.Contains(parent.Type));
+
+    static bool Spawns(Session session, Player? player, Dictionary<object, object?> ids) =>
+        player is not null && Id(ids, Driver) is int driver && player.Owns(driver)
+        && Id(ids, Spawner) is int id && session.World.Find(id) is { } spawner && Vehicles.Spawners.Contains(spawner.Type)
+        && (!Spam || !Floods(Spawned.GetOrCreateValue(player), MaxVehicles, VehicleWindowMs));
+
+    static int? Id(Dictionary<object, object?> data, byte key) =>
+        Value(data, key) is byte or short or int ? Convert.ToInt32(Value(data, key)) : null;
 
     public static bool Allows(Session session, Player? player, Op2012 code, OperationRequest request)
     {
@@ -86,6 +109,8 @@ public static partial class AntiCheat
         if (EditorOnly2012.Contains(code)) return false;
         return !OwnObjects2012.Contains(code) || player is not null && Mine(session, player, Convert.ToInt32(request[(byte)Key2012.WorldObjectID]));
     }
+
+    public static bool Registers(Session session, WorldObject obj) => !Build || !session.Play || obj.Type == WorldObjectType.Avatar;
 
     public static bool FirstRefusal(Player? player, byte code)
     {
@@ -153,7 +178,7 @@ public static partial class AntiCheat
         byte type = data is { Length: > 0 } ? data[0] : (byte)0;
         bool known = data is not null && data.Length == (type == CubeAdd ? 8 : 7) && (type is CubeAdd or CubeRemove or AddedCubeRemove || Explosions.Contains(type));
         if (Crash && !known) return false;
-        if (Spam && (session.World.RuntimeEventCount >= MaxRuntimeEvents || player is not null && Floods(Events.GetOrCreateValue(player), MaxEvents, EventWindowMs))) return false;
+        if (Spam && player is not null && Floods(Events.GetOrCreateValue(player), MaxEvents, EventWindowMs)) return false;
         if (!Build || !known || Explosions.Contains(type)) return true;
 
         ReadOnlySpan<byte> position = data.AsSpan(data!.Length - 6);
@@ -172,10 +197,12 @@ public static partial class AntiCheat
                 : terrain.Added.Remove(cube) || Destructible(session, terrain, cube);
             if (!allowed) return false;
             if (type == CubeAdd) terrain.Added[cube] = data[1];
-            terrain.Events = count + 1;
+            terrain.Events = Records(session.World) ? count + 1 : count;
             return true;
         }
     }
+
+    public static bool Records(GameWorld world) => !Spam || world.RuntimeEventCount < MaxRuntimeEvents;
 
     static bool Destructible(Session session, Terrain terrain, (short X, short Y, short Z) cube)
     {

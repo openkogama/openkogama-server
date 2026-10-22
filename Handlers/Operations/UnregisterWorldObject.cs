@@ -14,14 +14,16 @@ public sealed class UnregisterWorldObject(Session session) : IOperationHandler
         int objectId = Convert.ToInt32(request[(byte)ParameterKey.WorldObjectID]);
 
         WorldObject? obj = session.World.Find(objectId);
-        if (obj is null || obj.Type == WorldObjectType.Avatar)
+        if (obj is null || obj.Type == WorldObjectType.Avatar || obj.ParentId == -1)
         {
             Console.WriteLine($"peer {peer.Id}: cannot delete object {objectId}");
             return;
         }
 
+        int count = session.World.Subtree(objectId).Count;
         List<(int Id, bool ObjectLink)> links = session.World.LinksAround(objectId);
         List<int> removedPrototypes = session.World.RemoveTree(objectId);
+        Console.WriteLine($"peer {peer.Id}: removed {obj.Type} {objectId} ({count} objects)");
         session.World.MarkChanged();
         session.Logic.Evaluate();
         session.Teams.Update();

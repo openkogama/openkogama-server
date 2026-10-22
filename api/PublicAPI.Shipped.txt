@@ -1,0 +1,487 @@
+#nullable enable
+OpenKogama.Api.AvatarAnimation
+OpenKogama.Api.AvatarAnimation.Dead = 5 -> OpenKogama.Api.AvatarAnimation
+OpenKogama.Api.AvatarAnimation.Idle = 1 -> OpenKogama.Api.AvatarAnimation
+OpenKogama.Api.AvatarAnimation.Jump = 3 -> OpenKogama.Api.AvatarAnimation
+OpenKogama.Api.AvatarAnimation.Swim = 4 -> OpenKogama.Api.AvatarAnimation
+OpenKogama.Api.AvatarAnimation.TPose = 6 -> OpenKogama.Api.AvatarAnimation
+OpenKogama.Api.AvatarAnimation.Unknown = 0 -> OpenKogama.Api.AvatarAnimation
+OpenKogama.Api.AvatarAnimation.Walk = 2 -> OpenKogama.Api.AvatarAnimation
+OpenKogama.Api.AvatarItem
+OpenKogama.Api.AvatarItem.Bazooka = 4 -> OpenKogama.Api.AvatarItem
+OpenKogama.Api.AvatarItem.CenterGun = 1 -> OpenKogama.Api.AvatarItem
+OpenKogama.Api.AvatarItem.CubeGun = 11 -> OpenKogama.Api.AvatarItem
+OpenKogama.Api.AvatarItem.CustomGun = 15 -> OpenKogama.Api.AvatarItem
+OpenKogama.Api.AvatarItem.DoubleSixShooter = 13 -> OpenKogama.Api.AvatarItem
+OpenKogama.Api.AvatarItem.Flamethrower = 10 -> OpenKogama.Api.AvatarItem
+OpenKogama.Api.AvatarItem.GodzillaLaser = 47 -> OpenKogama.Api.AvatarItem
+OpenKogama.Api.AvatarItem.Hand = 5 -> OpenKogama.Api.AvatarItem
+OpenKogama.Api.AvatarItem.Health = 3 -> OpenKogama.Api.AvatarItem
+OpenKogama.Api.AvatarItem.ImpulseGun = 2 -> OpenKogama.Api.AvatarItem
+OpenKogama.Api.AvatarItem.LaserPointer = 0 -> OpenKogama.Api.AvatarItem
+OpenKogama.Api.AvatarItem.Mutant = 7 -> OpenKogama.Api.AvatarItem
+OpenKogama.Api.AvatarItem.NinjaRun = 14 -> OpenKogama.Api.AvatarItem
+OpenKogama.Api.AvatarItem.RailGun = 6 -> OpenKogama.Api.AvatarItem
+OpenKogama.Api.AvatarItem.Shotgun = 9 -> OpenKogama.Api.AvatarItem
+OpenKogama.Api.AvatarItem.SixShooter = 12 -> OpenKogama.Api.AvatarItem
+OpenKogama.Api.AvatarItem.Sword = 8 -> OpenKogama.Api.AvatarItem
+OpenKogama.Api.AvatarItem.Unknown = -1 -> OpenKogama.Api.AvatarItem
+OpenKogama.Api.AvatarSkin
+OpenKogama.Api.AvatarSkin.<Clone>$() -> OpenKogama.Api.AvatarSkin!
+OpenKogama.Api.AvatarSkin.Accessories.get -> System.Collections.Generic.IReadOnlyList<OpenKogama.Api.AvatarSkinAccessory!>!
+OpenKogama.Api.AvatarSkin.Accessories.init -> void
+OpenKogama.Api.AvatarSkin.AvatarSkin(System.Collections.Generic.IReadOnlyList<OpenKogama.Api.AvatarSkinPart!>! Parts, System.Collections.Generic.IReadOnlyList<OpenKogama.Api.AvatarSkinAccessory!>! Accessories) -> void
+OpenKogama.Api.AvatarSkin.Deconstruct(out System.Collections.Generic.IReadOnlyList<OpenKogama.Api.AvatarSkinPart!>! Parts, out System.Collections.Generic.IReadOnlyList<OpenKogama.Api.AvatarSkinAccessory!>! Accessories) -> void
+OpenKogama.Api.AvatarSkin.Equals(OpenKogama.Api.AvatarSkin? other) -> bool
+OpenKogama.Api.AvatarSkin.Parts.get -> System.Collections.Generic.IReadOnlyList<OpenKogama.Api.AvatarSkinPart!>!
+OpenKogama.Api.AvatarSkin.Parts.init -> void
+OpenKogama.Api.AvatarSkin.ToJson() -> string!
+OpenKogama.Api.AvatarSkinAccessory
+OpenKogama.Api.AvatarSkinAccessory.<Clone>$() -> OpenKogama.Api.AvatarSkinAccessory!
+OpenKogama.Api.AvatarSkinAccessory.AvatarSkinAccessory(int Item, int Slot, float Offset, float Scale) -> void
+OpenKogama.Api.AvatarSkinAccessory.Deconstruct(out int Item, out int Slot, out float Offset, out float Scale) -> void
+OpenKogama.Api.AvatarSkinAccessory.Equals(OpenKogama.Api.AvatarSkinAccessory? other) -> bool
+OpenKogama.Api.AvatarSkinAccessory.Item.get -> int
+OpenKogama.Api.AvatarSkinAccessory.Item.init -> void
+OpenKogama.Api.AvatarSkinAccessory.Offset.get -> float
+OpenKogama.Api.AvatarSkinAccessory.Offset.init -> void
+OpenKogama.Api.AvatarSkinAccessory.Scale.get -> float
+OpenKogama.Api.AvatarSkinAccessory.Scale.init -> void
+OpenKogama.Api.AvatarSkinAccessory.Slot.get -> int
+OpenKogama.Api.AvatarSkinAccessory.Slot.init -> void
+OpenKogama.Api.AvatarSkinPart
+OpenKogama.Api.AvatarSkinPart.<Clone>$() -> OpenKogama.Api.AvatarSkinPart!
+OpenKogama.Api.AvatarSkinPart.AvatarSkinPart(string! Bone, float Scale, string! Cubes) -> void
+OpenKogama.Api.AvatarSkinPart.Bone.get -> string!
+OpenKogama.Api.AvatarSkinPart.Bone.init -> void
+OpenKogama.Api.AvatarSkinPart.Cubes.get -> string!
+OpenKogama.Api.AvatarSkinPart.Cubes.init -> void
+OpenKogama.Api.AvatarSkinPart.Deconstruct(out string! Bone, out float Scale, out string! Cubes) -> void
+OpenKogama.Api.AvatarSkinPart.Equals(OpenKogama.Api.AvatarSkinPart? other) -> bool
+OpenKogama.Api.AvatarSkinPart.Scale.get -> float
+OpenKogama.Api.AvatarSkinPart.Scale.init -> void
+OpenKogama.Api.ChatMessage
+OpenKogama.Api.ChatMessage.Cancel.get -> bool
+OpenKogama.Api.ChatMessage.Cancel.set -> void
+OpenKogama.Api.ChatMessage.ChatMessage(OpenKogama.Api.IPlayer! player, string! text) -> void
+OpenKogama.Api.ChatMessage.Player.get -> OpenKogama.Api.IPlayer!
+OpenKogama.Api.ChatMessage.Text.get -> string!
+OpenKogama.Api.ChatMessage.Text.set -> void
+OpenKogama.Api.ColossusSize
+OpenKogama.Api.ColossusSize.ExtraLarge = 3 -> OpenKogama.Api.ColossusSize
+OpenKogama.Api.ColossusSize.Large = 2 -> OpenKogama.Api.ColossusSize
+OpenKogama.Api.ColossusSize.Medium = 1 -> OpenKogama.Api.ColossusSize
+OpenKogama.Api.ColossusSize.Small = 0 -> OpenKogama.Api.ColossusSize
+OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.BuildCubeAdded = 84 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.BuildFaceMoved = 85 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.BuildTranslateGrid = 86 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.BuildTranslateNoGrid = 87 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.CharacterSkeletonDie = 98 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.CharacterSkeletonPain = 99 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GuiButtonClick = 88 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GuiButtonClick3 = 89 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GuiPurchase = 90 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GuiScreenshot = 91 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GuiSqueak13 = 92 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GuiWoodB2 = 93 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GuiWoodC10 = 95 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GuiWoodC3 = 94 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GunAk47 = 0 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GunBazooka = 1 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GunBlaster = 2 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GunBlasterBurst = 3 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GunBlasterHeavy = 4 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GunCanon = 5 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GunCanonAir = 6 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GunCanonPotato = 7 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GunCubeGunFire = 8 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GunFlamethrower = 9 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GunHandgun = 11 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GunHandgunSmall = 12 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GunLightGun = 13 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GunM1Shot = 14 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GunMachineGun = 15 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GunMachineGunHeavy = 16 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GunMinigun = 17 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GunMusket = 18 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GunPlasmaCanon = 19 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GunRailgun = 20 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GunRevolver = 21 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GunShot = 10 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GunShotgun = 22 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GunSilencedMachineGun = 23 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GunSilencedPistol = 24 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GunSizeGun = 25 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GunSmg = 26 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GunSmgHeavy = 27 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GunSmgLight = 28 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GunSmgSilenced = 29 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GunSmgSmall = 30 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GunSniper = 31 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GunSpellBurst = 32 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GunSpellFlare = 33 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GunSpellRocket = 34 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GunSpellWave = 35 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.GunSpinningProjectile = 36 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.HitBulletOpponent = 37 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.HitBulletSurface = 38 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.HitClink = 39 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.HitCube = 40 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.HitExplosion = 41 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.HitGrass = 42 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.HitGrassBlade = 43 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.HitGrassLight = 44 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.HitGrassScythe = 45 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.HitMetalClash = 46 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.HitMetallicBang = 47 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.HitMetallicBoom = 48 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.HitMetallicClonk = 49 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.HitPop = 50 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.HitSciFi = 51 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.HitWesternRicochet = 52 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.HitWoodenBang = 53 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.LoopAdvGhost = 67 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.LoopBacterio = 68 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.LoopBoiling = 69 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.LoopChargingBuzzer = 70 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.LoopChargingClock = 71 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.LoopChargingHum = 72 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.LoopChargingScrewdriver = 73 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.LoopEthereal = 74 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.LoopImpulse = 75 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.LoopJet = 76 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.LoopJetpackLarge = 77 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.LoopJetpackSmall = 78 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.LoopPushbikeSkids = 79 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.LoopRollingBall = 80 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.LoopSciFi = 81 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.LoopSnowSentry = 82 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.LoopThrowingStar = 83 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.MeleeBonk = 54 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.MeleePunch = 55 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.MeleeSciFiSwing = 56 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.MeleeSlap = 57 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.MeleeSlash = 58 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.MeleeSwordSwing = 59 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.MeleeThud = 60 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.MiscCashRegister = 100 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.MiscFirstTimePopup = 101 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.MiscNotification = 102 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.MiscSizeGrow = 103 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.MiscSizeShrink = 104 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.MiscTadaa = 105 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.MiscThrow = 106 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.MiscThrow2 = 107 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.MiscThrow3 = 108 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.MiscWoosh = 109 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.OldExplosives = 110 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.OldFireLoop = 111 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.OldLaserShot = 112 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.OldPickup = 113 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.OldPickupHealth = 114 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.PickupCostume = 61 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.PickupGem = 62 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.PickupGun = 63 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.PickupHealth = 64 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.PickupMagic = 65 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.PickupVehicleEnergy = 66 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.StepBrickWall = 96 -> OpenKogama.Api.GameSound
+OpenKogama.Api.GameSound.StepPavement = 97 -> OpenKogama.Api.GameSound
+OpenKogama.Api.Gesture
+OpenKogama.Api.Gesture.HeadShake = 2 -> OpenKogama.Api.Gesture
+OpenKogama.Api.Gesture.Nod = 1 -> OpenKogama.Api.Gesture
+OpenKogama.Api.Gesture.Wave = 0 -> OpenKogama.Api.Gesture
+OpenKogama.Api.IAsset
+OpenKogama.Api.IAsset.Group.get -> string!
+OpenKogama.Api.IAsset.Id.get -> int
+OpenKogama.Api.IAsset.Name.get -> string!
+OpenKogama.Api.IAssets
+OpenKogama.Api.IAssets.Bundles.get -> OpenKogama.Api.IBundles!
+OpenKogama.Api.IAssets.Sounds.get -> OpenKogama.Api.ISounds!
+OpenKogama.Api.IBundle
+OpenKogama.Api.IBundle.Engine.get -> string!
+OpenKogama.Api.IBundle.Url.get -> string!
+OpenKogama.Api.IBundles
+OpenKogama.Api.IBundles.Add(string! name, byte[]! bundle, string! group = "Custom") -> OpenKogama.Api.IBundle!
+OpenKogama.Api.IBundles.All.get -> System.Collections.Generic.IReadOnlyList<OpenKogama.Api.IBundle!>!
+OpenKogama.Api.IBundles.Game.get -> System.Collections.Generic.IReadOnlyList<string!>!
+OpenKogama.Api.IBundles.Remove(OpenKogama.Api.IBundle! bundle) -> bool
+OpenKogama.Api.IBundles.Replace(string! path, byte[]! bundle) -> void
+OpenKogama.Api.IBundles.Replaced.get -> System.Collections.Generic.IReadOnlyList<string!>!
+OpenKogama.Api.IBundles.Restore(string! path) -> bool
+OpenKogama.Api.INpc
+OpenKogama.Api.INpc.Aim(System.Numerics.Vector3 direction) -> void
+OpenKogama.Api.INpc.Alive.get -> bool
+OpenKogama.Api.INpc.Animation.get -> string!
+OpenKogama.Api.INpc.AnimationState.get -> OpenKogama.Api.AvatarAnimation
+OpenKogama.Api.INpc.BecomeColossus(OpenKogama.Api.ColossusSize size) -> bool
+OpenKogama.Api.INpc.BecomeColossus(OpenKogama.Api.IWorldObject! trigger) -> bool
+OpenKogama.Api.INpc.Damage(float amount, OpenKogama.Api.IPlayer? by = null) -> void
+OpenKogama.Api.INpc.Exists.get -> bool
+OpenKogama.Api.INpc.EyePosition.get -> System.Numerics.Vector3
+OpenKogama.Api.INpc.Face(float yaw) -> void
+OpenKogama.Api.INpc.Grounded.get -> bool
+OpenKogama.Api.INpc.Health.get -> float
+OpenKogama.Api.INpc.Hold(OpenKogama.Api.IWorldObject! weapon) -> bool
+OpenKogama.Api.INpc.Holding.get -> string?
+OpenKogama.Api.INpc.Holding.set -> void
+OpenKogama.Api.INpc.Id.get -> int
+OpenKogama.Api.INpc.Jump(float holdSeconds = 0.5) -> void
+OpenKogama.Api.INpc.Level.get -> int
+OpenKogama.Api.INpc.MaxHealth.get -> float
+OpenKogama.Api.INpc.MaxHealth.set -> void
+OpenKogama.Api.INpc.Name.get -> string!
+OpenKogama.Api.INpc.ObjectId.get -> int
+OpenKogama.Api.INpc.OnFire.get -> bool
+OpenKogama.Api.INpc.OnFire.set -> void
+OpenKogama.Api.INpc.PlayAnimation(OpenKogama.Api.AvatarAnimation state) -> void
+OpenKogama.Api.INpc.PlayAnimation(string? state) -> void
+OpenKogama.Api.INpc.Position.get -> System.Numerics.Vector3
+OpenKogama.Api.INpc.Remove() -> void
+OpenKogama.Api.INpc.Respawn(System.Numerics.Vector3 position) -> void
+OpenKogama.Api.INpc.Shoot(System.Numerics.Vector3 direction) -> void
+OpenKogama.Api.INpc.Shoot(System.Numerics.Vector3 direction, float holdSeconds) -> void
+OpenKogama.Api.INpc.Size.get -> float
+OpenKogama.Api.INpc.Speed.get -> float
+OpenKogama.Api.INpc.Speed.set -> void
+OpenKogama.Api.INpc.Stop() -> void
+OpenKogama.Api.INpc.Teleport(System.Numerics.Vector3 position, float? yaw = null) -> void
+OpenKogama.Api.INpc.WalkTo(System.Numerics.Vector3 target) -> void
+OpenKogama.Api.INpc.Walking.get -> bool
+OpenKogama.Api.INpc.Yaw.get -> float
+OpenKogama.Api.IPlayer
+OpenKogama.Api.IPlayer.Actor.get -> int
+OpenKogama.Api.IPlayer.AddGold(int amount) -> int
+OpenKogama.Api.IPlayer.AddXp(int amount) -> int
+OpenKogama.Api.IPlayer.Alive.get -> bool
+OpenKogama.Api.IPlayer.Announce(string! text, string? icon = null) -> void
+OpenKogama.Api.IPlayer.BecomeColossus(OpenKogama.Api.IWorldObject! trigger) -> bool
+OpenKogama.Api.IPlayer.ClientVersion.get -> string!
+OpenKogama.Api.IPlayer.Damage(float amount, OpenKogama.Api.INpc? by = null, System.Numerics.Vector3? impulse = null) -> void
+OpenKogama.Api.IPlayer.EnterVehicle(OpenKogama.Api.IWorldObject! vehicle) -> bool
+OpenKogama.Api.IPlayer.Equip(OpenKogama.Api.AvatarItem item) -> bool
+OpenKogama.Api.IPlayer.GiveLightningSpeed() -> bool
+OpenKogama.Api.IPlayer.Gold.get -> int
+OpenKogama.Api.IPlayer.Holding.get -> OpenKogama.Api.AvatarItem
+OpenKogama.Api.IPlayer.IsAdmin.get -> bool
+OpenKogama.Api.IPlayer.Kick() -> void
+OpenKogama.Api.IPlayer.Message(string! text) -> void
+OpenKogama.Api.IPlayer.Message(string! text, string? color = null) -> void
+OpenKogama.Api.IPlayer.Name.get -> string!
+OpenKogama.Api.IPlayer.Notify(string! text, bool brief = false) -> void
+OpenKogama.Api.IPlayer.Position.get -> System.Numerics.Vector3?
+OpenKogama.Api.IPlayer.PressLocally(int id) -> bool
+OpenKogama.Api.IPlayer.ProfileId.get -> int
+OpenKogama.Api.IPlayer.Say(string! text) -> void
+OpenKogama.Api.IPlayer.SetTeam(OpenKogama.Api.Team team) -> bool
+OpenKogama.Api.IPlayer.Skin.get -> OpenKogama.Api.AvatarSkin!
+OpenKogama.Api.IPlayer.SoundEmitter.get -> int?
+OpenKogama.Api.IPlayer.Team.get -> OpenKogama.Api.Team
+OpenKogama.Api.IPlayer.Teleport(System.Numerics.Vector3 position, OpenKogama.Api.TeleportMethod method) -> bool
+OpenKogama.Api.IPlayer.World.get -> OpenKogama.Api.IWorld!
+OpenKogama.Api.IPlayer.Xp.get -> int
+OpenKogama.Api.IPlugin
+OpenKogama.Api.IPlugin.Load(OpenKogama.Api.IServer! server) -> void
+OpenKogama.Api.IPlugin.Unload() -> void
+OpenKogama.Api.IPluginStorage
+OpenKogama.Api.IPluginStorage.Get(string! key) -> string?
+OpenKogama.Api.IPluginStorage.Keys.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
+OpenKogama.Api.IPluginStorage.Set(string! key, string? value) -> void
+OpenKogama.Api.IServer
+OpenKogama.Api.IServer.AddCommand(string! name, System.Action<OpenKogama.Api.IPlayer!, string![]!>! handler) -> void
+OpenKogama.Api.IServer.AddIcon(string! name, byte[]! png) -> void
+OpenKogama.Api.IServer.Animation -> System.Action<OpenKogama.Api.IPlayer!, string!>?
+OpenKogama.Api.IServer.Announce(string! text, string? icon = null) -> void
+OpenKogama.Api.IServer.Assets.get -> OpenKogama.Api.IAssets!
+OpenKogama.Api.IServer.Broadcast(string! text, string? color = null) -> void
+OpenKogama.Api.IServer.Chat -> System.Action<OpenKogama.Api.ChatMessage!>?
+OpenKogama.Api.IServer.Gesture -> System.Action<OpenKogama.Api.IPlayer!, string!>?
+OpenKogama.Api.IServer.ItemCollected -> System.Action<OpenKogama.Api.IPlayer!, OpenKogama.Api.IWorldObject!>?
+OpenKogama.Api.IServer.Log(string! text) -> void
+OpenKogama.Api.IServer.Notify(string! text, bool brief = false) -> void
+OpenKogama.Api.IServer.NpcDamaged -> System.Action<OpenKogama.Api.INpc!, OpenKogama.Api.IPlayer?, float>?
+OpenKogama.Api.IServer.NpcKilled -> System.Action<OpenKogama.Api.INpc!, OpenKogama.Api.IPlayer?>?
+OpenKogama.Api.IServer.ObjectAdded -> System.Action<OpenKogama.Api.IWorld!, OpenKogama.Api.IWorldObject!, OpenKogama.Api.IPlayer?>?
+OpenKogama.Api.IServer.ObjectRemoved -> System.Action<OpenKogama.Api.IWorld!, int, OpenKogama.Api.IPlayer?>?
+OpenKogama.Api.IServer.PlayerAnimated -> System.Action<OpenKogama.Api.IPlayer!, OpenKogama.Api.AvatarAnimation>?
+OpenKogama.Api.IServer.PlayerGestured -> System.Action<OpenKogama.Api.IPlayer!, OpenKogama.Api.Gesture>?
+OpenKogama.Api.IServer.PlayerHit -> System.Action<OpenKogama.Api.IPlayer!, OpenKogama.Api.IPlayer!>?
+OpenKogama.Api.IServer.PlayerJoined -> System.Action<OpenKogama.Api.IPlayer!>?
+OpenKogama.Api.IServer.PlayerKilled -> System.Action<OpenKogama.Api.IPlayer!, OpenKogama.Api.IPlayer!>?
+OpenKogama.Api.IServer.PlayerKilledByNpc -> System.Action<OpenKogama.Api.IPlayer!, OpenKogama.Api.INpc!>?
+OpenKogama.Api.IServer.PlayerLeft -> System.Action<OpenKogama.Api.IPlayer!>?
+OpenKogama.Api.IServer.PlayerPickedUp -> System.Action<OpenKogama.Api.IPlayer!, OpenKogama.Api.AvatarItem>?
+OpenKogama.Api.IServer.PlayerSwitchedItem -> System.Action<OpenKogama.Api.IPlayer!, OpenKogama.Api.AvatarItem>?
+OpenKogama.Api.IServer.Players.get -> System.Collections.Generic.IReadOnlyList<OpenKogama.Api.IPlayer!>!
+OpenKogama.Api.IServer.RoundStarted -> System.Action<OpenKogama.Api.IWorld!>?
+OpenKogama.Api.IServer.Storage(string! name) -> OpenKogama.Api.IPluginStorage!
+OpenKogama.Api.IServer.Templates.get -> OpenKogama.Api.ITemplates!
+OpenKogama.Api.IServer.Tick -> System.Action?
+OpenKogama.Api.IServer.Update -> System.Action<float>?
+OpenKogama.Api.IServer.Worlds.get -> System.Collections.Generic.IReadOnlyList<OpenKogama.Api.IWorld!>!
+OpenKogama.Api.ISound
+OpenKogama.Api.ISounds
+OpenKogama.Api.ISounds.Add(string! name, byte[]! file, OpenKogama.Api.SoundGroup group) -> OpenKogama.Api.ISound!
+OpenKogama.Api.ISounds.Add(string! name, byte[]! file, string! format, string! group = "Custom") -> OpenKogama.Api.ISound!
+OpenKogama.Api.ISounds.All.get -> System.Collections.Generic.IReadOnlyList<OpenKogama.Api.ISound!>!
+OpenKogama.Api.ISounds.Remove(OpenKogama.Api.ISound! sound) -> bool
+OpenKogama.Api.ISounds.Replace(OpenKogama.Api.GameSound sound, byte[]! file) -> void
+OpenKogama.Api.ISounds.Replaced.get -> System.Collections.Generic.IReadOnlyList<OpenKogama.Api.GameSound>!
+OpenKogama.Api.ISounds.Restore(OpenKogama.Api.GameSound sound) -> bool
+OpenKogama.Api.ITemplates
+OpenKogama.Api.ITemplates.Add(string! id, string! name, System.Action<OpenKogama.Api.IWorldBuilder!>! build, string? baseTemplate = null) -> void
+OpenKogama.Api.ITemplates.Add(string! id, string! name, byte[]! kgmap) -> void
+OpenKogama.Api.ITemplates.Add(string! id, string! name, byte[]! kgmap, System.Action<OpenKogama.Api.IWorldBuilder!>! build) -> void
+OpenKogama.Api.ITemplates.Ids.get -> System.Collections.Generic.IReadOnlyList<string!>!
+OpenKogama.Api.ITerrain
+OpenKogama.Api.ITerrain.Clear() -> void
+OpenKogama.Api.ITerrain.Count.get -> int
+OpenKogama.Api.ITerrain.Fill(int x1, int y1, int z1, int x2, int y2, int z2, byte material) -> int
+OpenKogama.Api.ITerrain.Remove(int x, int y, int z) -> void
+OpenKogama.Api.ITerrain.Set(int x, int y, int z, byte material) -> void
+OpenKogama.Api.IWorld
+OpenKogama.Api.IWorld.Announce(string! text, string? icon = null) -> void
+OpenKogama.Api.IWorld.Broadcast(string! text, string? color = null) -> void
+OpenKogama.Api.IWorld.Id.get -> int
+OpenKogama.Api.IWorld.LineOfSight(System.Numerics.Vector3 from, System.Numerics.Vector3 to) -> bool
+OpenKogama.Api.IWorld.Name.get -> string!
+OpenKogama.Api.IWorld.Notify(string! text, bool brief = false) -> void
+OpenKogama.Api.IWorld.Npcs.get -> System.Collections.Generic.IReadOnlyList<OpenKogama.Api.INpc!>!
+OpenKogama.Api.IWorld.Play.get -> bool
+OpenKogama.Api.IWorld.Players.get -> System.Collections.Generic.IReadOnlyList<OpenKogama.Api.IPlayer!>!
+OpenKogama.Api.IWorld.Press(int id) -> bool
+OpenKogama.Api.IWorld.SetToggled(int id, bool on) -> bool
+OpenKogama.Api.IWorld.SpawnNpc(string! name, System.Numerics.Vector3 position, float yaw = 0, OpenKogama.Api.IPlayer? skinOf = null) -> OpenKogama.Api.INpc!
+OpenKogama.Api.IWorld.SpawnNpc(string! name, System.Numerics.Vector3 position, float yaw, OpenKogama.Api.AvatarSkin? skin, float size = 1, int level = 1) -> OpenKogama.Api.INpc!
+OpenKogama.Api.IWorld.Toggled(int id) -> bool?
+OpenKogama.Api.IWorldBuilder
+OpenKogama.Api.IWorldBuilder.Add(string! type, System.Numerics.Vector3 position, System.Collections.Generic.IReadOnlyDictionary<string!, object!>? data = null, System.Numerics.Quaternion? rotation = null, System.Numerics.Vector3? scale = null, int? parentId = null) -> OpenKogama.Api.IWorldObject!
+OpenKogama.Api.IWorldBuilder.Find(int id) -> OpenKogama.Api.IWorldObject?
+OpenKogama.Api.IWorldBuilder.Link(int from, int to) -> bool
+OpenKogama.Api.IWorldBuilder.Markers(string! name) -> System.Collections.Generic.IReadOnlyList<OpenKogama.Api.IWorldObject!>!
+OpenKogama.Api.IWorldBuilder.Move(int id, System.Numerics.Vector3 position, System.Numerics.Quaternion? rotation = null, float seconds = 0) -> bool
+OpenKogama.Api.IWorldBuilder.Move(int id, System.Numerics.Vector3 position, System.Numerics.Quaternion? rotation) -> bool
+OpenKogama.Api.IWorldBuilder.Objects.get -> System.Collections.Generic.IReadOnlyList<OpenKogama.Api.IWorldObject!>!
+OpenKogama.Api.IWorldBuilder.Remove(int id) -> bool
+OpenKogama.Api.IWorldBuilder.SetData(int id, System.Collections.Generic.IReadOnlyDictionary<string!, object!>! values) -> bool
+OpenKogama.Api.IWorldBuilder.SetData(int id, string! key, object! value) -> bool
+OpenKogama.Api.IWorldBuilder.SetSound(int id, OpenKogama.Api.ISound! sound) -> bool
+OpenKogama.Api.IWorldBuilder.Terrain.get -> OpenKogama.Api.ITerrain!
+OpenKogama.Api.IWorldObject
+OpenKogama.Api.IWorldObject.Data.get -> System.Collections.Generic.IReadOnlyDictionary<string!, object!>!
+OpenKogama.Api.IWorldObject.Id.get -> int
+OpenKogama.Api.IWorldObject.ParentId.get -> int
+OpenKogama.Api.IWorldObject.Position.get -> System.Numerics.Vector3
+OpenKogama.Api.IWorldObject.Rotation.get -> System.Numerics.Quaternion
+OpenKogama.Api.IWorldObject.Scale.get -> System.Numerics.Vector3
+OpenKogama.Api.IWorldObject.Type.get -> string!
+OpenKogama.Api.Material
+OpenKogama.Api.Material.AncientCobblestone = 36 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.BlackConcrete = 23 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.BlackIce = 43 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.Blue = 6 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.Bouncy = 27 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.Bricks = 30 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.BrightBlue = 5 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.BrightGreen = 10 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.BrightOrange = 16 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.BrightRed = 0 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.BrightWood = 31 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.Butter = 18 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.Camouflage = 34 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.Caramel = 8 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.Cement = 33 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.Ceramic = 13 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.Circuit = 47 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.Cloud = 55 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.Cobblestone = 32 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.Concrete = 21 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.CrackedIce = 59 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.Crumble = 68 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.DarkBlue = 7 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.DarkConcrete = 22 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.DarkGreen = 12 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.DarkPurpleFabric = 14 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.DarkRed = 2 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.DarkWood = 53 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.EmbossedMetal = 62 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.Green = 11 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.GreenGrid = 46 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.GreenPavement = 35 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.GreyBricks = 48 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.HardDestructible = 58 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.Heal = 65 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.Ice = 25 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.Khaki = 24 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.Kill = 64 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.Lava = 26 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.LightConcrete = 20 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.LightPurpleFabric = 4 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.Machinery = 61 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.MediumDestructible = 57 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.Metal = 41 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.MetalPattern = 40 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.MetalScraps = 50 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.Mushroom = 42 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.Orange = 17 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.Parkour = 29 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.PinkFabric = 44 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.Poison = 28 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.PurpleFabric = 9 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.Red = 1 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.RedBricks = 37 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.RedGrid = 45 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.Sand = 3 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.Sandstone = 19 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.Scrolling = 63 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.Slime = 51 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.Slow = 66 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.SoftDestructible = 56 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.Speed = 67 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.Spotty = 49 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.StripedCement = 60 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.SuperBouncy = 54 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.WrappingPaper = 52 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.Yellow = 15 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.YellowBricks = 38 -> OpenKogama.Api.Material
+OpenKogama.Api.Material.Zigzag = 39 -> OpenKogama.Api.Material
+OpenKogama.Api.SoundGroup
+OpenKogama.Api.SoundGroup.Alarm = 8 -> OpenKogama.Api.SoundGroup
+OpenKogama.Api.SoundGroup.Delight = 7 -> OpenKogama.Api.SoundGroup
+OpenKogama.Api.SoundGroup.Horror = 6 -> OpenKogama.Api.SoundGroup
+OpenKogama.Api.SoundGroup.Machinery = 5 -> OpenKogama.Api.SoundGroup
+OpenKogama.Api.SoundGroup.Music = 9 -> OpenKogama.Api.SoundGroup
+OpenKogama.Api.SoundGroup.MusicLoop = 0 -> OpenKogama.Api.SoundGroup
+OpenKogama.Api.SoundGroup.Nature = 1 -> OpenKogama.Api.SoundGroup
+OpenKogama.Api.SoundGroup.Robotic = 2 -> OpenKogama.Api.SoundGroup
+OpenKogama.Api.SoundGroup.Suspense = 3 -> OpenKogama.Api.SoundGroup
+OpenKogama.Api.SoundGroup.Urban = 4 -> OpenKogama.Api.SoundGroup
+OpenKogama.Api.SoundGroup.Weather = 10 -> OpenKogama.Api.SoundGroup
+OpenKogama.Api.Team
+OpenKogama.Api.Team.Blue = 0 -> OpenKogama.Api.Team
+OpenKogama.Api.Team.Green = 2 -> OpenKogama.Api.Team
+OpenKogama.Api.Team.Red = 1 -> OpenKogama.Api.Team
+OpenKogama.Api.Team.Yellow = 3 -> OpenKogama.Api.Team
+OpenKogama.Api.TeleportMethod
+OpenKogama.Api.TeleportMethod.HiddenVehicle = 0 -> OpenKogama.Api.TeleportMethod
+OpenKogama.Api.TeleportMethod.Teleporter = 1 -> OpenKogama.Api.TeleportMethod
+OpenKogama.Api.TerrainExtensions
+override OpenKogama.Api.AvatarSkin.Equals(object? obj) -> bool
+override OpenKogama.Api.AvatarSkin.GetHashCode() -> int
+override OpenKogama.Api.AvatarSkin.ToString() -> string!
+override OpenKogama.Api.AvatarSkinAccessory.Equals(object? obj) -> bool
+override OpenKogama.Api.AvatarSkinAccessory.GetHashCode() -> int
+override OpenKogama.Api.AvatarSkinAccessory.ToString() -> string!
+override OpenKogama.Api.AvatarSkinPart.Equals(object? obj) -> bool
+override OpenKogama.Api.AvatarSkinPart.GetHashCode() -> int
+override OpenKogama.Api.AvatarSkinPart.ToString() -> string!
+static OpenKogama.Api.AvatarSkin.FromJson(string! json) -> OpenKogama.Api.AvatarSkin!
+static OpenKogama.Api.AvatarSkin.operator !=(OpenKogama.Api.AvatarSkin? left, OpenKogama.Api.AvatarSkin? right) -> bool
+static OpenKogama.Api.AvatarSkin.operator ==(OpenKogama.Api.AvatarSkin? left, OpenKogama.Api.AvatarSkin? right) -> bool
+static OpenKogama.Api.AvatarSkinAccessory.operator !=(OpenKogama.Api.AvatarSkinAccessory? left, OpenKogama.Api.AvatarSkinAccessory? right) -> bool
+static OpenKogama.Api.AvatarSkinAccessory.operator ==(OpenKogama.Api.AvatarSkinAccessory? left, OpenKogama.Api.AvatarSkinAccessory? right) -> bool
+static OpenKogama.Api.AvatarSkinPart.operator !=(OpenKogama.Api.AvatarSkinPart? left, OpenKogama.Api.AvatarSkinPart? right) -> bool
+static OpenKogama.Api.AvatarSkinPart.operator ==(OpenKogama.Api.AvatarSkinPart? left, OpenKogama.Api.AvatarSkinPart? right) -> bool
+static OpenKogama.Api.TerrainExtensions.Fill(this OpenKogama.Api.ITerrain! terrain, int x1, int y1, int z1, int x2, int y2, int z2, OpenKogama.Api.Material material) -> int
+static OpenKogama.Api.TerrainExtensions.Set(this OpenKogama.Api.ITerrain! terrain, int x, int y, int z, OpenKogama.Api.Material material) -> void

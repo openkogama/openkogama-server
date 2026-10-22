@@ -38,14 +38,16 @@ public sealed class SpawnVehicleWithDriver(PhotonServer server, Session session)
         if (TemplateOf(spawner) is not int templateId || session.World.CloneTree(templateId) is not { } vehicle) return null;
         int spawnerId = spawner.Id;
 
-        foreach (WorldObject part in session.World.Subtree(vehicle.Id))
+        List<WorldObject> parts = session.World.Subtree(vehicle.Id);
+        if (!session.World.SetParent(driverId, vehicle.Id))
+        {
+            session.World.Remove(vehicle.Id);
+            return null;
+        }
+        foreach (WorldObject part in parts)
             session.World.Modify(part.Id, obj => obj.Owner = player.Actor);
         session.World.Modify(vehicle.Id, obj => obj.Transient = true);
-        session.World.Modify(driverId, obj =>
-        {
-            obj.ParentId = vehicle.Id;
-            obj.SetRuntime("seat", PackedType.Int32, (int)seat);
-        });
+        session.World.Modify(driverId, obj => obj.SetRuntime("seat", PackedType.Int32, (int)seat));
         session.World.Modify(spawnerId, obj => obj.SetRuntime("UseTime", PackedType.Int32, now));
 
         PhotonDictionary spawned = PhotonDictionary.Untyped();

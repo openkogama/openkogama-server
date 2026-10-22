@@ -5,9 +5,6 @@ namespace Sandbox;
 
 public sealed class SandboxPlugin : IPlugin
 {
-    const byte Sand = 19;
-    const byte Grass = 11;
-    const byte Water = 6;
     const int IslandRadius = 24;
 
     public void Load(IServer server)
@@ -24,7 +21,7 @@ public sealed class SandboxPlugin : IPlugin
         server.AddCommand("block", (player, arguments) =>
         {
             if (player.Position is not Vector3 position) return;
-            byte material = arguments.Length > 0 && byte.TryParse(arguments[0], out byte chosen) ? chosen : Sand;
+            Material material = arguments.Length > 0 && Enum.TryParse(arguments[0], true, out Material chosen) ? chosen : Material.Sandstone;
             player.World.Terrain.Set((int)MathF.Floor(position.X), (int)MathF.Floor(position.Y) - 1, (int)MathF.Floor(position.Z), material);
         });
 
@@ -46,13 +43,13 @@ public sealed class SandboxPlugin : IPlugin
     static void BuildIsland(IWorldBuilder world)
     {
         world.Terrain.Clear();
-        world.Terrain.Fill(-IslandRadius - 8, 0, -IslandRadius - 8, IslandRadius + 8, 0, IslandRadius + 8, Water);
+        world.Terrain.Fill(-IslandRadius - 8, 0, -IslandRadius - 8, IslandRadius + 8, 0, IslandRadius + 8, Material.Blue);
         for (int x = -IslandRadius; x <= IslandRadius; x++)
             for (int z = -IslandRadius; z <= IslandRadius; z++)
             {
                 float distance = MathF.Sqrt(x * x + z * z);
                 if (distance > IslandRadius) continue;
-                world.Terrain.Set(x, 1, z, distance > IslandRadius - 3 ? Sand : Grass);
+                world.Terrain.Set(x, 1, z, distance > IslandRadius - 3 ? Material.Sandstone : Material.Green);
             }
         world.Add("PointLight", new Vector3(0, 20, 0), new Dictionary<string, object> { ["range"] = 60f });
     }

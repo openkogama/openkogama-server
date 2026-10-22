@@ -20,6 +20,10 @@ public interface IServer
     event Action<IPlayer, AvatarAnimation>? PlayerAnimated;
     event Action<IPlayer, AvatarItem>? PlayerSwitchedItem;
     event Action<IPlayer, AvatarItem>? PlayerPickedUp;
+    [Obsolete("Use PlayerGestured")]
+    event Action<IPlayer, string>? Gesture;
+    [Obsolete("Use PlayerAnimated")]
+    event Action<IPlayer, string>? Animation;
     ITemplates Templates { get; }
     IAssets Assets { get; }
 

@@ -36,6 +36,8 @@ if (args is ["accounts", .. var accounts])
     return OpenKogama.Accounts.AccountService.Run(accounts);
 if (args is ["client", "patch", .. var patch])
     return ClientPatch.Run(patch);
+if (args is ["client", "fix", .. var fix])
+    return ClientFix.Run(fix);
 
 LogFile.Start("logs");
 AppDomain.CurrentDomain.UnhandledException += (_, crash) => Console.WriteLine($"error {(crash.ExceptionObject as Exception)?.Message}");

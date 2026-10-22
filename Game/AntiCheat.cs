@@ -10,6 +10,7 @@ namespace OpenKogama.Game;
 public static partial class AntiCheat
 {
     const int MaxText = 256;
+    const int MaxPasses = 8;
     const int MaxMessages = 8;
     const long MessageWindowMs = 5000;
     const int AvatarKilled = 0;
@@ -20,6 +21,8 @@ public static partial class AntiCheat
 
     static readonly Regex Markup = new("(?<kept></?[bi]>|<color=#?[0-9a-z]{1,8}>|</color>)|<[^<>]*>|[<>]", RegexOptions.IgnoreCase);
     static readonly Regex Tag = new("<[^<>]*>");
+    static readonly Regex NameTag = new(@"<(?=\s*[/#a-z])[^<>]*>", RegexOptions.IgnoreCase);
+    static readonly Regex TagStart = new(@"<(?=\s*[/#a-z])", RegexOptions.IgnoreCase);
     static readonly Regex Crasher = new(@"^<\s*/?\s*(quad|material)\b|^<\s*size\s*=\s*[""']?-|(?<![#\w])\d{5,}", RegexOptions.IgnoreCase);
     static readonly ConditionalWeakTable<Player, Queue<long>> Sent = new();
 
@@ -35,14 +38,18 @@ public static partial class AntiCheat
         return clean.Length > 0 ? clean : null;
     }
 
-    public static string Name(string name) => Crash ? name.Replace("<", "").Replace(">", "") : name;
+    public static string Name(string name) => Crash ? TagStart.Replace(NameTag.Replace(name, ""), "") : name;
 
     public static string TextObject(string text)
     {
         if (!Crash) return text;
-        for (string last = ""; last != text;)
-            text = Tag.Replace(last = text, tag => Crasher.IsMatch(tag.Value) ? "" : tag.Value);
-        return text;
+        for (int pass = 0; pass < MaxPasses; pass++)
+        {
+            string clean = Tag.Replace(text, tag => Crasher.IsMatch(tag.Value) ? "" : tag.Value);
+            if (clean == text) return text;
+            text = clean;
+        }
+        return text.Replace("<", "").Replace(">", "");
     }
 
     public static WorldObject TextObject(WorldObject obj)
