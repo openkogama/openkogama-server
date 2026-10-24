@@ -485,3 +485,47 @@ static OpenKogama.Api.AvatarSkinPart.operator !=(OpenKogama.Api.AvatarSkinPart? 
 static OpenKogama.Api.AvatarSkinPart.operator ==(OpenKogama.Api.AvatarSkinPart? left, OpenKogama.Api.AvatarSkinPart? right) -> bool
 static OpenKogama.Api.TerrainExtensions.Fill(this OpenKogama.Api.ITerrain! terrain, int x1, int y1, int z1, int x2, int y2, int z2, OpenKogama.Api.Material material) -> int
 static OpenKogama.Api.TerrainExtensions.Set(this OpenKogama.Api.ITerrain! terrain, int x, int y, int z, OpenKogama.Api.Material material) -> void
+OpenKogama.Api.Cube
+OpenKogama.Api.Cube.ByteCorners.get -> System.ReadOnlySpan<byte>
+OpenKogama.Api.Cube.Cube(OpenKogama.Api.Material material) -> void
+OpenKogama.Api.Cube.Cube(System.ReadOnlySpan<OpenKogama.Api.Material> faceMaterials, System.ReadOnlySpan<byte> byteCorners) -> void
+OpenKogama.Api.Cube.Equals(OpenKogama.Api.Cube? other) -> bool
+OpenKogama.Api.Cube.FaceMaterial(OpenKogama.Api.CubeFace face) -> OpenKogama.Api.Material
+OpenKogama.Api.Cube.Material.get -> OpenKogama.Api.Material
+OpenKogama.Api.CubeFace
+OpenKogama.Api.CubeFace.Back = 3 -> OpenKogama.Api.CubeFace
+OpenKogama.Api.CubeFace.Bottom = 1 -> OpenKogama.Api.CubeFace
+OpenKogama.Api.CubeFace.Front = 2 -> OpenKogama.Api.CubeFace
+OpenKogama.Api.CubeFace.Left = 4 -> OpenKogama.Api.CubeFace
+OpenKogama.Api.CubeFace.Right = 5 -> OpenKogama.Api.CubeFace
+OpenKogama.Api.CubeFace.Top = 0 -> OpenKogama.Api.CubeFace
+OpenKogama.Api.ICubeEdit
+OpenKogama.Api.ICubeEdit.Remove(int x, int y, int z) -> void
+OpenKogama.Api.ICubeEdit.Set(int x, int y, int z, OpenKogama.Api.Cube! cube) -> void
+OpenKogama.Api.ICubeEdit.Set(int x, int y, int z, OpenKogama.Api.Material material) -> void
+OpenKogama.Api.ITerrain.CubeAt(System.Numerics.Vector3 position) -> (int X, int Y, int Z)
+OpenKogama.Api.ITerrain.Edit() -> OpenKogama.Api.ICubeEdit!
+OpenKogama.Api.ITerrain.Get(int x, int y, int z) -> OpenKogama.Api.Cube?
+OpenKogama.Api.ITerrain.Positions() -> System.Collections.Generic.IReadOnlyList<(int X, int Y, int Z)>!
+OpenKogama.Api.ITerrain.Set(int x, int y, int z, OpenKogama.Api.Cube! cube) -> void
+override OpenKogama.Api.Cube.Equals(object? obj) -> bool
+override OpenKogama.Api.Cube.GetHashCode() -> int
+static OpenKogama.Api.Cube.IdentityByteCorners.get -> System.ReadOnlySpan<byte>
+static OpenKogama.Api.Cube.operator !=(OpenKogama.Api.Cube? left, OpenKogama.Api.Cube? right) -> bool
+static OpenKogama.Api.Cube.operator ==(OpenKogama.Api.Cube? left, OpenKogama.Api.Cube? right) -> bool
+OpenKogama.Api.IPlayer.MoveToWorld(int world, OpenKogama.Api.WorldMode mode = OpenKogama.Api.WorldMode.Play) -> bool
+OpenKogama.Api.IPlayer.Reauth(OpenKogama.Api.ReauthOptions! options) -> bool
+OpenKogama.Api.IPlayer.ReauthsLeft.get -> int
+OpenKogama.Api.IServer.PlayerTriggered -> System.Action<OpenKogama.Api.IPlayer!, OpenKogama.Api.IWorldObject!, bool>?
+OpenKogama.Api.ReauthOptions
+OpenKogama.Api.ReauthOptions.Mode.get -> OpenKogama.Api.WorldMode?
+OpenKogama.Api.ReauthOptions.Mode.set -> void
+OpenKogama.Api.ReauthOptions.ReauthOptions() -> void
+OpenKogama.Api.ReauthOptions.Session.get -> System.Collections.Generic.IDictionary<string!, object?>!
+OpenKogama.Api.ReauthOptions.World.get -> int?
+OpenKogama.Api.ReauthOptions.World.set -> void
+OpenKogama.Api.WorldMode
+OpenKogama.Api.WorldMode.AvatarEditor = 2 -> OpenKogama.Api.WorldMode
+OpenKogama.Api.WorldMode.Build = 1 -> OpenKogama.Api.WorldMode
+OpenKogama.Api.WorldMode.Play = 0 -> OpenKogama.Api.WorldMode
+OpenKogama.Api.IPlayer.Language.get -> string!

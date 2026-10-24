@@ -1,6 +1,7 @@
 using System.Collections.Specialized;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using System.Web;
 using OpenKogama.Accounts;
@@ -82,6 +83,8 @@ public sealed class WebApi
         {
             if (!ServerInfo.Allows(query["client"]))
                 return ApiResponse.Json(JsonSerializer.Serialize(new { error = $"This server accepts {string.Join(", ", ServerInfo.Clients)}" }), 403);
+            if (Reauths.Resume(query["key"]) is { } resumed)
+                return ApiResponse.Json(Reauthed(resumed));
             int profile = request.Via is null && int.TryParse(query["profile"], out int requested) && requested > 0 ? requested : 1;
             string? nickname = SessionToken.Clean(query["name"]);
             bool remote = ServerInfo.Shared || request.Via is not null;
@@ -116,20 +119,14 @@ public sealed class WebApi
             ProfileSettings.Remember(profile, ServerInfo.PlayerSettings ? query["key"] : null, ServerInfo.PlayerSettings ? package?.Settings?.GetRawText() : null);
             if (package is not null && remote)
                 PlayerPackages.Apply(profile, package, ServerInfo.PlayerAvatars, ServerInfo.PlayerInventory);
-            string session = SessionJson(profile, mode, world, query["client"], request.Via);
             Console.WriteLine($"profile {profile}: joins world {world} in {mode.ToString().ToLowerInvariant()} mode");
-            if (System.Text.Json.Nodes.JsonNode.Parse(session) is System.Text.Json.Nodes.JsonObject issued)
-            {
-                issued["token"] = SessionTokens.Issue(profile, nickname);
-                session = issued.ToJsonString();
-            }
-            if (query["transport"] == "ws" && System.Text.Json.Nodes.JsonNode.Parse(session) is System.Text.Json.Nodes.JsonObject web)
-            {
-                web["serverIP"] = "ws://" + web["serverIP"]?.GetValue<string>();
-                session = web.ToJsonString();
-            }
-            return ApiResponse.Json(session);
+            bool reloads = query["patches"]?.Split(',').Contains("world-switch") == true;
+            return ApiResponse.Json(Issue(new Reauths.Origin(profile, nickname, query["client"], request.Via, query["transport"] == "ws", world, mode, Key: query["key"], Reloads: reloads,
+                Language: ClientLanguages.Clean(query["language"]))));
         }
+
+        if (path.TrimEnd('/') == "/session/reauth")
+            return Reauths.Take(query["token"]) is { } taken ? ApiResponse.Json(Reauthed(taken)) : ApiResponse.NotFound;
 
         if (path.TrimEnd('/') == "/api/tunnel/guest" && request.Method == "POST")
         {
@@ -307,6 +304,33 @@ public sealed class WebApi
             return ApiResponse.Json("{}");
 
         return ApiResponse.NotFound;
+    }
+
+    string Reauthed((Reauths.Origin Origin, Reauths.Plan? Plan) taken)
+    {
+        (Reauths.Origin origin, Reauths.Plan? plan) = taken;
+        Reauths.Origin next = origin with { World = plan?.World ?? origin.World, Mode = plan?.Mode ?? origin.Mode, Used = origin.Used + 1 };
+        Console.WriteLine($"profile {next.Profile}: reauths into world {next.World} in {next.Mode.ToString().ToLowerInvariant()} mode");
+        return Issue(next, plan?.Session);
+    }
+
+    string Issue(Reauths.Origin origin, IReadOnlyDictionary<string, object?>? overrides = null)
+    {
+        string session = SessionJson(origin.Profile, origin.Mode, origin.World, origin.Client, origin.Via);
+        if (JsonNode.Parse(session) is not JsonObject issued) return session;
+        string token = SessionTokens.Issue(origin.Profile, origin.Nickname);
+        string root = origin.Via is null ? SessionLocator.PublicUrl : "http://" + origin.Via;
+        issued["token"] = token;
+        issued["reauthURL"] = $"{root}/session/reauth?token={token}";
+        if (origin.Language is not null) issued["language"] = ClientLanguages.For(origin.Language, origin.Client);
+        if (origin.WebSocket) issued["serverIP"] = "ws://" + issued["serverIP"]?.GetValue<string>();
+        foreach ((string key, object? value) in overrides ?? new Dictionary<string, object?>())
+        {
+            if (value is null) issued.Remove(key);
+            else issued[key] = JsonSerializer.SerializeToNode(value, value.GetType());
+        }
+        Reauths.Remember(token, origin);
+        return issued.ToJsonString();
     }
 
     byte[]? Thumbnail(int world) => ServerInfo.ThumbnailBytes() ?? Stores.Images.Image(PlanetImage, world > 0 ? world : ServerInfo.EntryWorld());

@@ -20,5 +20,6 @@ public sealed class LogicActivateRequest(Session session) : IOperationHandler
         session.Logic.Signal(objectId, player.Actor, activate);
         if (activate && obj.Type == WorldObjectType.ShootableButton) session.Logic.ReleaseLater(obj);
         session.Logic.Evaluate();
+        Plugins.PluginHost.Triggered(session, player, obj, activate);
     }
 }

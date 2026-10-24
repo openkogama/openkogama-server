@@ -4,6 +4,7 @@ using OpenKogama.Game;
 using OpenKogama.Handlers.Operations;
 using OpenKogama.Kogama;
 using OpenKogama.Photon;
+using OpenKogama.Physics;
 using OpenKogama.World;
 
 namespace OpenKogama.Plugins;
@@ -155,23 +156,31 @@ sealed class WorldEditor(GameWorld world, Session? session) : IWorldBuilder
 
 sealed class TerrainEditor(GameWorld world, Session? session) : ITerrain
 {
-    const int BatchCubes = 2048;
     const int MaxFillCubes = 500_000;
 
     public int Count => Prototype()?.Cubes.Count ?? 0;
 
+    public Cube? Get(int x, int y, int z) => Prototype()?.Cubes.Get(x, y, z) is byte[] cube ? CubeEdit.ToCube(cube) : null;
+
+    public IReadOnlyList<(int X, int Y, int Z)> Positions() =>
+        Prototype()?.Cubes.Positions().ConvertAll(cube => ((int)cube.X, (int)cube.Y, (int)cube.Z)) ?? [];
+
     public void Set(int x, int y, int z, byte material)
     {
-        var changes = new List<byte>();
-        CubeModel.AppendAdded(changes, Coordinate(x), Coordinate(y), Coordinate(z), material);
-        Apply(changes);
+        using ICubeEdit edit = Edit();
+        edit.Set(x, y, z, (Api.Material)material);
+    }
+
+    public void Set(int x, int y, int z, Cube cube)
+    {
+        using ICubeEdit edit = Edit();
+        edit.Set(x, y, z, cube);
     }
 
     public void Remove(int x, int y, int z)
     {
-        var changes = new List<byte>();
-        CubeModel.AppendDeleted(changes, Coordinate(x), Coordinate(y), Coordinate(z));
-        Apply(changes);
+        using ICubeEdit edit = Edit();
+        edit.Remove(x, y, z);
     }
 
     public int Fill(int x1, int y1, int z1, int x2, int y2, int z2, byte material)
@@ -182,64 +191,34 @@ sealed class TerrainEditor(GameWorld world, Session? session) : ITerrain
         long total = (long)(toX - fromX + 1) * (toY - fromY + 1) * (toZ - fromZ + 1);
         if (total > MaxFillCubes) throw new ArgumentException($"fill of {total} cubes is larger than {MaxFillCubes}");
 
-        var changes = new List<byte>();
-        int pending = 0;
+        using ICubeEdit edit = Edit();
         for (int x = fromX; x <= toX; x++)
             for (int y = fromY; y <= toY; y++)
                 for (int z = fromZ; z <= toZ; z++)
-                {
-                    CubeModel.AppendAdded(changes, Coordinate(x), Coordinate(y), Coordinate(z), material);
-                    if (++pending < BatchCubes) continue;
-                    Apply(changes);
-                    changes.Clear();
-                    pending = 0;
-                }
-        if (pending > 0) Apply(changes);
+                    edit.Set(x, y, z, (Api.Material)material);
         return (int)total;
     }
 
     public void Clear()
     {
         if (Prototype() is not { } prototype) return;
-        var changes = new List<byte>();
-        int pending = 0;
+        using ICubeEdit edit = Edit();
         foreach ((short x, short y, short z) in prototype.Cubes.Positions())
-        {
-            CubeModel.AppendDeleted(changes, x, y, z);
-            if (++pending < BatchCubes) continue;
-            Apply(changes);
-            changes.Clear();
-            pending = 0;
-        }
-        if (pending > 0) Apply(changes);
+            edit.Remove(x, y, z);
     }
 
-    void Apply(List<byte> changes)
+    public (int X, int Y, int Z) CubeAt(Vector3 position)
     {
-        Prototype prototype = Prototype() ?? throw new InvalidOperationException("this world has no terrain");
-        byte[] data = [.. changes];
-        prototype.Cubes.Apply(data);
-        world.MarkChanged();
-        if (session is null) return;
-
-        var evt = new EventData((byte)EventCode.UpdatePrototype)
-        {
-            Parameters =
-            {
-                [(byte)ParameterKey.WorldInventoryID] = prototype.Id,
-                [(byte)ParameterKey.WorldInventoryData] = data,
-            },
-        };
-        foreach (Player player in session.Players)
-            if (player.InWorld)
-                player.Peer.Send(evt);
+        WorldObject terrain = world.FindFirst(WorldObjectType.CubeModelPrototypeTerrain) ?? throw new InvalidOperationException("this world has no terrain");
+        Matrix4x4.Invert(CollisionWorld.Local(terrain, world) * world.WorldMatrix(terrain.ParentId), out Matrix4x4 toTerrain);
+        Vector3 cube = Vector3.Transform(position, toTerrain);
+        return ((int)MathF.Floor(cube.X + 0.5f), (int)MathF.Floor(cube.Y + 0.5f), (int)MathF.Floor(cube.Z + 0.5f));
     }
+
+    public ICubeEdit Edit() => new CubeEdit(world, session, Prototype() ?? throw new InvalidOperationException("this world has no terrain"));
 
     Prototype? Prototype() =>
         world.FindFirst(WorldObjectType.CubeModelPrototypeTerrain)?.PrototypeId is int id ? world.FindPrototype(id) : null;
 
     static (int From, int To) Order(int a, int b) => a <= b ? (a, b) : (b, a);
-
-    static short Coordinate(int value) =>
-        value is >= short.MinValue and <= short.MaxValue ? (short)value : throw new ArgumentOutOfRangeException(nameof(value), value, "cube coordinate out of range");
 }

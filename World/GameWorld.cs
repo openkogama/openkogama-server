@@ -310,16 +310,19 @@ public sealed class GameWorld
         }
     }
 
-    Matrix4x4 WorldMatrix(int id)
+    public Matrix4x4 WorldMatrix(int id)
     {
-        Matrix4x4 matrix = Matrix4x4.Identity;
-        for (WorldObject? obj = Get(id); obj is not null; obj = Get(obj.ParentId))
+        lock (_sync)
         {
-            matrix *= Matrix4x4.CreateScale(obj.Scale[0], obj.Scale[1], obj.Scale[2])
-                * Matrix4x4.CreateFromQuaternion(new Quaternion(obj.Rotation[0], obj.Rotation[1], obj.Rotation[2], obj.Rotation[3]))
-                * Matrix4x4.CreateTranslation(obj.Position[0], obj.Position[1], obj.Position[2]);
+            Matrix4x4 matrix = Matrix4x4.Identity;
+            for (WorldObject? obj = Get(id); obj is not null; obj = Get(obj.ParentId))
+            {
+                matrix *= Matrix4x4.CreateScale(obj.Scale[0], obj.Scale[1], obj.Scale[2])
+                    * Matrix4x4.CreateFromQuaternion(new Quaternion(obj.Rotation[0], obj.Rotation[1], obj.Rotation[2], obj.Rotation[3]))
+                    * Matrix4x4.CreateTranslation(obj.Position[0], obj.Position[1], obj.Position[2]);
+            }
+            return matrix;
         }
-        return matrix;
     }
 
     public bool Modify(int id, Action<WorldObject> change)

@@ -113,7 +113,7 @@ sealed class CollisionWorld
         return new CollisionWorld(bodies, gravity, terrainBottom);
     }
 
-    static Matrix4x4 Local(WorldObject obj, GameWorld world)
+    internal static Matrix4x4 Local(WorldObject obj, GameWorld world)
     {
         Vector3 scale = obj.Type is WorldObjectType.CubeModel or WorldObjectType.CubeModelPrototypeTerrain or WorldObjectType.CubeModelTerrainFineGrained
             && obj.PrototypeId is int id && world.FindPrototype(id) is { } prototype

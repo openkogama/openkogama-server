@@ -4,7 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <AssemblyName>OpenKogama.Api</AssemblyName>
     <RootNamespace>OpenKogama.Api</RootNamespace>
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <WarningsAsErrors>$(WarningsAsErrors);RS0016;RS0017</WarningsAsErrors>

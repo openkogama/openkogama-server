@@ -28,7 +28,10 @@ public sealed class Join(Session session) : IOperationHandler
         }
         if (request[(byte)ParameterKey.GameMode] is { } mode) player.Mode = (GameMode)Convert.ToInt32(mode);
         if (request[(byte)ParameterKey.ClientBuildTarget] is byte target) player.BuildTarget = target;
-        (int profile, string? nickname) = SessionTokens.Find(request[(byte)ParameterKey.Token] as string);
+        player.Token = request[(byte)ParameterKey.Token] as string;
+        player.Language = Reauths.LanguageOf(player.Token);
+        if (request[(byte)ParameterKey.Count] is int tries) player.ReauthTries = tries;
+        (int profile, string? nickname) = SessionTokens.Find(player.Token);
         if (profile > 0) player.ProfileId = profile;
         nickname ??= profile > 0 ? SessionToken.Clean(Storage.Stores.Profiles.Name(profile)) : null;
         if (nickname is not null)

@@ -30,10 +30,14 @@ public sealed class TriggerBox(Session session, bool entering) : IOperationHandl
         switch (obj.Type)
         {
             case WorldObjectType.TriggerBox or WorldObjectType.PressurePlate or WorldObjectType.TriggerCube:
+                bool moved = session.Triggers.Holds(objectId, actor) != entering;
                 bool changed = entering ? session.Triggers.Enter(objectId, actor) : session.Triggers.Exit(objectId, actor);
-                if (!changed) break;
-                Send(session, objectId, actor, entering);
-                session.Logic.Evaluate();
+                if (changed)
+                {
+                    Send(session, objectId, actor, entering);
+                    session.Logic.Evaluate();
+                }
+                if (moved) Plugins.PluginHost.Triggered(session, player, obj, entering);
                 break;
 
             case WorldObjectType.ShootableButton or WorldObjectType.UseLever:
@@ -41,6 +45,12 @@ public sealed class TriggerBox(Session session, bool entering) : IOperationHandl
                 Send(session, objectId, actor, entering);
                 if (entering && obj.Type == WorldObjectType.ShootableButton) session.Logic.ReleaseLater(obj);
                 session.Logic.Evaluate();
+                Plugins.PluginHost.Triggered(session, player, obj, entering);
+                break;
+
+            case WorldObjectType.Teleporter:
+                player.ReportsTeleporters = true;
+                Plugins.PluginHost.Triggered(session, player, obj, entering);
                 break;
 
             case WorldObjectType.GodzillaTrigger when ids.Length > 1:

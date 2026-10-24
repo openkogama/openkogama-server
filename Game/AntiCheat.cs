@@ -17,6 +17,12 @@ public static partial class AntiCheat
     const byte Victim = 0;
     const byte Killer = 1;
     const byte Reason = 2;
+    const int KillNotification = 1;
+    const byte NotifiedKiller = 6;
+    const byte NotifiedVictim = 7;
+    const byte NotifiedReason = 8;
+    const int MaxNotifications = 3;
+    const long NotificationWindowMs = 5000;
     const string TextKey = "text";
 
     static readonly Regex Markup = new("(?<kept></?[bi]>|<color=#?[0-9a-z]{1,8}>|</color>)|<[^<>]*>|[<>]", RegexOptions.IgnoreCase);
@@ -25,6 +31,7 @@ public static partial class AntiCheat
     static readonly Regex TagStart = new(@"<(?=\s*[/#a-z])", RegexOptions.IgnoreCase);
     static readonly Regex Crasher = new(@"^<\s*/?\s*(quad|material)\b|^<\s*size\s*=\s*[""']?-|(?<![#\w])\d{5,}", RegexOptions.IgnoreCase);
     static readonly ConditionalWeakTable<Player, Queue<long>> Sent = new();
+    static readonly ConditionalWeakTable<Player, Queue<long>> Notified = new();
 
     public static bool Crash { get; set; } = true;
     public static bool Spam { get; set; } = true;
@@ -106,6 +113,26 @@ public static partial class AntiCheat
         var message = new Dictionary<object, object?> { [Victim] = sender.Actor, [Killer] = killer };
         if (Value(data, Reason) is byte or short or int) message[Reason] = Value(data, Reason);
         return message;
+    }
+
+    public static Dictionary<object, object?>? Notification(Session session, Player sender, int type, Dictionary<object, object?> data)
+    {
+        if (Spam && Floods(Notified.GetOrCreateValue(sender), MaxNotifications, NotificationWindowMs)) return null;
+        if (Spoof && type == KillNotification && Actor(data, NotifiedVictim) != sender.Actor) return null;
+        if (!Crash) return data;
+        if (type != KillNotification || Actor(data, NotifiedVictim) is not int victim || Actor(data, NotifiedKiller) is not int killer
+            || Actor(data, NotifiedReason) is not (>= 0 and <= byte.MaxValue and int reason)
+            || !session.Players.Any(player => player.Actor == killer) && !session.Npcs.Any(npc => npc.Actor == killer))
+            return null;
+        return new() { [NotifiedVictim] = victim, [NotifiedKiller] = killer, [NotifiedReason] = (byte)reason };
+    }
+
+    public static Dictionary<object, object?> Notification(Dictionary<object, object?> data, string from, string to)
+    {
+        if (Value(data, NotifiedReason) is not byte reason) return data;
+        Dictionary<object, object?> copy = new(data);
+        copy[data.Keys.First(key => Convert.ToInt32(key) == NotifiedReason)] = KillReasons.ToClient(KillReasons.FromClient(reason, from), to);
+        return copy;
     }
 
     static bool Floods(Player player) => Spam && Floods(Sent.GetOrCreateValue(player), MaxMessages, MessageWindowMs);

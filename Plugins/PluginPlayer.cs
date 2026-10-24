@@ -81,6 +81,24 @@ sealed class PluginPlayer(Player player, Session session) : IPlayer
         && session.World.Find(trigger.Id) is { Type: WorldObjectType.GodzillaTrigger } target
         && Colossus.Enter(session, target, player.PlayAvatar);
 
+    public int ReauthsLeft => Reauths.Left(player);
+
+    public string Language => player.Language ?? "en";
+
+    public bool Reauth(ReauthOptions options) =>
+        (options.World is not int world || Stores.Worlds.World(world) is not null)
+        && Reauths.Start(player, new Reauths.Plan(options.World, ModeOf(options.Mode), new Dictionary<string, object?>(options.Session)));
+
+    public bool MoveToWorld(int world, WorldMode mode = WorldMode.Play) => Reauth(new ReauthOptions { World = world, Mode = mode });
+
+    static GameMode? ModeOf(WorldMode? mode) => mode switch
+    {
+        WorldMode.Play => GameMode.Play,
+        WorldMode.Build => GameMode.Edit,
+        WorldMode.AvatarEditor => GameMode.CharacterEditor,
+        _ => null,
+    };
+
     bool Free => Playing && session.World.Find(player.PlayAvatar) is { } avatar && (Runtime(avatar, "seat") as int? ?? -1) < 0;
 
     public bool IsAdmin => PluginHost.Admin(player);

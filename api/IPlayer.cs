@@ -18,6 +18,8 @@ public interface IPlayer
     Team Team { get; }
     AvatarItem Holding { get; }
     int? SoundEmitter { get; }
+    int ReauthsLeft { get; }
+    string Language { get; }
 
     int AddXp(int amount);
     int AddGold(int amount);
@@ -34,5 +36,7 @@ public interface IPlayer
     bool GiveLightningSpeed();
     bool EnterVehicle(IWorldObject vehicle);
     bool BecomeColossus(IWorldObject trigger);
+    bool Reauth(ReauthOptions options);
+    bool MoveToWorld(int world, WorldMode mode = WorldMode.Play);
     void Kick();
 }

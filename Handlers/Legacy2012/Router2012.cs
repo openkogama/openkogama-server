@@ -477,6 +477,7 @@ public sealed class Router2012
             return;
         }
 
+        bool moved = session.Triggers.Holds(objectId, player.Actor) != entering;
         bool changed = entering ? session.Triggers.Enter(objectId, player.Actor) : session.Triggers.Exit(objectId, player.Actor);
         var parameters = new Dictionary<byte, object?>
         {
@@ -490,6 +491,7 @@ public sealed class Router2012
             Broadcast(null, new EventData((byte)(entering ? Event2012.TriggerBoxStayBegin : Event2012.TriggerBoxStayEnd)) { Parameters = new(parameters) });
             session.Logic.Evaluate();
         }
+        if (moved) Plugins.PluginHost.Triggered(session, player, obj, entering);
     }
 
     void TakePickup(int objectId, int actor)

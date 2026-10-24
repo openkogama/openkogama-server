@@ -149,6 +149,9 @@ public static class PluginHost
     public static void Tick()
     {
         long now = Environment.TickCount64;
+        if (Server.WatchesTriggers)
+            foreach (Session session in Sessions)
+                TeleporterPads.Watch(session, Triggered);
         Server.OnUpdate((now - Interlocked.Exchange(ref _lastUpdate, now)) / 1000f);
         if (now - Interlocked.Read(ref _lastTick) < TickMs) return;
         Interlocked.Exchange(ref _lastTick, now);
@@ -182,6 +185,9 @@ public static class PluginHost
 
     public static void Collected(Session session, Player player, WorldObject obj) =>
         Server.OnCollected(PlayerOf(session, player), new PluginObject(obj));
+
+    public static void Triggered(Session session, Player player, WorldObject obj, bool on) =>
+        Server.OnTriggered(PlayerOf(session, player), new PluginObject(obj), on);
 
     public static void RoundStarted(Session session) => Server.OnRoundStarted(WorldOf(session));
 
@@ -247,6 +253,7 @@ public static class PluginHost
         public event Action<IPlayer, AvatarAnimation>? PlayerAnimated;
         public event Action<IPlayer, AvatarItem>? PlayerSwitchedItem;
         public event Action<IPlayer, AvatarItem>? PlayerPickedUp;
+        public event Action<IPlayer, IWorldObject, bool>? PlayerTriggered;
         public event Action<IPlayer, string>? Gesture;
         public event Action<IPlayer, string>? Animation;
 
@@ -341,6 +348,14 @@ public static class PluginHost
         {
             foreach (Action<IPlayer, IWorldObject> handler in Handlers(ItemCollected))
                 Guard(() => handler(player, obj));
+        }
+
+        public bool WatchesTriggers => PlayerTriggered is not null;
+
+        public void OnTriggered(IPlayer player, IWorldObject obj, bool on)
+        {
+            foreach (Action<IPlayer, IWorldObject, bool> handler in Handlers(PlayerTriggered))
+                Guard(() => handler(player, obj, on));
         }
 
         public void OnRoundStarted(IWorld world) => Raise(RoundStarted, world);

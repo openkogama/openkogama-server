@@ -45,6 +45,11 @@ public sealed class Triggers
         lock (_inside) return _inside.TryGetValue(objectId, out HashSet<int>? actors) && actors.Count > 0;
     }
 
+    public bool Holds(int objectId, int actor)
+    {
+        lock (_inside) return _inside.TryGetValue(objectId, out HashSet<int>? actors) && actors.Contains(actor);
+    }
+
     public void Clear()
     {
         lock (_inside)

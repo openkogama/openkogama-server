@@ -14,7 +14,7 @@ static class CubeShape
 
     public static readonly FaceFlags[] AllFaces = [FaceFlags.Top, FaceFlags.Bottom, FaceFlags.Front, FaceFlags.Back, FaceFlags.Left, FaceFlags.Right];
 
-    static readonly byte[] IdentityCorners = [20, 120, 124, 24, 4, 104, 100, 0];
+    public static readonly byte[] IdentityCorners = [20, 120, 124, 24, 4, 104, 100, 0];
 
     static readonly (int[] Corners, Face Face)[] FaceCorners =
     [

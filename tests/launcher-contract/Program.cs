@@ -93,6 +93,36 @@ try
     Check(SessionTokens.Find(issued) == (4, "nightus") && SessionTokens.Find("4") == (0, null) && SessionTokens.Find("4-6E69676874757573") == (0, null),
         "session tokens are random, carry the nickname and cannot be forged from a profile number");
     Check(SessionTokens.Find(SessionTokens.Issue(5, "<size=1>Rev>")).Name == "Rev>", "nicknames cannot carry rich text tags");
+    var reauthing = new WebApi
+    {
+        ServerInfo = new ServerInfo(),
+        SessionJson = (profile, mode, world, client, _) =>
+            JsonSerializer.Serialize(new { serverIP = "127.0.0.1:5055", profileID = profile, planetID = world, gameMode = (int)mode, planetName = client }),
+    };
+    JsonElement Session(ApiResponse response) => JsonDocument.Parse(response.Body).RootElement.Clone();
+    ApiResponse Reauth(string token) => reauthing.Route(Get("/session/reauth", ("token", token)));
+    JsonElement booted = Session(reauthing.Route(Get("/session", ("mode", "play"), ("world", "7"), ("client", "1.81.7"))));
+    string bootToken = booted.GetProperty("token").GetString()!;
+    Check(booted.GetProperty("reauthURL").GetString() == $"{SessionLocator.PublicUrl}/session/reauth?token={bootToken}",
+        "every session tells the client where to reauthenticate");
+    JsonElement again = Session(Reauth(bootToken));
+    string againToken = again.GetProperty("token").GetString()!;
+    Check(again.GetProperty("planetID").GetInt32() == 7 && againToken != bootToken && SessionTokens.Find(againToken) == SessionTokens.Find(bootToken)
+        && again.GetProperty("reauthURL").GetString()!.EndsWith(againToken), "a reauth without a plan rejoins the same world with a fresh token");
+    Check(Reauth(bootToken).Status == 404 && Reauth("made-up").Status == 404, "a reauth address works once and cannot be guessed");
+    Check(Reauths.Schedule(againToken, new Reauths.Plan(9, GameMode.Edit, new Dictionary<string, object?> { ["language"] = "pl_PL", ["planetName"] = null })),
+        "a plugin can plan where the next reauth goes");
+    Check(!Reauths.Schedule(againToken, new Reauths.Plan(7, null, new Dictionary<string, object?>())), "a second plan waits until the first one is used");
+    JsonElement moved = Session(Reauth(againToken));
+    Check(moved.GetProperty("planetID").GetInt32() == 9 && moved.GetProperty("gameMode").GetInt32() == (int)GameMode.Edit
+        && moved.GetProperty("language").GetString() == "pl_PL" && !moved.TryGetProperty("planetName", out _),
+        "a planned reauth moves the client and a plugin can set or drop any session field");
+    JsonElement launched = Session(reauthing.Route(Get("/session", ("mode", "play"), ("world", "7"), ("key", "launch-1"))));
+    string launchToken = launched.GetProperty("token").GetString()!;
+    Reauths.Schedule(launchToken, new Reauths.Plan(9, null, new Dictionary<string, object?>()));
+    JsonElement restarted = Session(reauthing.Route(Get("/session", ("mode", "play"), ("world", "7"), ("key", "launch-1"))));
+    Check(restarted.GetProperty("planetID").GetInt32() == 9 && SessionTokens.Find(restarted.GetProperty("token").GetString()) == SessionTokens.Find(launchToken),
+        "a game that reloads itself asks again with its launch key and gets the planned world as the same player");
     Check(AntiCheat.Text("<quad size=-2147483648 width=2147483648>hi <b>bold</b> <color=#ff0000>red</color> <size=999>big</size>")
         == "hi <b>bold</b> <color=#ff0000>red</color> big", "chat keeps bold, italics and colors and drops every other rich text tag");
     Check(AntiCheat.Text("<<quad>quad size=9 width=9>") == "quad size=9 width=9" && AntiCheat.Text("i <3 you") == "i 3 you",

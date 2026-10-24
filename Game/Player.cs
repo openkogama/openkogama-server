@@ -28,6 +28,10 @@ public sealed class Player(PhotonPeer peer, int actor, int avatarId)
     public int? PendingReward { get; set; }
     public int? SoundEmitter { get; set; }
     public string? Nickname { get; set; }
+    public string? Token { get; set; }
+    public string? Language { get; set; }
+    public int? ReauthTries { get; set; }
+    public bool ReportsTeleporters { get; set; }
     public string Username => Nickname ?? $"Player{actor}";
     public string Region => "en_US";
 

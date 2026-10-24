@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using OpenKogama.Kogama;
+using OpenKogama.Physics;
 
 namespace OpenKogama.Game;
 
@@ -46,6 +47,18 @@ public sealed class CubeModel
         AppendPosition(changes, x, y, z);
         changes.Add(DefaultCorners | OneMaterial);
         changes.Add(material);
+    }
+
+    public static void AppendAdded(List<byte> changes, short x, short y, short z, ReadOnlySpan<byte> corners, ReadOnlySpan<byte> materials)
+    {
+        bool defaultCorners = corners.SequenceEqual(CubeShape.IdentityCorners);
+        bool oneMaterial = materials.IndexOfAnyExcept(materials[0]) < 0;
+        changes.Add((byte)CubeAction.Added);
+        AppendPosition(changes, x, y, z);
+        changes.Add((byte)((defaultCorners ? DefaultCorners : 0) | (oneMaterial ? OneMaterial : 0)));
+        if (!defaultCorners) changes.AddRange(corners);
+        if (oneMaterial) changes.Add(materials[0]);
+        else changes.AddRange(materials);
     }
 
     public static void AppendDeleted(List<byte> changes, short x, short y, short z)
@@ -108,12 +121,12 @@ public sealed class CubeModel
         return model;
     }
 
-    public void Apply(byte[] changes)
+    public void Apply(ReadOnlySpan<byte> changes)
     {
         lock (_sync) ApplyUnsafe(changes);
     }
 
-    void ApplyUnsafe(byte[] changes)
+    void ApplyUnsafe(ReadOnlySpan<byte> changes)
     {
         int offset = 0;
 
@@ -187,21 +200,21 @@ public sealed class CubeModel
         return stream.ToArray();
     }
 
-    static byte[] ReadCube(byte[] data, ref int offset)
+    static byte[] ReadCube(ReadOnlySpan<byte> data, ref int offset)
     {
         byte flags = data[offset];
         int length = 1
             + ((flags & DefaultCorners) != 0 ? 0 : 8)
             + ((flags & OneMaterial) != 0 ? 1 : 6);
 
-        byte[] cube = data[offset..(offset + length)];
+        byte[] cube = data.Slice(offset, length).ToArray();
         offset += length;
         return cube;
     }
 
-    static short ReadInt16(byte[] data, ref int offset)
+    static short ReadInt16(ReadOnlySpan<byte> data, ref int offset)
     {
-        short value = BinaryPrimitives.ReadInt16BigEndian(data.AsSpan(offset));
+        short value = BinaryPrimitives.ReadInt16BigEndian(data[offset..]);
         offset += 2;
         return value;
     }
