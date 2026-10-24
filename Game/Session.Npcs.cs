@@ -45,7 +45,7 @@ public sealed partial class Session
     {
         int actor = Interlocked.Increment(ref _nextNpcActor);
         List<WorldObject> avatar = Avatar.Build(World, actor, World.RootId, _avatarPrototypes);
-        var npc = new Npc(actor, avatar[0].Id, name, [.. position], yaw) { Size = Math.Clamp(size, Npc.MinSize, Npc.MaxSize), Level = Math.Max(1, level) };
+        var npc = new Npc(actor, avatar[0].Id, name, [.. position], yaw) { Size = Math.Clamp(size, Npc.MinSize, Npc.MaxSize), Level = Math.Max(1, level), Parts = parts, Accessories = accessories };
         float avatarScale = npc.AvatarScale;
         avatar[0].Position = [.. position];
         avatar[0].Rotation = npc.Rotation;
@@ -361,8 +361,12 @@ public sealed partial class Session
     void Combat(Npc npc, CollisionWorld collision, long now)
     {
         while (npc.Respawns.TryDequeue(out Vector3 position)) Respawn(npc, position);
-        while (npc.Damages.TryDequeue(out (float Amount, int Actor) damage))
-            Damage(npc, damage.Amount, damage.Actor, damage.Actor == npc.Actor ? KilledBy.Environmental : KilledBy.None, now);
+        while (npc.Damages.TryDequeue(out (float Amount, int Actor, Vector3 Impulse) damage))
+        {
+            if (!npc.Alive || Allied(npc, damage.Actor)) continue;
+            Damage(npc, damage.Amount, damage.Actor, CauseOf(npc, damage.Actor), now);
+            Push(npc, damage.Impulse, now, noFriction: false);
+        }
         while (npc.Hits.TryDequeue(out (int Actor, Interaction Interaction) hit)) Hit(npc, hit.Actor, hit.Interaction, now);
 
         float seconds = MathF.Min((now - npc.LastStep) / 1000f, MaxCatchUpSeconds);
@@ -389,7 +393,7 @@ public sealed partial class Session
 
     void Hit(Npc npc, int actor, Interaction interaction, long now)
     {
-        if (!npc.Alive) return;
+        if (!npc.Alive || Allied(npc, actor)) return;
         switch (interaction.Type)
         {
             case InteractionType.ImpulseGunHit:
@@ -506,7 +510,8 @@ public sealed partial class Session
         }
 
         Player? killer = killerActor == npc.Actor ? null : PlayerOf(killerActor);
-        Console.WriteLine($"npc {npc.Actor}: {npc.Name} killed by {killer?.Username ?? "nothing"} with {killedBy}");
+        string by = killerActor == npc.Actor ? "nothing" : killer?.Username ?? NpcByActor(killerActor)?.Name ?? "nothing";
+        Console.WriteLine($"npc {npc.Actor}: {npc.Name} killed by {by} with {killedBy}");
         Plugins.PluginHost.NpcKilled(this, npc, killer);
     }
 
@@ -535,6 +540,19 @@ public sealed partial class Session
     }
 
     Player? PlayerOf(int actor) => _players.FirstOrDefault(player => player.Actor == actor);
+
+    public Npc? NpcByActor(int actor)
+    {
+        lock (_npcs) return _npcs.FirstOrDefault(npc => npc.Actor == actor);
+    }
+
+    bool Allied(Npc npc, int actor) =>
+        actor != npc.Actor && npc.Team is Team team && (PlayerOf(actor)?.Team ?? NpcByActor(actor)?.Team) == team;
+
+    KilledBy CauseOf(Npc npc, int actor) =>
+        actor == npc.Actor ? KilledBy.Environmental
+        : NpcByActor(actor) is { } attacker ? attacker.ColossusScale is not null ? KilledBy.GodzillaLaser : KilledBy.Mutant
+        : KilledBy.None;
 
     public void DamagePlayer(Player victim, int attackerActor, float damage, Vector3 impulse, KilledBy killedBy)
     {

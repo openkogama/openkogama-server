@@ -37,6 +37,10 @@ public sealed class Npc(int actor, int avatarId, string name, float[] position, 
     public float Size { get; internal set; } = 1f;
     public int Level { get; internal set; } = 1;
     public bool OnFire { get; set; }
+    public Team? Team { get; internal set; }
+    public int TeamId => Team is Team team ? (int)team : NoTeam;
+    public List<AvatarPart>? Parts { get; init; }
+    public List<WornAccessory>? Accessories { get; init; }
     public string? SizeModifier => Size < 1f ? "_Shrunken" : Size > 1f ? "_Enlarged" : null;
     public float? ColossusScale { get; internal set; }
     public float EyeHeight => ColossusScale is float scale ? ColossusEye * scale : Size;
@@ -46,7 +50,7 @@ public sealed class Npc(int actor, int avatarId, string name, float[] position, 
 
     internal ConcurrentQueue<(int Actor, Interaction Interaction)> Hits { get; } = new();
     internal ConcurrentQueue<Vector3> Respawns { get; } = new();
-    internal ConcurrentQueue<(float Amount, int Actor)> Damages { get; } = new();
+    internal ConcurrentQueue<(float Amount, int Actor, Vector3 Impulse)> Damages { get; } = new();
     internal long DiedAt { get; set; }
     internal long NoFrictionUntil { get; set; }
     internal long BurnUntil { get; set; }
@@ -89,7 +93,7 @@ public sealed class Npc(int actor, int avatarId, string name, float[] position, 
         (ParameterKey.ProfileID, ProfileOffset + Actor),
         (ParameterKey.Username, Name),
         (ParameterKey.RegionCode, "en_US"),
-        (ParameterKey.TeamID, NoTeam),
+        (ParameterKey.TeamID, TeamId),
         (ParameterKey.Level, Level),
         (ParameterKey.ClientBuildTarget, (byte)1),
         (ParameterKey.IsActorReady, true),

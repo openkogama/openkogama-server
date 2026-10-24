@@ -393,6 +393,12 @@ public sealed class GameWorld
     public void AddRuntimeEvent(byte[] runtimeEvent)
     {
         lock (_sync) _runtimeEvents.Add(runtimeEvent);
+        MarkChanged();
+    }
+
+    public List<byte[]> RuntimeEventsFrom(int index)
+    {
+        lock (_sync) return [.. _runtimeEvents.Skip(index)];
     }
 
     public int RuntimeEventCount
@@ -403,6 +409,7 @@ public sealed class GameWorld
     public void ClearRuntimeEvents()
     {
         lock (_sync) _runtimeEvents.Clear();
+        MarkChanged();
     }
 
     List<WorldObject> Ordered()
@@ -414,7 +421,7 @@ public sealed class GameWorld
         return ordered;
     }
 
-    Snapshot ToSaveSnapshot()
+    Snapshot ToSaveSnapshot(bool runtimeEvents = false)
     {
         lock (_sync)
         {
@@ -425,7 +432,10 @@ public sealed class GameWorld
                     skipped.Add(obj.Id);
 
             List<WorldObject> objects = [.. all.Where(obj => !skipped.Contains(obj.Id))];
-            return new Snapshot(UsedPrototypes(objects), objects, [.. _links], [.. _objectLinks]);
+            return new Snapshot(UsedPrototypes(objects), objects, [.. _links], [.. _objectLinks])
+            {
+                RuntimeEvents = runtimeEvents ? TerrainEvents.Compact(_runtimeEvents) : [],
+            };
         }
     }
 
@@ -445,6 +455,8 @@ public sealed class GameWorld
     }
 
     public byte[] ToData() => WorldSerializer.Write(ToSaveSnapshot());
+
+    public byte[] ToPlayData() => WorldSerializer.Write(ToSaveSnapshot(runtimeEvents: true));
 
     public void Save(string path)
     {
@@ -471,15 +483,16 @@ public sealed class GameWorld
         return FromData(meta["GameTitle"]?.GetValue<string>() ?? "", spawn, batches, keep);
     }
 
-    public static GameWorld FromData(string name, float[]? spawn, IEnumerable<byte[]> batches, Func<WorldObject, bool>? keep = null)
+    public static GameWorld FromData(string name, float[]? spawn, IEnumerable<byte[]> batches, Func<WorldObject, bool>? keep = null, bool runtimeEvents = false)
     {
         var world = new GameWorld { Name = name };
 
         var objects = new List<WorldObject>();
         foreach (byte[] batch in batches)
         {
-            Snapshot snapshot = WorldSerializer.Read(batch);
+            Snapshot snapshot = WorldSerializer.Read(batch, events: runtimeEvents);
             foreach (Prototype prototype in snapshot.Prototypes) world.Add(prototype);
+            world._runtimeEvents.AddRange(snapshot.RuntimeEvents);
             objects.AddRange(snapshot.Objects);
             world._links.AddRange(snapshot.Links);
             world._objectLinks.AddRange(snapshot.ObjectLinks);

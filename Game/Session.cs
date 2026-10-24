@@ -236,10 +236,10 @@ public sealed partial class Session
 
         try
         {
-            byte[] data = World.ToData();
+            byte[] data = Play ? World.ToPlayData() : World.ToData();
             if (Play)
             {
-                GameWorld.FromData(Name, null, [data]);
+                GameWorld.FromData(Name, null, [data], runtimeEvents: true);
                 Stores.Worlds.SavePlayState(id, data);
                 Console.WriteLine($"world {id} play changes saved");
             }
@@ -266,7 +266,7 @@ public sealed partial class Session
             {
                 try
                 {
-                    GameWorld world = GameWorld.FromData(stored.Name, null, [saved]);
+                    GameWorld world = GameWorld.FromData(stored.Name, null, [saved], runtimeEvents: true);
                     if (world.HasRootGroup) return new Session(world, id, stored.Name, play);
                     Console.WriteLine($"world {id}: saved play changes have no root group, skipped");
                 }

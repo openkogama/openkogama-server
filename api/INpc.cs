@@ -7,6 +7,9 @@ public interface INpc
     int Id { get; }
     int ObjectId { get; }
     string Name { get; }
+    IWorld World { get; }
+    AvatarSkin Skin { get; }
+    Team? Team { get; }
     Vector3 Position { get; }
     Vector3 EyePosition { get; }
     float Yaw { get; }
@@ -38,6 +41,11 @@ public interface INpc
     void PlayAnimation(string? state);
     void PlayAnimation(AvatarAnimation state) => PlayAnimation(state == AvatarAnimation.Unknown ? null : state.ToString());
     void Damage(float amount, IPlayer? by = null);
+    void Damage(float amount, IPlayer? by, Vector3 impulse);
+    void Damage(float amount, INpc by);
+    void Damage(float amount, INpc by, Vector3 impulse);
+    bool SetTeam(Team? team);
+    void Say(string text);
     void Respawn(Vector3 position);
     void Remove();
 }

@@ -46,16 +46,28 @@ public sealed class Teams
         player.Team = team;
         _session.Round.Stats.RemoveActor(player.Actor);
         foreach (Player other in _session.Players)
-            other.Peer.Send(new EventData((byte)EventCode.SetTeam)
-            {
-                Parameters =
-                {
-                    [(byte)ParameterKey.ActorNr] = player.Actor,
-                    [(byte)ParameterKey.TeamID] = IdFor(other, (int)team),
-                },
-            });
+            other.Peer.Send(Joined(player.Actor, IdFor(other, (int)team)));
         return true;
     }
+
+    public bool Set(Npc npc, Team? team)
+    {
+        if (team is Team joined && !Active.Contains(joined)) return false;
+
+        npc.Team = team;
+        foreach (Player other in _session.Players.Where(other => other.Saw(npc.Actor)))
+            other.Peer.Send(Joined(npc.Actor, npc.TeamId));
+        return true;
+    }
+
+    static EventData Joined(int actor, int team) => new((byte)EventCode.SetTeam)
+    {
+        Parameters =
+        {
+            [(byte)ParameterKey.ActorNr] = actor,
+            [(byte)ParameterKey.TeamID] = team,
+        },
+    };
 
     public void Update()
     {
@@ -69,6 +81,9 @@ public sealed class Teams
         }
 
         foreach (Team team in added) Broadcast(EventCode.AddTeam, team);
+
+        foreach (Npc npc in _session.Npcs.Where(npc => npc.Team is Team team && removed.Contains(team)))
+            Set(npc, null);
 
         List<Player> moved = [.. _session.Players.Where(player => removed.Contains(player.Team))];
         foreach (Team team in removed)

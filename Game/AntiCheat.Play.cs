@@ -1,4 +1,3 @@
-using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 using OpenKogama.Handlers;
 using OpenKogama.Handlers.Legacy2012;
@@ -18,9 +17,9 @@ public static partial class AntiCheat
     const int MaxEvents = 40;
     const long EventWindowMs = 2000;
     const int Depth = 64;
-    const byte CubeAdd = 1;
-    const byte CubeRemove = 2;
-    const byte AddedCubeRemove = 5;
+    const byte CubeAdd = TerrainEvents.CubeAdd;
+    const byte CubeRemove = TerrainEvents.CubeRemove;
+    const byte AddedCubeRemove = TerrainEvents.AddedCubeRemove;
     const byte Driver = 0;
     const byte Spawner = 1;
     const byte Vehicle = 4;
@@ -176,13 +175,12 @@ public static partial class AntiCheat
     static bool RuntimeEvent(Session session, Player? player, byte[]? data)
     {
         byte type = data is { Length: > 0 } ? data[0] : (byte)0;
-        bool known = data is not null && data.Length == (type == CubeAdd ? 8 : 7) && (type is CubeAdd or CubeRemove or AddedCubeRemove || Explosions.Contains(type));
+        bool known = data is not null && TerrainEvents.Valid(data) && (type is CubeAdd or CubeRemove or AddedCubeRemove || Explosions.Contains(type));
         if (Crash && !known) return false;
         if (Spam && player is not null && Floods(Events.GetOrCreateValue(player), MaxEvents, EventWindowMs)) return false;
-        if (!Build || !known || Explosions.Contains(type)) return true;
+        if (!Build || !known || data is null || Explosions.Contains(type)) return true;
 
-        ReadOnlySpan<byte> position = data.AsSpan(data!.Length - 6);
-        (short, short, short) cube = (BinaryPrimitives.ReadInt16BigEndian(position), BinaryPrimitives.ReadInt16BigEndian(position[2..]), BinaryPrimitives.ReadInt16BigEndian(position[4..]));
+        (short, short, short) cube = TerrainEvents.Cube(data);
         Terrain terrain = Terrains.GetOrCreateValue(session.World);
         lock (terrain)
         {
@@ -191,7 +189,9 @@ public static partial class AntiCheat
             {
                 terrain.Added.Clear();
                 terrain.Broken.Clear();
+                terrain.Events = 0;
             }
+            if (terrain.Events < count) Replay(session, terrain, session.World.RuntimeEventsFrom(terrain.Events));
             bool allowed = type == CubeAdd
                 ? Tough(data[1]) > 0 && GunMaterials(session, player).Contains(data[1])
                 : terrain.Added.Remove(cube) || Destructible(session, terrain, cube);
@@ -199,6 +199,17 @@ public static partial class AntiCheat
             if (type == CubeAdd) terrain.Added[cube] = data[1];
             terrain.Events = Records(session.World) ? count + 1 : count;
             return true;
+        }
+    }
+
+    static void Replay(Session session, Terrain terrain, List<byte[]> runtimeEvents)
+    {
+        foreach (byte[] past in runtimeEvents)
+        {
+            if (!TerrainEvents.Valid(past) || past[0] is not (CubeAdd or CubeRemove or AddedCubeRemove)) continue;
+            (short, short, short) cube = TerrainEvents.Cube(past);
+            if (past[0] == CubeAdd) terrain.Added[cube] = past[1];
+            else if (!terrain.Added.Remove(cube)) Destructible(session, terrain, cube);
         }
     }
 

@@ -113,7 +113,12 @@ sealed class PluginPlayer(Player player, Session session) : IPlayer
 
     static object? Runtime(WorldObject obj, string key) => obj.Runtime.Find(pair => pair.Key == key).Value;
 
-    public void Damage(float amount, INpc? by = null, Vector3? impulse = null) =>
+    public void Damage(float amount, INpc? by = null, Vector3? impulse = null)
+    {
+        Npc? attacker = by is null ? null : session.NpcByActor(by.Id);
+        if (attacker?.Team == player.Team) return;
         session.DamagePlayer(player, by?.Id ?? player.Actor, amount, impulse ?? Vector3.Zero, by is null ? KilledBy.Environmental
-            : session.Npcs.FirstOrDefault(npc => npc.Actor == by.Id)?.ColossusScale is not null ? KilledBy.GodzillaLaser : KilledBy.Mutant);
+            : attacker?.ColossusScale is not null ? KilledBy.GodzillaLaser : KilledBy.Mutant);
+        if (attacker is not null) PluginHost.DamagedByNpc(session, player, attacker, amount);
+    }
 }

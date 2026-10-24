@@ -10,6 +10,7 @@ public interface IServer
     event Action<IPlayer, IPlayer>? PlayerKilled;
     event Action<IPlayer, IPlayer>? PlayerHit;
     event Action<IPlayer, INpc>? PlayerKilledByNpc;
+    event Action<IPlayer, INpc, float>? PlayerDamagedByNpc;
     event Action<IPlayer, IWorldObject>? ItemCollected;
     event Action<IWorld>? RoundStarted;
     event Action<IWorld, IWorldObject, IPlayer?>? ObjectAdded;

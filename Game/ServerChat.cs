@@ -89,9 +89,19 @@ public static class ServerChat
             player.Peer.Send(Chat2012(speaker.Actor, text));
     }
 
-    static Dictionary<object, object?> Line(Player speaker, string text) => new()
+    public static void Say(Session session, Npc speaker, string text)
     {
-        [SendChatMsg.Sender] = speaker.Actor,
+        foreach (Player player in session.Players.Where(player => player.InWorld && player.Saw(speaker.Actor)))
+            player.Peer.Send(player.Peer.Protocol == PhotonProtocol.Protocol15
+                ? Chat2012(speaker.Actor, text)
+                : GameMessage(player.ChatKinds ? NearbyMessage : SendChatMsg.ChatMessage, Line(speaker.Actor, text)));
+    }
+
+    static Dictionary<object, object?> Line(Player speaker, string text) => Line(speaker.Actor, text);
+
+    static Dictionary<object, object?> Line(int actor, string text) => new()
+    {
+        [SendChatMsg.Sender] = actor,
         [SendChatMsg.Text] = text,
     };
 

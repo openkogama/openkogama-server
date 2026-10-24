@@ -183,6 +183,9 @@ public static class PluginHost
     public static void KilledByNpc(Session session, Player victim, Npc npc) =>
         Server.OnKilledByNpc(PlayerOf(session, victim), new PluginNpc(session, npc));
 
+    public static void DamagedByNpc(Session session, Player victim, Npc npc, float amount) =>
+        Server.OnDamagedByNpc(PlayerOf(session, victim), new PluginNpc(session, npc), amount);
+
     public static void Collected(Session session, Player player, WorldObject obj) =>
         Server.OnCollected(PlayerOf(session, player), new PluginObject(obj));
 
@@ -243,6 +246,7 @@ public static class PluginHost
         public event Action<IPlayer, IPlayer>? PlayerKilled;
         public event Action<IPlayer, IPlayer>? PlayerHit;
         public event Action<IPlayer, INpc>? PlayerKilledByNpc;
+        public event Action<IPlayer, INpc, float>? PlayerDamagedByNpc;
         public event Action<IPlayer, IWorldObject>? ItemCollected;
         public event Action<IWorld>? RoundStarted;
         public event Action<IWorld, IWorldObject, IPlayer?>? ObjectAdded;
@@ -342,6 +346,12 @@ public static class PluginHost
         {
             foreach (Action<IPlayer, INpc> handler in Handlers(PlayerKilledByNpc))
                 Guard(() => handler(victim, killer));
+        }
+
+        public void OnDamagedByNpc(IPlayer victim, INpc attacker, float amount)
+        {
+            foreach (Action<IPlayer, INpc, float> handler in Handlers(PlayerDamagedByNpc))
+                Guard(() => handler(victim, attacker, amount));
         }
 
         public void OnCollected(IPlayer player, IWorldObject obj)

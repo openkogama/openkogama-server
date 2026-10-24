@@ -50,7 +50,7 @@ public static class WorldSerializer
     public static byte[] Write(IReadOnlyList<Prototype> prototypes, IReadOnlyList<WorldObject> objects) =>
         Write(new Snapshot(prototypes, objects, [], []));
 
-    public static Snapshot Read(byte[] data, bool runtime = true) => Read(new BytePackerReader(data), runtime);
+    public static Snapshot Read(byte[] data, bool runtime = true, bool events = false) => Read(new BytePackerReader(data), runtime, events);
 
     public static Snapshot? ReadExact(byte[] data, bool runtime)
     {
@@ -66,7 +66,7 @@ public static class WorldSerializer
         }
     }
 
-    static Snapshot Read(BytePackerReader reader, bool runtime)
+    static Snapshot Read(BytePackerReader reader, bool runtime, bool events = false)
     {
         var prototypes = new List<Prototype>();
         for (int i = reader.ReadInt32(); i > 0; i--)
@@ -79,7 +79,21 @@ public static class WorldSerializer
         List<Link> links = ReadLinks(reader);
         List<Link> objectLinks = ReadLinks(reader);
 
-        return new Snapshot(prototypes, objects, links, objectLinks);
+        return new Snapshot(prototypes, objects, links, objectLinks)
+        {
+            RuntimeEvents = events && !reader.AtEnd ? ReadRuntimeEvents(reader) : [],
+        };
+    }
+
+    static List<byte[]> ReadRuntimeEvents(BytePackerReader reader)
+    {
+        var runtimeEvents = new List<byte[]>();
+        for (int i = reader.ReadInt32(); i > 0; i--)
+        {
+            byte type = reader.ReadByte();
+            runtimeEvents.Add([type, .. reader.ReadBytes(TerrainEvents.LengthOf(type) - 1)]);
+        }
+        return runtimeEvents;
     }
 
     static void WritePrototype(BytePackerWriter writer, Prototype prototype)
