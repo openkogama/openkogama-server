@@ -23,9 +23,14 @@ public interface INpc
     float MaxHealth { get; set; }
     bool Walking { get; }
     bool Grounded { get; }
+    bool Swimming { get; }
+    float Oxygen { get; set; }
+    float MaxOxygen { get; set; }
     float Health { get; }
     bool Alive { get; }
     bool Exists { get; }
+    NpcDamage? LastDamage { get; }
+    IReadOnlyList<AvatarModifier> Modifiers { get; }
 
     void WalkTo(Vector3 target);
     void Stop();
@@ -40,10 +45,16 @@ public interface INpc
     bool BecomeColossus(ColossusSize size);
     void PlayAnimation(string? state);
     void PlayAnimation(AvatarAnimation state) => PlayAnimation(state == AvatarAnimation.Unknown ? null : state.ToString());
+#pragma warning disable RS0027
     void Damage(float amount, IPlayer? by = null);
+#pragma warning restore RS0027
     void Damage(float amount, IPlayer? by, Vector3 impulse);
     void Damage(float amount, INpc by);
     void Damage(float amount, INpc by, Vector3 impulse);
+    void Damage(NpcDamage damage);
+    void Heal(float amount);
+    void AddModifier(AvatarModifier modifier, IPlayer? by = null);
+    void RemoveModifier(AvatarModifier modifier);
     bool SetTeam(Team? team);
     void Say(string text);
     void Respawn(Vector3 position);

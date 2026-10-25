@@ -18,9 +18,7 @@ public static class InventoryApi
             "/api/inventory/model" => ModelFiles.Export(profile, id) is byte[] file
                 ? new ApiResponse(200, "application/octet-stream", file)
                 : ApiResponse.NotFound,
-            "/api/inventory/import" when post => ModelFiles.Import(profile, request.Query["name"], request.Body, Scale(request)) is Item item
-                ? ApiResponse.Json(JsonSerializer.Serialize(new { id = item.Id }))
-                : ApiResponse.Json("{}", 400),
+            "/api/inventory/import" when post => Import(profile, request),
             "/api/inventory/scale" when post => ApiResponse.Json("{}",
                 Scale(request) is float scale && ModelFiles.Rescale(profile, id, scale) ? 200 : 400),
             "/api/inventory/rename" when post => ApiResponse.Json("{}",
@@ -28,6 +26,15 @@ public static class InventoryApi
             "/api/inventory/delete" when post => ApiResponse.Json("{}", Inventories.Remove(profile, id) ? 200 : 404),
             _ => ApiResponse.NotFound,
         };
+    }
+
+    static ApiResponse Import(int profile, ApiRequest request)
+    {
+        float? scale = Scale(request);
+        if (scale is null && ModelFiles.NeedsScale(request.Body)) return ApiResponse.Json("""{"needsScale":true}""", 400);
+        return ModelFiles.Import(profile, request.Query["name"], request.Body, scale) is Item item
+            ? ApiResponse.Json(JsonSerializer.Serialize(new { id = item.Id }))
+            : ApiResponse.Json("{}", 400);
     }
 
     static float? Scale(ApiRequest request) =>

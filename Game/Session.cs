@@ -52,7 +52,10 @@ public sealed partial class Session
 
     public GameWorld World { get; }
     public Triggers Triggers { get; } = new();
-    public IReadOnlyList<Player> Players => _players;
+    public IReadOnlyList<Player> Players
+    {
+        get { lock (_players) return [.. _players]; }
+    }
 
     public void Begin(Func<int> clock)
     {
@@ -71,7 +74,7 @@ public sealed partial class Session
         }
 
         Player player = new(peer, peer.Id, avatarId) { Team = Teams.Default };
-        _players.Add(player);
+        lock (_players) _players.Add(player);
         return player;
     }
 
@@ -158,11 +161,11 @@ public sealed partial class Session
         return owner == 0 || owner == player.ProfileId ? PlanetOwnership.Owner : PlanetOwnership.None;
     }
 
-    public Player? For(PhotonPeer peer) => _players.FirstOrDefault(p => p.Peer == peer);
+    public Player? For(PhotonPeer peer) => Players.FirstOrDefault(p => p.Peer == peer);
 
     public void Remove(Player player)
     {
-        _players.Remove(player);
+        lock (_players) _players.Remove(player);
         World.Remove(player.AvatarId);
         if (player.BuildAvatarId >= 0) World.Remove(player.BuildAvatarId);
         foreach (int role in player.ClassAvatars.Values) World.Remove(role);
@@ -192,7 +195,7 @@ public sealed partial class Session
                 [(byte)ParameterKey.RotW] = rotation[3],
             },
         };
-        foreach (Player other in _players)
+        foreach (Player other in Players)
             if (other.SpawnRoles && (other == player || other.Saw(player.Actor)))
                 other.Peer.Send(activate);
     }

@@ -60,6 +60,7 @@ public sealed class WebApi
                 thumbnail = Thumbnail(world) is not null ? "/api/server/thumbnail" + (world > 0 ? $"?world={world}" : "") : null,
                 clients = ServerInfo.Clients ?? [],
                 players = Players(),
+                udp = ServerInfo.PhotonPort,
                 @public = ServerInfo.Public,
                 features = ServerInfo.FeaturesNow(),
             }));
@@ -120,9 +121,9 @@ public sealed class WebApi
             if (package is not null && remote)
                 PlayerPackages.Apply(profile, package, ServerInfo.PlayerAvatars, ServerInfo.PlayerInventory);
             Console.WriteLine($"profile {profile}: joins world {world} in {mode.ToString().ToLowerInvariant()} mode");
-            bool reloads = query["patches"]?.Split(',').Contains("world-switch") == true;
-            return ApiResponse.Json(Issue(new Reauths.Origin(profile, nickname, query["client"], request.Via, query["transport"] == "ws", world, mode, Key: query["key"], Reloads: reloads,
-                Language: ClientLanguages.Clean(query["language"]))));
+            string[] patches = query["patches"]?.Split(',') ?? [];
+            return ApiResponse.Json(Issue(new Reauths.Origin(profile, nickname, query["client"], request.Via, query["transport"] == "ws", world, mode, Key: query["key"],
+                Reloads: patches.Contains("world-switch"), Language: ClientLanguages.Clean(query["language"]), Tcp: patches.Contains("tcp"))));
         }
 
         if (path.TrimEnd('/') == "/session/reauth")
@@ -324,6 +325,8 @@ public sealed class WebApi
         issued["reauthURL"] = $"{root}/session/reauth?token={token}";
         if (origin.Language is not null) issued["language"] = ClientLanguages.For(origin.Language, origin.Client);
         if (origin.WebSocket) issued["serverIP"] = "ws://" + issued["serverIP"]?.GetValue<string>();
+        else if (origin.Tcp && ServerInfo.TcpPort is int tcp && tcp != ServerInfo.PhotonPort && issued["serverIP"]?.GetValue<string>() is string address)
+            issued["serverIP"] = address[..(address.LastIndexOf(':') is int colon and > 0 ? colon : address.Length)] + ":" + tcp;
         foreach ((string key, object? value) in overrides ?? new Dictionary<string, object?>())
         {
             if (value is null) issued.Remove(key);

@@ -529,3 +529,127 @@ OpenKogama.Api.WorldMode.AvatarEditor = 2 -> OpenKogama.Api.WorldMode
 OpenKogama.Api.WorldMode.Build = 1 -> OpenKogama.Api.WorldMode
 OpenKogama.Api.WorldMode.Play = 0 -> OpenKogama.Api.WorldMode
 OpenKogama.Api.IPlayer.Language.get -> string!
+OpenKogama.Api.AvatarModifier
+OpenKogama.Api.AvatarModifier.CrumbleMat = 24 -> OpenKogama.Api.AvatarModifier
+OpenKogama.Api.AvatarModifier.DisableVehiclePickup = 14 -> OpenKogama.Api.AvatarModifier
+OpenKogama.Api.AvatarModifier.Fire = 1 -> OpenKogama.Api.AvatarModifier
+OpenKogama.Api.AvatarModifier.FlamerBurn = 8 -> OpenKogama.Api.AvatarModifier
+OpenKogama.Api.AvatarModifier.Frozen = 10 -> OpenKogama.Api.AvatarModifier
+OpenKogama.Api.AvatarModifier.HealingMat = 21 -> OpenKogama.Api.AvatarModifier
+OpenKogama.Api.AvatarModifier.InstantDeath = 6 -> OpenKogama.Api.AvatarModifier
+OpenKogama.Api.AvatarModifier.Lethal = 20 -> OpenKogama.Api.AvatarModifier
+OpenKogama.Api.AvatarModifier.Mutant = 2 -> OpenKogama.Api.AvatarModifier
+OpenKogama.Api.AvatarModifier.NinjaRun = 11 -> OpenKogama.Api.AvatarModifier
+OpenKogama.Api.AvatarModifier.NoFriction = 7 -> OpenKogama.Api.AvatarModifier
+OpenKogama.Api.AvatarModifier.Poison = 4 -> OpenKogama.Api.AvatarModifier
+OpenKogama.Api.AvatarModifier.RayHeal = 18 -> OpenKogama.Api.AvatarModifier
+OpenKogama.Api.AvatarModifier.RayHealEnemy = 25 -> OpenKogama.Api.AvatarModifier
+OpenKogama.Api.AvatarModifier.Shielded = 16 -> OpenKogama.Api.AvatarModifier
+OpenKogama.Api.AvatarModifier.SlowMat = 22 -> OpenKogama.Api.AvatarModifier
+OpenKogama.Api.AvatarModifier.SpawnProtection = 17 -> OpenKogama.Api.AvatarModifier
+OpenKogama.Api.AvatarModifier.SpeedMat = 23 -> OpenKogama.Api.AvatarModifier
+OpenKogama.Api.AvatarModifier.Sticky = 3 -> OpenKogama.Api.AvatarModifier
+OpenKogama.Api.AvatarModifier.TimeAttackFlagDebriefSlow = 19 -> OpenKogama.Api.AvatarModifier
+OpenKogama.Api.AvatarModifier.Underwater = 9 -> OpenKogama.Api.AvatarModifier
+OpenKogama.Api.AvatarModifier.WallJump = 5 -> OpenKogama.Api.AvatarModifier
+OpenKogama.Api.AvatarModifier.WindFriction = 13 -> OpenKogama.Api.AvatarModifier
+OpenKogama.Api.CubeChange
+OpenKogama.Api.CubeChange.Cube.get -> OpenKogama.Api.Cube?
+OpenKogama.Api.CubeChange.Cube.init -> void
+OpenKogama.Api.CubeChange.CubeChange() -> void
+OpenKogama.Api.CubeChange.CubeChange(int X, int Y, int Z, OpenKogama.Api.Cube? Cube) -> void
+OpenKogama.Api.CubeChange.Deconstruct(out int X, out int Y, out int Z, out OpenKogama.Api.Cube? Cube) -> void
+OpenKogama.Api.CubeChange.Equals(OpenKogama.Api.CubeChange other) -> bool
+OpenKogama.Api.CubeChange.X.get -> int
+OpenKogama.Api.CubeChange.X.init -> void
+OpenKogama.Api.CubeChange.Y.get -> int
+OpenKogama.Api.CubeChange.Y.init -> void
+OpenKogama.Api.CubeChange.Z.get -> int
+OpenKogama.Api.CubeChange.Z.init -> void
+OpenKogama.Api.CubeChanges
+OpenKogama.Api.CubeChanges.Cancel.get -> bool
+OpenKogama.Api.CubeChanges.Cancel.set -> void
+OpenKogama.Api.CubeChanges.Changes.get -> System.Collections.Generic.IReadOnlyList<OpenKogama.Api.CubeChange>!
+OpenKogama.Api.CubeChanges.CubeChanges(OpenKogama.Api.IPlayer! player, OpenKogama.Api.IWorld! world, OpenKogama.Api.ICubeModel? model, System.Collections.Generic.IReadOnlyList<OpenKogama.Api.CubeChange>! changes) -> void
+OpenKogama.Api.CubeChanges.Model.get -> OpenKogama.Api.ICubeModel?
+OpenKogama.Api.CubeChanges.Player.get -> OpenKogama.Api.IPlayer!
+OpenKogama.Api.CubeChanges.World.get -> OpenKogama.Api.IWorld!
+OpenKogama.Api.ICubeModel
+OpenKogama.Api.ICubeModel.CubeSize.get -> float
+OpenKogama.Api.ICubeModel.MakeUnique() -> bool
+OpenKogama.Api.ICubeModel.ObjectId.get -> int
+OpenKogama.Api.ICubeModel.Shared.get -> bool
+OpenKogama.Api.INpc.AddModifier(OpenKogama.Api.AvatarModifier modifier, OpenKogama.Api.IPlayer? by = null) -> void
+OpenKogama.Api.INpc.Damage(OpenKogama.Api.NpcDamage! damage) -> void
+OpenKogama.Api.INpc.Damage(float amount, OpenKogama.Api.INpc! by) -> void
+OpenKogama.Api.INpc.Damage(float amount, OpenKogama.Api.INpc! by, System.Numerics.Vector3 impulse) -> void
+OpenKogama.Api.INpc.Damage(float amount, OpenKogama.Api.IPlayer? by, System.Numerics.Vector3 impulse) -> void
+OpenKogama.Api.INpc.Heal(float amount) -> void
+OpenKogama.Api.INpc.LastDamage.get -> OpenKogama.Api.NpcDamage?
+OpenKogama.Api.INpc.MaxOxygen.get -> float
+OpenKogama.Api.INpc.MaxOxygen.set -> void
+OpenKogama.Api.INpc.Modifiers.get -> System.Collections.Generic.IReadOnlyList<OpenKogama.Api.AvatarModifier>!
+OpenKogama.Api.INpc.Oxygen.get -> float
+OpenKogama.Api.INpc.Oxygen.set -> void
+OpenKogama.Api.INpc.RemoveModifier(OpenKogama.Api.AvatarModifier modifier) -> void
+OpenKogama.Api.INpc.Say(string! text) -> void
+OpenKogama.Api.INpc.SetTeam(OpenKogama.Api.Team? team) -> bool
+OpenKogama.Api.INpc.Skin.get -> OpenKogama.Api.AvatarSkin!
+OpenKogama.Api.INpc.Swimming.get -> bool
+OpenKogama.Api.INpc.Team.get -> OpenKogama.Api.Team?
+OpenKogama.Api.INpc.World.get -> OpenKogama.Api.IWorld!
+OpenKogama.Api.IServer.CubesChanged -> System.Action<OpenKogama.Api.CubeChanges!>?
+OpenKogama.Api.IServer.PlayerDamagedByNpc -> System.Action<OpenKogama.Api.IPlayer!, OpenKogama.Api.INpc!, float>?
+OpenKogama.Api.IWorldBuilder.Model(int objectId) -> OpenKogama.Api.ICubeModel?
+OpenKogama.Api.KillReason
+OpenKogama.Api.KillReason.AdvancedGhost = 16 -> OpenKogama.Api.KillReason
+OpenKogama.Api.KillReason.BazookaGun = 2 -> OpenKogama.Api.KillReason
+OpenKogama.Api.KillReason.CenterGun = 1 -> OpenKogama.Api.KillReason
+OpenKogama.Api.KillReason.Crushed = 14 -> OpenKogama.Api.KillReason
+OpenKogama.Api.KillReason.CustomGun = 25 -> OpenKogama.Api.KillReason
+OpenKogama.Api.KillReason.DoubleSixShooter = 18 -> OpenKogama.Api.KillReason
+OpenKogama.Api.KillReason.Environmental = 6 -> OpenKogama.Api.KillReason
+OpenKogama.Api.KillReason.Explosive = 8 -> OpenKogama.Api.KillReason
+OpenKogama.Api.KillReason.FallOffWorld = 10 -> OpenKogama.Api.KillReason
+OpenKogama.Api.KillReason.Fire = 9 -> OpenKogama.Api.KillReason
+OpenKogama.Api.KillReason.FlameThrower = 13 -> OpenKogama.Api.KillReason
+OpenKogama.Api.KillReason.Ghost = 15 -> OpenKogama.Api.KillReason
+OpenKogama.Api.KillReason.GodzillaLaser = 21 -> OpenKogama.Api.KillReason
+OpenKogama.Api.KillReason.Impact = 5 -> OpenKogama.Api.KillReason
+OpenKogama.Api.KillReason.KillZone = 22 -> OpenKogama.Api.KillReason
+OpenKogama.Api.KillReason.MultiThrowingStar = 20 -> OpenKogama.Api.KillReason
+OpenKogama.Api.KillReason.Mutant = 11 -> OpenKogama.Api.KillReason
+OpenKogama.Api.KillReason.None = 0 -> OpenKogama.Api.KillReason
+OpenKogama.Api.KillReason.RailGun = 3 -> OpenKogama.Api.KillReason
+OpenKogama.Api.KillReason.RayHealGun = 24 -> OpenKogama.Api.KillReason
+OpenKogama.Api.KillReason.Shotgun = 12 -> OpenKogama.Api.KillReason
+OpenKogama.Api.KillReason.SixShooter = 17 -> OpenKogama.Api.KillReason
+OpenKogama.Api.KillReason.SlapGun = 23 -> OpenKogama.Api.KillReason
+OpenKogama.Api.KillReason.Suicide = 4 -> OpenKogama.Api.KillReason
+OpenKogama.Api.KillReason.Sword = 7 -> OpenKogama.Api.KillReason
+OpenKogama.Api.KillReason.ThrowingStar = 19 -> OpenKogama.Api.KillReason
+OpenKogama.Api.NpcDamage
+OpenKogama.Api.NpcDamage.<Clone>$() -> OpenKogama.Api.NpcDamage!
+OpenKogama.Api.NpcDamage.Amount.get -> float
+OpenKogama.Api.NpcDamage.Amount.init -> void
+OpenKogama.Api.NpcDamage.By.get -> OpenKogama.Api.IPlayer?
+OpenKogama.Api.NpcDamage.By.init -> void
+OpenKogama.Api.NpcDamage.ByNpc.get -> OpenKogama.Api.INpc?
+OpenKogama.Api.NpcDamage.ByNpc.init -> void
+OpenKogama.Api.NpcDamage.Deconstruct(out float Amount, out OpenKogama.Api.KillReason Reason, out OpenKogama.Api.IPlayer? By, out OpenKogama.Api.INpc? ByNpc, out System.Numerics.Vector3 Impulse) -> void
+OpenKogama.Api.NpcDamage.Equals(OpenKogama.Api.NpcDamage? other) -> bool
+OpenKogama.Api.NpcDamage.Impulse.get -> System.Numerics.Vector3
+OpenKogama.Api.NpcDamage.Impulse.init -> void
+OpenKogama.Api.NpcDamage.NpcDamage(float Amount, OpenKogama.Api.KillReason Reason, OpenKogama.Api.IPlayer? By = null, OpenKogama.Api.INpc? ByNpc = null, System.Numerics.Vector3 Impulse = default(System.Numerics.Vector3)) -> void
+OpenKogama.Api.NpcDamage.Reason.get -> OpenKogama.Api.KillReason
+OpenKogama.Api.NpcDamage.Reason.init -> void
+override OpenKogama.Api.CubeChange.GetHashCode() -> int
+override OpenKogama.Api.NpcDamage.Equals(object? obj) -> bool
+override OpenKogama.Api.NpcDamage.GetHashCode() -> int
+override OpenKogama.Api.NpcDamage.ToString() -> string!
+static OpenKogama.Api.CubeChange.operator !=(OpenKogama.Api.CubeChange left, OpenKogama.Api.CubeChange right) -> bool
+static OpenKogama.Api.CubeChange.operator ==(OpenKogama.Api.CubeChange left, OpenKogama.Api.CubeChange right) -> bool
+static OpenKogama.Api.NpcDamage.operator !=(OpenKogama.Api.NpcDamage? left, OpenKogama.Api.NpcDamage? right) -> bool
+static OpenKogama.Api.NpcDamage.operator ==(OpenKogama.Api.NpcDamage? left, OpenKogama.Api.NpcDamage? right) -> bool
+~override OpenKogama.Api.CubeChange.Equals(object obj) -> bool
+~override OpenKogama.Api.CubeChange.ToString() -> string

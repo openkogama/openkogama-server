@@ -47,6 +47,7 @@ if (serverInfo.Shared && serverInfo.Accounts != AccountMode.Offline)
     OpenKogama.Accounts.CentralKey.Start(serverInfo.AccountsUrl, "accounts.pub");
 if (int.TryParse(Tunnel.Option(args, "http"), out int httpPort)) serverInfo.UseHttpPort(httpPort);
 if (int.TryParse(Tunnel.Option(args, "photon"), out int photonPort)) serverInfo.PhotonPort = photonPort;
+if (int.TryParse(Tunnel.Option(args, "tcp"), out int tcpPort)) serverInfo.TcpPort = tcpPort;
 var publicUrl = new Uri(serverInfo.PublicUrl.TrimEnd('/'));
 if (publicUrl.Scheme is not ("http" or "https") || publicUrl.AbsolutePath != "/"
     || !string.IsNullOrEmpty(publicUrl.Query) || !string.IsNullOrEmpty(publicUrl.Fragment)
@@ -99,9 +100,13 @@ server.Operation = host.Handle;
 
 _ = server.RunAsync();
 Console.WriteLine($"udp {serverInfo.PhotonPort}");
-_ = server.RunWebSocketsAsync($"http://{serverInfo.ListenHost}:{serverInfo.PhotonPort}/").ContinueWith(failed =>
-    Console.WriteLine($"websocket {serverInfo.PhotonPort} failed: {failed.Exception?.InnerException?.Message}"), TaskContinuationOptions.OnlyOnFaulted);
-Console.WriteLine($"websocket {serverInfo.PhotonPort}");
+IPAddress tcpHost = IPAddress.TryParse(serverInfo.ListenHost, out IPAddress? parsedHost) ? parsedHost : IPAddress.Any;
+foreach (int tcp in new[] { serverInfo.PhotonPort, serverInfo.TcpPort ?? serverInfo.PhotonPort }.Distinct())
+{
+    _ = server.RunTcpAsync(new IPEndPoint(tcpHost, tcp)).ContinueWith(failed =>
+        Console.WriteLine($"tcp {tcp} failed: {failed.Exception?.InnerException?.Message}"), TaskContinuationOptions.OnlyOnFaulted);
+    Console.WriteLine($"tcp and websocket {tcp}");
+}
 if (publicUrl.IsLoopback && serverInfo.PhotonPort != Tunnel.Photon2012)
 {
     if (new Relay2012(serverInfo.PhotonPort).Start())
@@ -139,7 +144,7 @@ _ = Task.Run(async () =>
     while (true)
     {
         await Task.Delay(50);
-        host.Tick();
+        TickErrors.Guard("server", host.Tick);
     }
 });
 

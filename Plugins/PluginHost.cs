@@ -180,6 +180,18 @@ public static class PluginHost
     public static void Hit(Session session, Player victim, Player attacker) =>
         Server.OnHit(PlayerOf(session, victim), PlayerOf(session, attacker));
 
+    public static bool WatchesCubes => Server.WatchesCubes;
+
+    public static bool CubesChanged(Session session, Player player, Prototype prototype, List<CubeChange> changes)
+    {
+        GameWorld world = session.World;
+        bool terrain = world.FindFirst(WorldObjectType.CubeModelPrototypeTerrain)?.PrototypeId == prototype.Id;
+        ICubeModel? model = !terrain && world.FirstUser(prototype.Id) is int id ? new CubesEditor(world, session, id) : null;
+        var edit = new CubeChanges(PlayerOf(session, player), WorldOf(session), model, changes);
+        Server.OnCubesChanged(edit);
+        return edit.Cancel;
+    }
+
     public static void KilledByNpc(Session session, Player victim, Npc npc) =>
         Server.OnKilledByNpc(PlayerOf(session, victim), new PluginNpc(session, npc));
 
@@ -258,6 +270,7 @@ public static class PluginHost
         public event Action<IPlayer, AvatarItem>? PlayerSwitchedItem;
         public event Action<IPlayer, AvatarItem>? PlayerPickedUp;
         public event Action<IPlayer, IWorldObject, bool>? PlayerTriggered;
+        public event Action<CubeChanges>? CubesChanged;
         public event Action<IPlayer, string>? Gesture;
         public event Action<IPlayer, string>? Animation;
 
@@ -361,6 +374,14 @@ public static class PluginHost
         }
 
         public bool WatchesTriggers => PlayerTriggered is not null;
+
+        public bool WatchesCubes => CubesChanged is not null;
+
+        public void OnCubesChanged(CubeChanges changes)
+        {
+            foreach (Action<CubeChanges> handler in Handlers(CubesChanged))
+                Guard(() => handler(changes));
+        }
 
         public void OnTriggered(IPlayer player, IWorldObject obj, bool on)
         {

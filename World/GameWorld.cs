@@ -75,7 +75,7 @@ public sealed class GameWorld
         void Visit(WorldObject obj)
         {
             result.Add(obj);
-            foreach (WorldObject child in children[obj.Id])
+            foreach (WorldObject child in children[obj.Id].OrderBy(child => child.Id))
                 Visit(child);
         }
     }
@@ -160,6 +160,16 @@ public sealed class GameWorld
         }
     }
 
+    public int PrototypeUsers(int prototypeId)
+    {
+        lock (_sync) return _objects.Count(obj => obj.PrototypeId == prototypeId);
+    }
+
+    public int? FirstUser(int prototypeId)
+    {
+        lock (_sync) return _objects.Find(obj => obj.PrototypeId == prototypeId)?.Id;
+    }
+
     public Prototype? MakeUniquePrototype(int objectId)
     {
         lock (_sync)
@@ -235,10 +245,14 @@ public sealed class GameWorld
         }),
     ];
 
-    public WorldObject? CloneTree(int id)
+    public WorldObject? CloneTree(int id) => CloneTree(id, out _, out _);
+
+    public WorldObject? CloneTree(int id, out int firstLinkId, out int firstObjectLinkId)
     {
         lock (_sync)
         {
+            firstLinkId = _nextLinkId;
+            firstObjectLinkId = _nextObjectLinkId;
             List<WorldObject> originals = Subtree(id);
             if (originals.Count == 0) return null;
 
@@ -264,8 +278,24 @@ public sealed class GameWorld
                 });
             }
 
+            ILookup<int, Link> inputs = _links.ToLookup(link => link.To);
+            ILookup<int, Link> outputs = _links.ToLookup(link => link.From);
+            ILookup<int, Link> objectLinks = _objectLinks
+                .SelectMany(link => new[] { (End: link.From, Link: link), (End: link.To, Link: link) })
+                .ToLookup(pair => pair.End, pair => pair.Link);
+            foreach (Link link in Inside(originals.SelectMany(obj => inputs[obj.Id].Concat(outputs[obj.Id])), newIds))
+                _links.Add(new Link(_nextLinkId++, newIds[link.From], newIds[link.To]));
+            foreach (Link link in Inside(originals.SelectMany(obj => objectLinks[obj.Id]), newIds))
+                _objectLinks.Add(new Link(_nextObjectLinkId++, newIds[link.From], newIds[link.To]));
+
             return Get(newIds[id]);
         }
+    }
+
+    static List<Link> Inside(IEnumerable<Link> links, Dictionary<int, int> subtree)
+    {
+        var seen = new HashSet<int>();
+        return [.. links.Where(link => seen.Add(link.Id) && subtree.ContainsKey(link.From) && subtree.ContainsKey(link.To))];
     }
 
     public bool SetPrototypeScale(int prototypeId, float scale)

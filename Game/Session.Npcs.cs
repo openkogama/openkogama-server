@@ -16,11 +16,7 @@ public sealed partial class Session
     const int FirstNpcActor = 10_000;
     const float MaxCatchUpSeconds = 0.25f;
     const int DeadToHiddenMs = 2500;
-    const int NoFrictionMs = 200;
-    const int BurnMs = 500;
-    const float BurnDamagePerSecond = 25f;
-    const int HealRayMs = 1000;
-    const float HealRayDamagePerSecond = 7f;
+    const int LastAttackerMs = 4000;
     const float FallBelowWorld = 200f;
     const int KillNotification = 1;
     const int AvatarKilledMessage = 0;
@@ -35,6 +31,7 @@ public sealed partial class Session
     int _nextNpcActor = FirstNpcActor;
     CollisionWorld? _collision;
     long _collisionBuilt;
+    float _worldBottom;
 
     public IReadOnlyList<Npc> Npcs
     {
@@ -62,7 +59,7 @@ public sealed partial class Session
         lock (_npcs) _npcs.Add(npc);
 
         bool Audience(Player player) => player.InWorld && player.SeesNpcs;
-        foreach (Player player in _players.Where(Audience))
+        foreach (Player player in Players.Where(Audience))
             Introduce(player, npc);
         GetNextGameBatch.SendAdded(this, actor, NpcsAway(NpcSnapshot(npc)), Audience);
 
@@ -85,7 +82,7 @@ public sealed partial class Session
         {
             Parameters = { [(byte)ParameterKey.ActorNr] = npc.Actor },
         };
-        foreach (Player player in _players.Where(player => player.Saw(npc.Actor)))
+        foreach (Player player in Players.Where(player => player.Saw(npc.Actor)))
         {
             player.Peer.Send(unregister);
             player.Peer.Send(leave);
@@ -136,6 +133,7 @@ public sealed partial class Session
         {
             _collision = CollisionWorld.Build(World);
             _collisionBuilt = now;
+            _worldBottom = MathF.Min(_worldBottom, _collision.Bottom);
         }
         return _collision;
     }
@@ -223,13 +221,20 @@ public sealed partial class Session
 
         foreach (Npc npc in npcs)
         {
-            Combat(npc, collision, now);
-            if (npc.Mode == NpcMode.Hidden) npc.LastStep = now;
-            else Simulate(npc, collision, now);
-            bool urgent = npc.Teleported || npc.StateChanged;
-            if (urgent || now - npc.LastSend >= NpcSendIntervalMs) SendNpc(npc, now);
-            SendSize(npc, now);
-            SendWeapon(npc, now);
+            try
+            {
+                Combat(npc, now);
+                if (npc.Mode == NpcMode.Hidden) npc.LastStep = now;
+                else Simulate(npc, collision, now);
+                bool urgent = npc.Teleported || npc.StateChanged;
+                if (urgent || now - npc.LastSend >= NpcSendIntervalMs) SendNpc(npc, now);
+                SendSize(npc, now);
+                SendWeapon(npc, now);
+            }
+            catch (Exception error)
+            {
+                TickErrors.Log($"npc {npc.Actor} {npc.Name}", error);
+            }
         }
     }
 
@@ -241,7 +246,7 @@ public sealed partial class Session
     void SendWeapon(Npc npc, long now)
     {
         if (!npc.HeldItemChanged && !npc.Firing && npc.Shots.IsEmpty && npc.Aims.IsEmpty) return;
-        Player[] audience = [.. _players.Where(player => player.InWorld && player.Saw(npc.Actor) && Placed(npc, player))];
+        Player[] audience = [.. Players.Where(player => player.InWorld && player.Saw(npc.Actor) && Placed(npc, player))];
 
         if (npc.HeldItemChanged)
         {
@@ -303,7 +308,7 @@ public sealed partial class Session
         }
         lock (npc.SeenAt)
         {
-            foreach (Player player in _players.Where(player => player.InWorld && player.Saw(npc.Actor)))
+            foreach (Player player in Players.Where(player => player.InWorld && player.Saw(npc.Actor)))
             {
                 if (npc.Resized.Contains(player) ? !renew : !npc.SeenAt.TryGetValue(player, out long seen) || now - seen < ResizeDelayMs) continue;
                 npc.Resized.Add(player);
@@ -317,6 +322,7 @@ public sealed partial class Session
     static Dictionary<object, object?> ModifiersOf(Npc npc, bool resized)
     {
         Dictionary<object, object?> modifiers = npc.Modifiers.ToDictionary(pair => (object)pair.Key, pair => (object?)pair.Value);
+        foreach ((string key, byte renewals) in npc.Packages.RuntimeKeys) modifiers[key] = renewals;
         if (resized && npc.SizeModifier is string modifier) modifiers[modifier] = npc.SizeRenewal;
         return modifiers;
     }
@@ -358,24 +364,26 @@ public sealed partial class Session
         return true;
     }
 
-    void Combat(Npc npc, CollisionWorld collision, long now)
+    void Combat(Npc npc, long now)
     {
         while (npc.Respawns.TryDequeue(out Vector3 position)) Respawn(npc, position);
-        while (npc.Damages.TryDequeue(out (float Amount, int Actor, Vector3 Impulse) damage))
+        while (npc.Damages.TryDequeue(out (float Amount, int Actor, Vector3 Impulse, KilledBy? Reason) damage))
         {
             if (!npc.Alive || Allied(npc, damage.Actor)) continue;
-            Damage(npc, damage.Amount, damage.Actor, CauseOf(npc, damage.Actor), now);
-            Push(npc, damage.Impulse, now, noFriction: false);
+            Damage(npc, damage.Amount, damage.Actor, damage.Reason ?? CauseOf(npc, damage.Actor), now, damage.Impulse);
+            npc.Motor?.SuspendImpactDamage();
+            Push(npc, damage.Impulse, noFriction: false);
         }
         while (npc.Hits.TryDequeue(out (int Actor, Interaction Interaction) hit)) Hit(npc, hit.Actor, hit.Interaction, now);
+        while (npc.Heals.TryDequeue(out float amount)) Heal(npc, amount);
+        while (npc.ModifierChanges.TryDequeue(out (ModifierPackageType Type, int Actor, bool Add) change))
+        {
+            if (change.Add) GiveModifier(npc, change.Type, change.Actor, now);
+            else npc.Packages.Remove(change.Type);
+        }
 
-        float seconds = MathF.Min((now - npc.LastStep) / 1000f, MaxCatchUpSeconds);
-        if (now < npc.BurnUntil) Damage(npc, BurnDamagePerSecond * seconds, npc.BurnActor, KilledBy.FlameThrower, now);
-        if (now < npc.HealRayUntil) Damage(npc, HealRayDamagePerSecond * seconds, npc.HealRayActor, KilledBy.RayHealGun, now);
-        if (now >= npc.NoFrictionUntil) RemoveModifier(npc, "_NoFriction");
         if (npc.OnFire && !npc.Modifiers.ContainsKey("_Fire")) AddModifier(npc, "_Fire");
         if (!npc.OnFire) RemoveModifier(npc, "_Fire");
-        if (now >= npc.BurnUntil) RemoveModifier(npc, "_FlamerBurn");
 
         if (npc.Mode == NpcMode.Dead && now - npc.DiedAt >= DeadToHiddenMs)
         {
@@ -383,26 +391,37 @@ public sealed partial class Session
             npc.ModeChanged = true;
         }
 
-        if (npc.Alive && collision.TerrainBottom is float bottom && npc.Position[1] < bottom - FallBelowWorld)
-        {
-            npc.Health = 0f;
-            npc.HealthChanged = true;
-            Die(npc, npc.Actor, KilledBy.FallOffWorld, now);
-        }
+        if (npc.Alive && npc.Position[1] < _worldBottom - FallBelowWorld) Kill(npc, KilledBy.FallOffWorld, now);
+    }
+
+    void Effects(Npc npc, long now)
+    {
+        const float deltaTime = AvatarMotor.FixedDeltaTime;
+        ModifierPackages packages = npc.Packages;
+        packages.Update(deltaTime);
+        foreach ((int actor, float perSecond) in packages.ApplyById(ModifierEffect.FlamerDamagePrSec, 0f))
+            Damage(npc, perSecond * deltaTime, actor, KilledBy.FlameThrower, now);
+        foreach ((int actor, float perSecond) in packages.ApplyById(ModifierEffect.RayHealEnemyDamagePrSec, 0f))
+            Damage(npc, perSecond * deltaTime, actor, KilledBy.RayHealGun, now);
+        Damage(npc, packages.Apply(ModifierEffect.EnvironmentDamagePrSec, 0f) * deltaTime, npc.Actor, KilledBy.Environmental, now);
+        Damage(npc, packages.Apply(ModifierEffect.PoisonDamagePrSec, 0f) * deltaTime, npc.Actor, KilledBy.Environmental, now);
+        Damage(npc, packages.Apply(ModifierEffect.LethalDamagePrSec, 0f) * deltaTime, npc.Actor, KilledBy.Environmental, now);
+        Heal(npc, packages.Apply(ModifierEffect.EnvironmentHealingPrSec, 0f) * deltaTime);
     }
 
     void Hit(Npc npc, int actor, Interaction interaction, long now)
     {
         if (!npc.Alive || Allied(npc, actor)) return;
+        npc.Motor?.SuspendImpactDamage();
         switch (interaction.Type)
         {
             case InteractionType.ImpulseGunHit:
             case InteractionType.VehicleHit:
-                Push(npc, interaction.Impulse, now, noFriction: true);
+                Push(npc, interaction.Impulse, noFriction: true);
                 break;
             case InteractionType.SwordHit:
-                Damage(npc, interaction.Damage, actor, KilledBy.Sword, now);
-                Push(npc, interaction.Impulse, now, noFriction: true);
+                Damage(npc, interaction.Damage, actor, KilledBy.Sword, now, interaction.Impulse);
+                Push(npc, interaction.Impulse, noFriction: true);
                 break;
             case InteractionType.RailGunHit:
                 Damage(npc, interaction.Damage, actor, KilledBy.RailGun, now);
@@ -411,17 +430,14 @@ public sealed partial class Session
                 Damage(npc, interaction.Damage, actor, KilledBy.Mutant, now);
                 break;
             case InteractionType.HealRayHit:
-                npc.HealRayUntil = now + HealRayMs;
-                npc.HealRayActor = actor;
+                GiveModifier(npc, ModifierPackageType.RayHealEnemy, actor, now);
                 break;
             case InteractionType.FlamethrowerHit:
-                AddModifier(npc, "_FlamerBurn");
-                npc.BurnUntil = now + BurnMs;
-                npc.BurnActor = actor;
+                GiveModifier(npc, ModifierPackageType.FlamerBurn, actor, now);
                 break;
             case InteractionType.SentryTowerFire:
             case InteractionType.SentryTowerIce:
-                Push(npc, interaction.Impulse, now, noFriction: false);
+                Push(npc, interaction.Impulse, noFriction: false);
                 break;
             case InteractionType.ShotgunHit:
             case InteractionType.CenterGun:
@@ -432,10 +448,22 @@ public sealed partial class Session
             case InteractionType.SlapGunHit:
             case InteractionType.CustomGunHit:
             case InteractionType.ProximityDamageAndImpulse:
-                Damage(npc, interaction.Damage, actor, KilledByOf(interaction), now);
-                Push(npc, interaction.Impulse, now, noFriction: false);
+                Damage(npc, interaction.Damage, actor, KilledByOf(interaction), now, interaction.Impulse);
+                Push(npc, interaction.Impulse, noFriction: false);
                 break;
         }
+    }
+
+    static void GiveModifier(Npc npc, ModifierPackageType type, int actor, long now)
+    {
+        KilledBy killedBy = type switch
+        {
+            ModifierPackageType.FlamerBurn => KilledBy.FlameThrower,
+            ModifierPackageType.RayHealEnemy => KilledBy.RayHealGun,
+            _ => KilledBy.Environmental,
+        };
+        npc.Packages.Add(type, killedBy == KilledBy.Environmental ? -1 : actor);
+        if (actor != npc.Actor && type is not (ModifierPackageType.RayHeal or ModifierPackageType.HealingMat)) npc.LastAttacker = (actor, killedBy, now);
     }
 
     static KilledBy KilledByOf(Interaction interaction) => interaction.Type switch
@@ -450,12 +478,10 @@ public sealed partial class Session
         _ => interaction.KilledBy,
     };
 
-    static void Push(Npc npc, Vector3 impulse, long now, bool noFriction)
+    static void Push(Npc npc, Vector3 impulse, bool noFriction)
     {
         npc.Motor?.AddImpulse(impulse);
-        if (!noFriction) return;
-        AddModifier(npc, "_NoFriction");
-        npc.NoFrictionUntil = now + NoFrictionMs;
+        if (noFriction) npc.Packages.Add(ModifierPackageType.NoFriction);
     }
 
     static void AddModifier(Npc npc, string key)
@@ -469,14 +495,37 @@ public sealed partial class Session
         if (npc.Modifiers.Remove(key)) npc.ModifiersChanged = true;
     }
 
-    void Damage(Npc npc, float amount, int actor, KilledBy killedBy, long now)
+    void Damage(Npc npc, float amount, int actor, KilledBy killedBy, long now, Vector3 impulse = default)
     {
-        if (!npc.Alive || amount <= 0f) return;
+        if (!npc.Alive || !(amount > 0f) || npc.Packages.Has(ModifierEffect.Invulnerable)) return;
+        amount *= npc.Packages.Apply(ModifierEffect.DamageMultiplier, 1f);
         float before = npc.Health;
         npc.Health = Math.Clamp(before - amount, 0f, npc.MaxHealth);
         npc.HealthChanged = true;
+        npc.LastDamage = new DamageTaken(amount, killedBy, actor, impulse);
+        if (actor != npc.Actor) npc.LastAttacker = (actor, killedBy, now);
         Plugins.PluginHost.NpcDamaged(this, npc, PlayerOf(actor), amount);
-        if (npc.Health <= 0f && before > 0f) Die(npc, actor, killedBy, now);
+        if (npc.Health > 0f || before <= 0f) return;
+
+        if (actor == npc.Actor && npc.LastAttacker is var (attacker, attackedWith, at) && now - at <= LastAttackerMs) Die(npc, attacker, attackedWith, now);
+        else Die(npc, actor, killedBy, now);
+    }
+
+    void Kill(Npc npc, KilledBy killedBy, long now)
+    {
+        npc.LastDamage = new DamageTaken(npc.Health, killedBy, npc.Actor, Vector3.Zero);
+        npc.Health = 0f;
+        npc.HealthChanged = true;
+        Die(npc, npc.Actor, killedBy, now);
+    }
+
+    static void Heal(Npc npc, float amount)
+    {
+        if (!npc.Alive || !(amount > 0f) || npc.Packages.Has(ModifierEffect.Invulnerable)) return;
+        float healed = Math.Clamp(npc.Health + amount, 0f, npc.MaxHealth);
+        if (healed == npc.Health) return;
+        npc.Health = healed;
+        npc.HealthChanged = true;
     }
 
     void Die(Npc npc, int killerActor, KilledBy killedBy, long now)
@@ -487,7 +536,7 @@ public sealed partial class Session
         npc.Target = null;
         npc.JumpUntil = 0;
 
-        foreach (Player player in _players.Where(player => player.Saw(npc.Actor)))
+        foreach (Player player in Players.Where(player => player.Saw(npc.Actor)))
         {
             byte reason = KillReasons.ToClient(killedBy, player.Build);
             player.Peer.Send(new EventData((byte)EventCode.PostGameMsg)
@@ -513,6 +562,7 @@ public sealed partial class Session
         string by = killerActor == npc.Actor ? "nothing" : killer?.Username ?? NpcByActor(killerActor)?.Name ?? "nothing";
         Console.WriteLine($"npc {npc.Actor}: {npc.Name} killed by {by} with {killedBy}");
         Plugins.PluginHost.NpcKilled(this, npc, killer);
+        npc.Water.Refill();
     }
 
     void Respawn(Npc npc, Vector3 position)
@@ -523,6 +573,8 @@ public sealed partial class Session
         npc.ModeChanged = true;
         npc.Modifiers.Clear();
         npc.ModifiersChanged = true;
+        npc.Packages.Clear();
+        npc.Water.Refill();
         if (npc.ColossusScale is not null)
         {
             Colossus.Release(this, npc.AvatarId);
@@ -531,15 +583,12 @@ public sealed partial class Session
             npc.HeldItemData = null;
             npc.HeldItemChanged = true;
         }
-        npc.NoFrictionUntil = 0;
-        npc.BurnUntil = 0;
-        npc.HealRayUntil = 0;
         npc.Target = null;
         npc.Position = [position.X, position.Y, position.Z];
         npc.Teleported = true;
     }
 
-    Player? PlayerOf(int actor) => _players.FirstOrDefault(player => player.Actor == actor);
+    Player? PlayerOf(int actor) => Players.FirstOrDefault(player => player.Actor == actor);
 
     public Npc? NpcByActor(int actor)
     {
@@ -574,16 +623,14 @@ public sealed partial class Session
         return avatar with { Prototypes = [.. avatar.Prototypes.Where(prototype => !_avatarPrototypes.Contains(prototype.Id))] };
     }
 
-    static void Simulate(Npc npc, CollisionWorld collision, long now)
+    void Simulate(Npc npc, CollisionWorld collision, long now)
     {
-        npc.Motor ??= new AvatarMotor(collision, ToVector(npc.Position));
+        npc.Motor ??= new AvatarMotor(collision, ToVector(npc.Position), npc.Packages, npc.Water);
         AvatarMotor motor = npc.Motor;
         motor.World = collision;
         motor.WalkSpeed = npc.Speed;
         motor.Scale = npc.Size;
-        motor.NoFriction = now < npc.NoFrictionUntil;
         if (npc.Teleported) motor.Teleport(ToVector(npc.Position));
-        bool alive = npc.Alive;
 
         npc.Accumulator += MathF.Min((now - npc.LastStep) / 1000f, MaxCatchUpSeconds);
         npc.LastStep = now;
@@ -592,6 +639,7 @@ public sealed partial class Session
         while (npc.Accumulator >= AvatarMotor.FixedDeltaTime)
         {
             npc.Accumulator -= AvatarMotor.FixedDeltaTime;
+            bool alive = npc.Alive;
             Vector3 direction = Vector3.Zero;
             if (alive && npc.Target is { } target)
             {
@@ -602,11 +650,17 @@ public sealed partial class Session
             walking = direction != Vector3.Zero;
             if (walking) npc.Yaw = MathF.Atan2(direction.X, direction.Z) * 180f / MathF.PI;
             motor.Step(direction, alive && now < npc.JumpUntil);
+            Damage(npc, motor.ImpactDamage, npc.Actor, KilledBy.Impact, now);
+            Damage(npc, motor.SuffocationDamage, npc.Actor, KilledBy.Environmental, now);
+            Effects(npc, now);
         }
+
+        if (npc.Alive && motor.IsStuck()) Kill(npc, KilledBy.Crushed, now);
 
         Vector3 position = motor.Position;
         npc.Position = [position.X, position.Y, position.Z];
-        npc.Animation = !alive ? "Dead" : npc.AnimationOverride ?? (motor.Jumping ? "Jump" : walking || npc.Target is not null ? "Walk" : "Idle");
+        npc.Animation = !npc.Alive ? "Dead"
+            : npc.AnimationOverride ?? (motor.Water.Swimming ? "Swim" : motor.Jumping ? "Jump" : walking || npc.Target is not null ? "Walk" : "Idle");
     }
 
     static Vector3 ToVector(float[] value) => new(value[0], value[1], value[2]);
@@ -617,7 +671,7 @@ public sealed partial class Session
         bool moved = npc.SentPosition is not { } last || !last.SequenceEqual(npc.Position) || npc.SentYaw != npc.Yaw;
         string animation = npc.Animation;
         bool animate = animation != npc.SentAnimation;
-        bool state = npc.StateChanged;
+        bool state = npc.StateChanged || npc.Packages.Changed;
         if (!moved && npc.StopSent && !animate && !state) return;
 
         float[] position = [.. npc.Position];
@@ -628,7 +682,7 @@ public sealed partial class Session
             obj.Rotation = rotation;
         });
 
-        Player[] audience = [.. _players.Where(player => player.InWorld && player.Saw(npc.Actor))];
+        Player[] audience = [.. Players.Where(player => player.InWorld && player.Saw(npc.Actor))];
         int time = audience.Length > 0 ? audience[0].Peer.ServerTime : 0;
 
         if (moved || !npc.StopSent)
@@ -644,15 +698,19 @@ public sealed partial class Session
         }
 
         if (!animate && !state) return;
-        bool modifiers = npc.ModifiersChanged;
+        bool modifiers = npc.ModifiersChanged || npc.Packages.Changed;
         var changes = new Dictionary<object, object?>();
         if (animate) changes["animation"] = new Dictionary<object, object?> { ["state"] = animation, ["timeStamp"] = time };
         if (npc.HealthChanged) changes["health"] = npc.Health;
         if (npc.ModeChanged) changes["avatarModeTypes"] = (int)npc.Mode;
         if (modifiers) changes["modifiers"] = ModifiersOf(npc, resized: false);
         if (npc.MaxHealthChanged) changes["maxHealth"] = (int)MathF.Round(npc.MaxHealth);
-        npc.HealthChanged = npc.ModeChanged = npc.ModifiersChanged = npc.MaxHealthChanged = false;
-        World.Modify(npc.AvatarId, obj => PackedData.Merge(obj.Runtime, changes));
+        npc.HealthChanged = npc.ModeChanged = npc.ModifiersChanged = npc.MaxHealthChanged = npc.Packages.Changed = false;
+        World.Modify(npc.AvatarId, obj =>
+        {
+            if (modifiers) PackedData.Remove(obj.Runtime, new Dictionary<object, object?> { ["modifiers"] = null });
+            PackedData.Merge(obj.Runtime, changes);
+        });
 
         Dictionary<object, object?>? resized = modifiers && npc.SizeModifier is not null
             ? new Dictionary<object, object?>(changes) { ["modifiers"] = ModifiersOf(npc, resized: true) }

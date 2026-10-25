@@ -57,19 +57,9 @@ public sealed class RequestBuiltInItem(Session session) : IOperationHandler
         world.Add(obj);
         world.MarkChanged();
 
-        var evt = new EventData((byte)EventCode.GetGameBatch)
-        {
-            Parameters =
-            {
-                [(byte)ParameterKey.ActorNr] = (int)peer.Id,
-                [(byte)ParameterKey.Data] = WorldSerializer.Write(prototypes, [obj]),
-                [(byte)ParameterKey.QueryType] = (byte)QueryType.AddToGameWorld,
-                [(byte)ParameterKey.QueryId] = GetNextGameBatch.NextQueryId(),
-                [(byte)ParameterKey.QueryDataLeft] = false,
-            },
-        };
-        foreach (Player player in session.Players)
-            player.Peer.Send(evt);
+        Player? owner = session.For(peer);
+        GetNextGameBatch.SendAdded(session, owner?.Actor ?? peer.Id, new Snapshot(prototypes, [obj], [], []));
+        if (world.Find(obj.Id) is WorldObject placed) Plugins.PluginHost.Added(session, placed, owner);
 
         Console.WriteLine($"peer {peer.Id}: placed {obj.Type} {obj.Id}");
     }

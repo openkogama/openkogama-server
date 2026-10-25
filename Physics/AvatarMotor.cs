@@ -12,6 +12,8 @@ sealed class AvatarMotor
     const float InAirControlFactor = 3f;
     const float LerpTime = 0.4f;
     const float GroundDepth = 0.1f;
+    const float Density = 1f;
+    const float Weight = 1f;
 
     const float ExtraHeight = 4.1f;
     const float BaseHeight = 1f;
@@ -20,8 +22,19 @@ sealed class AvatarMotor
     const float RegularButtonDownTimeLimit = 0.2f;
     const float BouncyButtonDownTimeLimit = 3f;
     const float BouncinessThreshold = 0.3f;
+    const float WallJumpAngleMin = 70f;
+    const float WallJumpAngleMax = 92f;
+    const float WallJumpTimeOut = 0.25f;
+    const float WaterJumpInterval = 0.5f;
+    const float WaterJumpSlipperyProximity = 0.5f;
+
+    enum JumpType { Regular, Wall, Water }
 
     readonly CharacterController _controller;
+    readonly ModifierPackages _modifiers;
+    readonly ImpactState _impact = new();
+    readonly StuckEvaluator _stuck;
+    readonly List<Vector3> _wallNormals = [];
 
     Vector3 _velocityPrevFrame;
     float _currentLerp;
@@ -35,20 +48,24 @@ sealed class AvatarMotor
 
     bool _jumping;
     bool _holdingJump;
-    float _lastJumpStart;
+    float _lastJumpStart = -100f;
     float _lastButtonDown = -100f;
     float _jumpTimeOut;
     float _extraHeight;
     Vector3 _jumpDirection = Vector3.UnitY;
+    Vector3 _slopeDirection;
 
     Vector3 _bounceVelocity;
     Vector3 _impulse;
     float _scale = 1f;
 
-    public AvatarMotor(CollisionWorld world, Vector3 position)
+    public AvatarMotor(CollisionWorld world, Vector3 position, ModifierPackages modifiers, WaterState water)
     {
         _controller = new CharacterController(world, Radius, Height, new Vector3(0f, Height / 2f, 0f)) { Position = position };
-        _controller.OnHit = Bounce;
+        _controller.OnHit = Hit;
+        _modifiers = modifiers;
+        Water = water;
+        _stuck = new StuckEvaluator(() => World.OverlappingModels(_controller.Position + _controller.Center, _controller.EllipsoidRadius));
     }
 
     public CollisionWorld World
@@ -62,6 +79,9 @@ sealed class AvatarMotor
     public bool Grounded => _grounded;
     public bool Jumping => _jumping;
     public float WalkSpeed { get; set; } = DefaultWalkSpeed;
+    public WaterState Water { get; }
+    public float ImpactDamage { get; private set; }
+    public float SuffocationDamage { get; private set; }
 
     public float Scale
     {
@@ -73,11 +93,12 @@ sealed class AvatarMotor
             _controller.SetScale(value);
         }
     }
-    public bool NoFriction { get; set; }
 
-    float Friction => NoFriction ? 0f : _groundMaterial.Friction;
+    float Friction => _modifiers.Apply(ModifierEffect.Friction, _groundMaterial.Friction);
 
     public void AddImpulse(Vector3 impulse) => _impulse += impulse;
+
+    public void SuspendImpactDamage() => _impact.Suspend();
 
     public void Teleport(Vector3 position)
     {
@@ -85,23 +106,31 @@ sealed class AvatarMotor
         _velocityPrevFrame = Vector3.Zero;
         _bounceVelocity = Vector3.Zero;
         _impulse = Vector3.Zero;
+        _impact.Reset();
     }
+
+    public bool IsStuck() => _stuck.Update(_time);
 
     public void Step(Vector3 direction, bool jump)
     {
         _time += FixedDeltaTime;
         float gravity = World.Gravity;
-        Vector3 velocity = NextVelocity(_velocityPrevFrame, direction, jump, gravity);
+        Vector3 previous = _velocityPrevFrame;
+        float proximity = WaterState.Proximity(World, Position);
+        Vector3 velocity = NextVelocity(_velocityPrevFrame, direction, jump, gravity, proximity);
         _controller.Move(velocity * FixedDeltaTime);
         UpdateGround(velocity);
         _velocityPrevFrame = _controller.Velocity / FixedDeltaTime;
+        ImpactDamage = _impact.Update(_velocityPrevFrame, previous, _modifiers);
+        SuffocationDamage = Water.Update(World, Position, _modifiers);
     }
 
-    Vector3 NextVelocity(Vector3 velocity, Vector3 direction, bool jump, float gravity)
+    Vector3 NextVelocity(Vector3 velocity, Vector3 direction, bool jump, float gravity, float proximity)
     {
+        float density = _modifiers.Apply(ModifierEffect.Density, Density);
         if (_grounded)
         {
-            velocity = Sliding(velocity, gravity);
+            velocity = Sliding(velocity, gravity, density);
             float grip = Friction * Friction;
             velocity -= velocity * grip * FixedDeltaTime;
             velocity = InputGrounded(velocity, direction);
@@ -109,23 +138,25 @@ sealed class AvatarMotor
         else
         {
             velocity = InputInAir(velocity, direction);
-            velocity.Y = _velocityPrevFrame.Y - gravity * FixedDeltaTime;
+            velocity.Y = _velocityPrevFrame.Y - gravity * density * FixedDeltaTime;
         }
 
         if (_bounceVelocity != Vector3.Zero) velocity = _bounceVelocity;
         _bounceVelocity = Vector3.Zero;
 
-        velocity = Jump(velocity, jump, gravity);
-        velocity += _impulse * 0.02f;
+        velocity = Jump(velocity, jump, gravity, density, proximity);
+        velocity += _impulse * (0.02f / _modifiers.Apply(ModifierEffect.Weight, Weight));
         _impulse = Vector3.Zero;
-        return velocity;
+
+        float damping = _modifiers.Apply(ModifierEffect.VelocityDamping, 1f);
+        return velocity - (velocity - damping * velocity) * (FixedDeltaTime / 0.02f);
     }
 
-    Vector3 Sliding(Vector3 velocity, float gravity)
+    Vector3 Sliding(Vector3 velocity, float gravity, float density)
     {
         float grip = Friction * Friction;
-        Vector3 slide = _gradientDirection * MathF.Sin(_gradientAngle * UnityMath.Deg2Rad) * (1f - grip) * gravity;
-        return slide.Length() > _groundMaterial.StaticFriction ? velocity + slide * FixedDeltaTime : velocity;
+        Vector3 slide = _gradientDirection * MathF.Sin(_gradientAngle * UnityMath.Deg2Rad) * (1f - grip) * gravity * density;
+        return slide.Length() > _modifiers.Apply(ModifierEffect.StaticFriction, _groundMaterial.StaticFriction) ? velocity + slide * FixedDeltaTime : velocity;
     }
 
     Vector3 InputGrounded(Vector3 velocity, Vector3 direction)
@@ -157,9 +188,10 @@ sealed class AvatarMotor
 
     float Speed(Vector3 direction)
     {
+        float walkSpeed = _modifiers.Apply(ModifierEffect.Speed, WalkSpeed);
         _currentLerp = MathF.Min(_currentLerp + FixedDeltaTime, LerpTime);
         if (direction.Length() == 0f) _currentLerp = 0f;
-        return MathF.Sin(_currentLerp / LerpTime * 0.5f * MathF.PI) * WalkSpeed;
+        return MathF.Sin(_currentLerp / LerpTime * 0.5f * MathF.PI) * walkSpeed;
     }
 
     void UpdateGround(Vector3 velocity)
@@ -186,40 +218,96 @@ sealed class AvatarMotor
         }
     }
 
-    Vector3 Jump(Vector3 velocity, bool jump, float gravity)
+    Vector3 Jump(Vector3 velocity, bool jump, float gravity, float density, float proximity)
     {
+        UpdateWallJumpValues();
         if (!jump)
         {
             _holdingJump = false;
             _lastButtonDown = -100f;
         }
-        if (jump && _lastButtonDown < 0f) _lastButtonDown = _time;
+        else if (_lastButtonDown < 0f)
+        {
+            _lastButtonDown = _time;
+        }
 
-        float launchSpeed = MathF.Sqrt(2f * BaseHeight * gravity);
-        if (!_grounded && _jumping && _holdingJump && _time < _lastJumpStart + _extraHeight / launchSpeed)
-            velocity += _jumpDirection * gravity * FixedDeltaTime;
+        float launchSpeed = JumpSpeed(_modifiers.Apply(ModifierEffect.JumpPower, BaseHeight), gravity);
+        if (!_grounded && _jumping && _holdingJump && _time < _lastJumpStart + _modifiers.Apply(ModifierEffect.JumpPower, _extraHeight) / launchSpeed)
+            velocity += _jumpDirection * gravity * density * FixedDeltaTime;
 
-        if (!_grounded || _time - _lastJumpStart <= _jumpTimeOut) return velocity;
+        bool waterJump = proximity >= MathF.Min(1f, _modifiers.Apply(ModifierEffect.Scale, _scale) * 0.5f) && _time - _lastJumpStart >= WaterJumpInterval && jump;
+        bool wallJump = _modifiers.Apply(ModifierEffect.WallJump, 0f) > 0f;
+        if (!(_grounded || wallJump || waterJump) || _time - _lastJumpStart <= _jumpTimeOut) return velocity;
 
-        float limit = _groundMaterial.Bounciness > BouncinessThreshold ? BouncyButtonDownTimeLimit : RegularButtonDownTimeLimit;
+        float limit = _modifiers.Apply(ModifierEffect.Bounciness, _groundMaterial.Bounciness) > BouncinessThreshold ? BouncyButtonDownTimeLimit : RegularButtonDownTimeLimit;
         _holdingJump = false;
-        if (_time - _lastButtonDown >= limit) return velocity;
+        if (_time - _lastButtonDown >= limit && !waterJump) return velocity;
 
         float spread = 0f - Friction * Friction + 2f * Friction;
         float slippery = MathF.Sin(_gradientAngle * UnityMath.Deg2Rad) * (1f - spread);
-        if (slippery < SlipperyMin) slippery = 0f;
+        if (slippery < SlipperyMin || waterJump && proximity > WaterJumpSlipperyProximity) slippery = 0f;
 
         _jumping = true;
         _lastJumpStart = _time;
         _lastButtonDown = -100f;
         _holdingJump = true;
-        _jumpTimeOut = 0f;
+        _jumpTimeOut = wallJump ? WallJumpTimeOut : 0f;
         _extraHeight = ExtraHeight - ExtraHeight * slippery;
 
         float jumpSpeed = launchSpeed - launchSpeed * slippery;
-        _jumpDirection = slippery > SlipperyMax ? _groundNormal : Vector3.UnitY;
-        if (velocity.Y < 0f) velocity.Y = 0f;
+        _jumpDirection = JumpDirection(slippery, wallJump, waterJump, out JumpType type);
+        if (type == JumpType.Wall) velocity = WallJumpVelocity(velocity);
+        else if (type == JumpType.Regular && velocity.Y < 0f) velocity.Y = 0f;
         return velocity + _jumpDirection * jumpSpeed;
+    }
+
+    Vector3 JumpDirection(float slippery, bool wallJump, bool waterJump, out JumpType type)
+    {
+        type = JumpType.Regular;
+        if (waterJump && !_grounded)
+        {
+            type = JumpType.Water;
+            return Vector3.UnitY;
+        }
+        if (slippery > SlipperyMax) return _groundNormal;
+        if (!wallJump || _grounded) return Vector3.UnitY;
+
+        float angle = UnityMath.Angle(Vector3.UnitY, _slopeDirection);
+        if (angle <= WallJumpAngleMin || angle >= WallJumpAngleMax) return Vector3.UnitY;
+        _slopeDirection = UnityMath.Normalized(_slopeDirection + Vector3.UnitY);
+        type = JumpType.Wall;
+        return _slopeDirection;
+    }
+
+    static Vector3 WallJumpVelocity(Vector3 velocity)
+    {
+        if (velocity.Y >= 0f) return velocity;
+        float speed = velocity.Length();
+        velocity.Y = 0f;
+        Vector3 redirected = UnityMath.Normalized(velocity) * speed;
+        return new Vector2(velocity.X, velocity.Z).Length() > 5f ? redirected : velocity;
+    }
+
+    void UpdateWallJumpValues()
+    {
+        if (_wallNormals.Count > 0)
+        {
+            Vector3 sum = Vector3.Zero;
+            foreach (Vector3 normal in _wallNormals) sum += normal;
+            _slopeDirection = UnityMath.Normalized(sum);
+        }
+        _wallNormals.Clear();
+    }
+
+    static float JumpSpeed(float height, float gravity) => MathF.Sqrt(gravity * (height + height));
+
+    void Hit(ControllerHit hit)
+    {
+        MaterialPhysics material = MaterialPhysics.For(hit.Hit.Material);
+        _modifiers.Add(material.Package);
+        if (material.Package == ModifierPackageType.WallJump) _wallNormals.Add(hit.SlopeNormal);
+        Bounce(hit);
+        _impact.Hit(hit);
     }
 
     void Bounce(ControllerHit hit)

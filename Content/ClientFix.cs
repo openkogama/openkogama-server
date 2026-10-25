@@ -9,6 +9,16 @@ public static class ClientFix
     const int NothingToChange = 3;
     const string ColossusLaser = "colossus-laser";
     const string WorldSwitch = "world-switch";
+    const string Tcp = "tcp";
+    const string NetworkGame = "MVNetworkGame";
+    const int TcpProtocol = 1;
+    const int MaxConstructorParameters = 4;
+    static readonly byte?[] PeerCreation = [0x45, 0x33, 0xC9, 0x45, 0x33, 0xC0, 0x48, 0x8B, null, 0x48, 0x8B, 0xC8];
+    static readonly byte[] SetTcpArgument = [0x41, 0xB0, TcpProtocol];
+    const int ProtocolArgumentAt = 3;
+    static readonly byte?[] PeerCreation32 = [Call, null, null, null, null, 0x6A, 0x00, 0x6A, 0x00, 0x8B, null, null, null, Call];
+    static readonly byte[] PushTcp = [0x6A, TcpProtocol];
+    const int ProtocolPushAt = 7;
     const string Controller = "MVGameControllerBase";
     const byte Call = 0xE8;
     const byte Jump = 0xE9;
@@ -23,7 +33,7 @@ public static class ClientFix
     {
         if (args is not [string input, string output, .. string[] fixes])
         {
-            Console.WriteLine($"usage: client fix <Assembly-CSharp.dll or GameAssembly.dll> <output> [{ColossusLaser}] [{WorldSwitch}]");
+            Console.WriteLine($"usage: client fix <Assembly-CSharp.dll or GameAssembly.dll> <output> [{ColossusLaser}] [{WorldSwitch}] [{Tcp}]");
             return 2;
         }
         try
@@ -54,6 +64,7 @@ public static class ClientFix
         List<string> applied = [];
         if (fixes.Contains(ColossusLaser) && Guard(module, "GodzillaLaser", "OnUnequip")) applied.Add(ColossusLaser);
         if (fixes.Contains(WorldSwitch) && Reload(module)) applied.Add(WorldSwitch);
+        if (fixes.Contains(Tcp) && UseTcp(module)) applied.Add(Tcp);
         if (applied.Count == 0) return applied;
         var fixedAssembly = new MemoryStream();
         module.Write(fixedAssembly);
@@ -63,7 +74,7 @@ public static class ClientFix
 
     static List<string> Native(string input, string output, string[] fixes)
     {
-        if (!fixes.Contains(WorldSwitch) || Metadata(output) is not string metadata) return [];
+        if (!fixes.Contains(WorldSwitch) && !fixes.Contains(Tcp) || Metadata(output) is not string metadata) return [];
         Il2CppMethods methods;
         try
         {
@@ -74,9 +85,61 @@ public static class ClientFix
             Console.WriteLine($"client fix: {error.Message}");
             return [];
         }
-        if (!Reload(methods)) return [];
-        Save(output, methods.Binary);
-        return [WorldSwitch];
+        List<string> applied = [];
+        if (fixes.Contains(WorldSwitch) && Reload(methods)) applied.Add(WorldSwitch);
+        if (fixes.Contains(Tcp) && UseTcp(methods)) applied.Add(Tcp);
+        if (applied.Count > 0) Save(output, methods.Binary);
+        return applied;
+    }
+
+    static bool UseTcp(ModuleDefinition module)
+    {
+        if (module.GetType(NetworkGame) is not { } game) return false;
+        bool changed = false;
+        foreach (MethodDefinition method in game.Methods.Where(method => method.HasBody))
+        {
+            ILProcessor il = method.Body.GetILProcessor();
+            foreach (Instruction create in method.Body.Instructions.Where(PeerConstructor).ToList())
+            {
+                il.InsertBefore(create, il.Create(OpCodes.Pop));
+                il.InsertBefore(create, il.Create(OpCodes.Ldc_I4, TcpProtocol));
+                changed = true;
+            }
+        }
+        return changed;
+    }
+
+    static bool PeerConstructor(Instruction instruction) =>
+        instruction.OpCode == OpCodes.Newobj && instruction.Operand is MethodReference { Name: ".ctor", DeclaringType.Name: "PhotonPeer" } constructor
+        && constructor.Parameters is [_, { ParameterType.Name: "ConnectionProtocol" }];
+
+    static bool UseTcp(Il2CppMethods methods)
+    {
+        byte?[] pattern = methods.Is64Bit ? PeerCreation : PeerCreation32;
+        byte[] image = methods.Binary;
+        List<int> found = [];
+        for (int parameters = 0; parameters <= MaxConstructorParameters; parameters++)
+        {
+            if (methods.Find(NetworkGame, ".ctor", parameters) is not uint constructor) continue;
+            int start = methods.Offset(constructor), end = start + (int)(methods.End(constructor) - constructor);
+            for (int at = start; at + pattern.Length <= end; at++)
+                if (Matches(image, at, pattern)) found.Add(at);
+        }
+        if (found is not [int site])
+        {
+            Console.WriteLine($"client fix: {Tcp}: found the photon peer {found.Count} times, left as it is");
+            return false;
+        }
+        if (methods.Is64Bit) SetTcpArgument.CopyTo(image, site + ProtocolArgumentAt);
+        else PushTcp.CopyTo(image, site + ProtocolPushAt);
+        return true;
+    }
+
+    static bool Matches(byte[] image, int at, byte?[] pattern)
+    {
+        for (int i = 0; i < pattern.Length; i++)
+            if (pattern[i] is byte expected && image[at + i] != expected) return false;
+        return true;
     }
 
     static void Save(string output, byte[] bytes)

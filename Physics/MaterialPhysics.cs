@@ -1,8 +1,8 @@
 namespace OpenKogama.Physics;
 
-readonly record struct MaterialPhysics(float Friction, float Bounciness, float StaticFriction)
+readonly record struct MaterialPhysics(float Friction, float Bounciness, float Softness, float StaticFriction, ModifierPackageType Package)
 {
-    public static readonly MaterialPhysics Air = new(0f, 0f, 0f);
+    public static readonly MaterialPhysics Air = new(0f, 0f, 0f, 0f, ModifierPackageType.None);
 
     static readonly Lazy<Dictionary<int, MaterialPhysics>> All = new(Load);
 
@@ -14,8 +14,8 @@ readonly record struct MaterialPhysics(float Friction, float Bounciness, float S
         var materials = new Dictionary<int, MaterialPhysics>();
         foreach (string version in (ReadOnlySpan<string>)["2025", "2015"])
             foreach (Game.Material material in Game.Materials.For(version))
-                if (material.Physical is [float friction, float bounciness, _, float staticFriction, ..])
-                    materials[material.Id] = new MaterialPhysics(friction, bounciness, staticFriction);
+                if (material.Physical is [float friction, float bounciness, float softness, float staticFriction, ..])
+                    materials[material.Id] = new MaterialPhysics(friction, bounciness, softness, staticFriction, (ModifierPackageType)material.Modifier);
         return materials;
     }
 }

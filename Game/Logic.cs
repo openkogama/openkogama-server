@@ -71,6 +71,7 @@ public sealed class Logic(Session session)
     {
         lock (_sync)
         {
+            UnplugRemoved();
             for (int round = 0; round < MaxPasses; round++)
             {
                 Graph graph = GraphFor();
@@ -295,6 +296,15 @@ public sealed class Logic(Session session)
         }
     }
 
+    void UnplugRemoved()
+    {
+        foreach ((int toggle, Driver driver) in _drivers.Where(entry => session.World.Find(entry.Key) is null).ToList())
+        {
+            _drivers.Remove(toggle);
+            Unplug(driver);
+        }
+    }
+
     IEnumerable<Player> Present(Driver driver) => driver.Players.Where(session.Players.Contains);
 
     public bool Press(int id)
@@ -321,6 +331,19 @@ public sealed class Logic(Session session)
         if (!changed) return;
         Signal(id, ServerActor, pressed);
         Evaluate();
+    }
+
+    public void Settle(int rootId)
+    {
+        lock (_sync)
+        {
+            var copies = session.World.Subtree(rootId).Select(obj => obj.Id).ToHashSet();
+            Graph graph = GraphFor();
+            bool[] inputs = Propagate(graph);
+            foreach (int index in graph.Stateful)
+                if (copies.Contains(graph.Nodes[index].Id))
+                    _inputs[graph.Nodes[index].Id] = inputs[index];
+        }
     }
 
     public void ResetAll() => Reset(session.World.ToSnapshot().Objects.Where(obj => Stateful.Contains(obj.Type)).Select(obj => obj.Id));

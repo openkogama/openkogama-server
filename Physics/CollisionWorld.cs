@@ -35,7 +35,8 @@ sealed class CollisionWorld
         (int X, int Y, int Z) CubeMax,
         int ChunkSize,
         float PrototypeScale,
-        float LocalPerWorld);
+        float LocalPerWorld,
+        bool FineGrained);
 
     sealed class CubeData(byte[] cube, byte hidden, Vector3[] local, Vector3[] world)
     {
@@ -48,15 +49,19 @@ sealed class CollisionWorld
     readonly List<Body> _bodies;
     readonly Dictionary<(int Body, int X, int Y, int Z), CubeData?> _cubes = [];
 
-    CollisionWorld(List<Body> bodies, float gravity, float? terrainBottom)
+    CollisionWorld(List<Body> bodies, float gravity, float bottom, float? waterLevel, bool lethalWater)
     {
         _bodies = bodies;
         Gravity = gravity;
-        TerrainBottom = terrainBottom;
+        Bottom = bottom;
+        WaterLevel = waterLevel;
+        LethalWater = lethalWater;
     }
 
     public float Gravity { get; }
-    public float? TerrainBottom { get; }
+    public float Bottom { get; }
+    public float? WaterLevel { get; }
+    public bool LethalWater { get; }
 
     public static CollisionWorld Build(GameWorld world)
     {
@@ -80,13 +85,14 @@ sealed class CollisionWorld
         }
 
         var bodies = new List<Body>();
-        float? terrainBottom = null;
+        float bottom = 0f;
         foreach (WorldObject obj in snapshot.Objects)
         {
             if (obj.Type is not (WorldObjectType.CubeModel or WorldObjectType.CubeModelPrototypeTerrain or WorldObjectType.CubeModelTerrainFineGrained)) continue;
             if (obj.PrototypeId is not int prototypeId || world.FindPrototype(prototypeId) is not { } prototype) continue;
-            if (WorldMatrix(obj, 0) is not Matrix4x4 matrix || !Matrix4x4.Invert(matrix, out Matrix4x4 inverse)) continue;
             if (prototype.Cubes.Bounds() is not var ((minX, minY, minZ), (maxX, maxY, maxZ))) continue;
+            bottom = MathF.Min(bottom, minY - 0.5f);
+            if (WorldMatrix(obj, 0) is not Matrix4x4 matrix || !Matrix4x4.Invert(matrix, out Matrix4x4 inverse)) continue;
 
             Vector3 worldMin = new(float.PositiveInfinity);
             Vector3 worldMax = new(float.NegativeInfinity);
@@ -102,15 +108,23 @@ sealed class CollisionWorld
                 MathF.Min(new Vector3(matrix.M21, matrix.M22, matrix.M23).Length(), new Vector3(matrix.M31, matrix.M32, matrix.M33).Length()));
             if (smallest <= 0f) continue;
 
-            if (obj.Type == WorldObjectType.CubeModelPrototypeTerrain) terrainBottom = worldMin.Y;
+            if (obj.Type == WorldObjectType.CubeModelPrototypeTerrain) bottom = MathF.Min(bottom, worldMin.Y);
             bodies.Add(new Body(bodies.Count, obj.Id, prototype.Cubes, matrix, inverse, worldMin, worldMax, (minX, minY, minZ), (maxX, maxY, maxZ),
-                prototypeId == fineGrained ? FineGrainedChunkSize : ChunkSize, prototype.Scale, 1f / smallest));
+                prototypeId == fineGrained ? FineGrainedChunkSize : ChunkSize, prototype.Scale, 1f / smallest, obj.Type == WorldObjectType.CubeModelTerrainFineGrained));
         }
 
         float gravity = DefaultGravity;
         if (world.FindFirst(WorldObjectType.GravityCube) is { } cube && cube.Data.Find(pair => pair.Key == "gravity").Value is { } value)
             gravity = Convert.ToSingle(value);
-        return new CollisionWorld(bodies, gravity, terrainBottom);
+
+        float? waterLevel = null;
+        bool lethalWater = false;
+        if (snapshot.Objects.LastOrDefault(obj => obj.Type == WorldObjectType.WaterPlane) is { } water && WorldMatrix(water, 0) is Matrix4x4 surface)
+        {
+            waterLevel = surface.Translation.Y;
+            lethalWater = water.Data.Find(pair => pair.Key == "lethal").Value is true;
+        }
+        return new CollisionWorld(bodies, gravity, bottom, waterLevel, lethalWater);
     }
 
     internal static Matrix4x4 Local(WorldObject obj, GameWorld world)
@@ -196,6 +210,14 @@ sealed class CollisionWorld
         foreach (Body body in _bodies)
             if (Overlaps(body, low, high) && Overlap(body, position, radius)) return true;
         return false;
+    }
+
+    public List<int> OverlappingModels(Vector3 position, Vector3 radius)
+    {
+        float maxRadius = MathF.Max(radius.X, MathF.Max(radius.Y, radius.Z));
+        Vector3 low = position - new Vector3(maxRadius);
+        Vector3 high = position + new Vector3(maxRadius);
+        return [.. _bodies.Where(body => !body.FineGrained && Overlaps(body, low, high) && Overlap(body, position, radius)).Select(body => body.ObjectId).Distinct()];
     }
 
     bool Overlap(Body body, Vector3 position, Vector3 radius)

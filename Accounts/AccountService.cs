@@ -41,13 +41,18 @@ public sealed partial class AccountService(AccountStore store, ECDsa key, Func<s
 
     public HashSet<string> Origins { get; init; } = ["https://openkogama.org", "https://www.openkogama.org"];
     public Func<string?, string, Task<bool>>? Human { get; init; }
+    public MapSubmissions? Maps { get; init; }
 
     public static int Run(string[] options)
     {
         int port = int.TryParse(Tunnel.Option(options, "port"), out int given) ? given : 8098;
         var store = new AccountStore(Tunnel.Option(options, "db") ?? "accounts.db");
         ECDsa key = Tickets.LoadOrCreate(Tunnel.Option(options, "key") ?? "accounts.key");
-        var service = new AccountService(store, key, Mailer.FromEnvironment().SendAsync) { Human = Turnstile.FromEnvironment() };
+        var service = new AccountService(store, key, Mailer.FromEnvironment().SendAsync)
+        {
+            Human = Turnstile.FromEnvironment(),
+            Maps = new MapSubmissions(Tunnel.Option(options, "maps") ?? "maps"),
+        };
         foreach (string origin in (Tunnel.Option(options, "origins") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
             service.Origins.Add(origin);
         service.Serve(port);
@@ -86,10 +91,13 @@ public sealed partial class AccountService(AccountStore store, ECDsa key, Func<s
         }
 
         Reply reply;
+        string path = request.Url?.AbsolutePath.TrimEnd('/') ?? "";
         try
         {
-            JsonObject? body = request.HttpMethod == "POST" ? await BodyAsync(request) : null;
-            reply = await HandleAsync(request.HttpMethod, request.Url?.AbsolutePath.TrimEnd('/') ?? "", body, SourceOf(request));
+            if (request.HttpMethod == "POST" && path == "/maps/upload" && Maps is not null)
+                reply = await Maps.AcceptAsync(request, SourceOf(request));
+            else
+                reply = await HandleAsync(request.HttpMethod, path, request.HttpMethod == "POST" ? await BodyAsync(request) : null, SourceOf(request));
         }
         catch (JsonException)
         {
@@ -120,6 +128,7 @@ public sealed partial class AccountService(AccountStore store, ECDsa key, Func<s
         ("POST", "/email/confirm") => ConfirmEmail(body, source),
         ("POST", "/launcher/code") => HandOff(body),
         ("POST", "/launcher/token") => TakeOver(body, source),
+        ("POST", "/maps/batch") => await MapBatchAsync(body, source),
         _ => Error(404, "not found"),
     };
 
@@ -278,6 +287,14 @@ public sealed partial class AccountService(AccountStore store, ECDsa key, Func<s
         if (handoff is null || handoff.Expires < Environment.TickCount64 || !CryptographicOperations.FixedTimeEquals(challenge, Encoding.ASCII.GetBytes(handoff.Challenge)))
             return Error(401, "that sign in link expired, sign in from the launcher again");
         return Signed(handoff.Account);
+    }
+
+    async Task<Reply> MapBatchAsync(JsonObject? body, string source)
+    {
+        if (Maps is null) return Error(404, "not found");
+        if (!Allow("maps " + source, 30, Hour)) return TooMany();
+        if (!await HumanAsync(body, source)) return Robot();
+        return Ok(new JsonObject { ["ticket"] = Maps.Ticket() });
     }
 
     async Task SendCodeAsync(string email, string purpose, string name)

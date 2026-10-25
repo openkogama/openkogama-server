@@ -74,10 +74,11 @@ public sealed partial class Session
             done = [.. _announcers.Where(entry => entry.Until <= now)];
             _announcers.RemoveAll(entry => entry.Until <= now);
         }
+        IReadOnlyList<Player> present = Players;
         foreach ((int actor, Player[] audience, _) in done)
         {
             var leave = new EventData((byte)EventCode.Leave) { Parameters = { [(byte)ParameterKey.ActorNr] = actor } };
-            foreach (Player player in audience.Where(player => _players.Contains(player)))
+            foreach (Player player in audience.Where(player => present.Contains(player)))
                 player.Peer.Send(leave);
         }
     }

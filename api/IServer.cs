@@ -22,6 +22,7 @@ public interface IServer
     event Action<IPlayer, AvatarItem>? PlayerSwitchedItem;
     event Action<IPlayer, AvatarItem>? PlayerPickedUp;
     event Action<IPlayer, IWorldObject, bool>? PlayerTriggered;
+    event Action<CubeChanges>? CubesChanged;
     [Obsolete("Use PlayerGestured")]
     event Action<IPlayer, string>? Gesture;
     [Obsolete("Use PlayerAnimated")]

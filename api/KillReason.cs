@@ -1,0 +1,31 @@
+namespace OpenKogama.Api;
+
+public enum KillReason : byte
+{
+    None,
+    CenterGun,
+    BazookaGun,
+    RailGun,
+    Suicide,
+    Impact,
+    Environmental,
+    Sword,
+    Explosive,
+    Fire,
+    FallOffWorld,
+    Mutant,
+    Shotgun,
+    FlameThrower,
+    Crushed,
+    Ghost,
+    AdvancedGhost,
+    SixShooter,
+    DoubleSixShooter,
+    ThrowingStar,
+    MultiThrowingStar,
+    GodzillaLaser,
+    KillZone,
+    SlapGun,
+    RayHealGun,
+    CustomGun,
+}

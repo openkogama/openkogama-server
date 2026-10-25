@@ -21,6 +21,23 @@ public sealed class UpdatePrototype(Session session) : IOperationHandler
             return;
         }
 
+        if (Plugins.PluginHost.WatchesCubes && session.For(peer) is Player editor)
+        {
+            var parsed = Plugins.PluginCubes.Parse(changes);
+            if (parsed.Count > 0 && Plugins.PluginHost.CubesChanged(session, editor, prototype, parsed))
+            {
+                peer.Send(new EventData((byte)EventCode.UpdatePrototype)
+                {
+                    Parameters =
+                    {
+                        [(byte)ParameterKey.WorldInventoryID] = prototypeId,
+                        [(byte)ParameterKey.WorldInventoryData] = Plugins.PluginCubes.Revert(prototype, parsed),
+                    },
+                });
+                return;
+            }
+        }
+
         prototype.Cubes.Apply(changes);
         session.World.MarkChanged();
 

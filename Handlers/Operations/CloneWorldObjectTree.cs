@@ -23,7 +23,9 @@ public sealed class CloneWorldObjectTree(Session session) : IOperationHandler
             return;
         }
 
-        WorldObject clone = session.World.CloneTree(objectId)!;
+        WorldObject clone = session.World.CloneTree(objectId, out int firstLinkId, out int firstObjectLinkId)!;
+        if (!toRoot) session.World.Modify(clone.Id, obj => obj.ParentId = original.ParentId);
+        session.Logic.Settle(clone.Id);
         session.World.MarkChanged();
         session.Teams.Update();
 
@@ -33,8 +35,8 @@ public sealed class CloneWorldObjectTree(Session session) : IOperationHandler
             {
                 [(byte)ParameterKey.WorldObjectIDs] = new[] { objectId, clone.Id },
                 [(byte)ParameterKey.OwnerActorNr] = owner,
-                [(byte)ParameterKey.LinkID] = -1,
-                [(byte)ParameterKey.ObjectLinkID] = -1,
+                [(byte)ParameterKey.LinkID] = firstLinkId,
+                [(byte)ParameterKey.ObjectLinkID] = firstObjectLinkId,
                 [(byte)ParameterKey.CloneToRootGroup] = toRoot,
                 [(byte)ParameterKey.PreviewProfileOwnerID] = asPreview ? session.For(peer)?.ProfileId ?? 0 : 0,
             },

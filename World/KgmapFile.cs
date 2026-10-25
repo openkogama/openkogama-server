@@ -14,6 +14,8 @@ public static class KgmapFile
     public static bool IsKgmap(byte[] file) =>
         file.Length >= 4 && (file[0] == 0x1f && file[1] == 0x8b || BitConverter.ToUInt32(file, 0) == Magic);
 
+    public static bool Recognized(byte[] start) => IsKgmap(start) && FileVersion(start) is > 0;
+
     public static (JsonObject Meta, List<byte[]> Batches) Read(byte[] file)
     {
         using Stream input = Open(file);

@@ -6,6 +6,7 @@ public interface IWorldBuilder
 {
     IReadOnlyList<IWorldObject> Objects { get; }
     ITerrain Terrain { get; }
+    ICubeModel? Model(int objectId);
     IWorldObject? Find(int id);
     IReadOnlyList<IWorldObject> Markers(string name);
     IWorldObject Add(string type, Vector3 position, IReadOnlyDictionary<string, object>? data = null, Quaternion? rotation = null, Vector3? scale = null, int? parentId = null);

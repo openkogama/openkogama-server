@@ -312,14 +312,15 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
     {
         foreach (Session session in Worlds())
         {
-            session.Logic.Tick();
-            Spins.Tick(session);
-            Experience.Tick(session);
-            session.GamePasses.Tick();
-            session.TickNpcs();
-            session.TickAnnouncements();
+            string world = $"world {session.WorldId}";
+            TickErrors.Guard(world + " logic", session.Logic.Tick);
+            TickErrors.Guard(world + " spins", () => Spins.Tick(session));
+            TickErrors.Guard(world + " experience", () => Experience.Tick(session));
+            TickErrors.Guard(world + " game passes", session.GamePasses.Tick);
+            TickErrors.Guard(world + " npcs", session.TickNpcs);
+            TickErrors.Guard(world + " announcements", session.TickAnnouncements);
         }
-        Plugins.PluginHost.Tick();
+        TickErrors.Guard("plugins", Plugins.PluginHost.Tick);
     }
 
     public IReadOnlyList<Session> Sessions() => Worlds();

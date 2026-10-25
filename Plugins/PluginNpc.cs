@@ -3,6 +3,7 @@ using OpenKogama.Api;
 using OpenKogama.Game;
 using OpenKogama.World;
 using OpenKogama.Kogama;
+using OpenKogama.Physics;
 
 namespace OpenKogama.Plugins;
 
@@ -23,9 +24,29 @@ sealed class PluginNpc(Session session, Npc npc) : INpc
     public string Animation => npc.Animation;
     public bool Walking => npc.Target is not null;
     public bool Grounded => npc.Grounded;
+    public bool Swimming => npc.Water.Swimming;
     public float Health => npc.Health;
     public bool Alive => npc.Alive;
     public bool Exists => session.Npcs.Contains(npc);
+
+    public float Oxygen
+    {
+        get => npc.Water.Oxygen;
+        set => npc.Water.Oxygen = value;
+    }
+
+    public float MaxOxygen
+    {
+        get => npc.Water.MaxOxygen;
+        set => npc.Water.MaxOxygen = value;
+    }
+
+    public NpcDamage? LastDamage => npc.LastDamage is { } taken
+        ? new NpcDamage(taken.Amount, (KillReason)taken.KilledBy, PlayerOf(taken.Actor), NpcOf(taken.Actor), taken.Impulse)
+        : null;
+
+    public IReadOnlyList<AvatarModifier> Modifiers =>
+        [.. npc.Packages.Active.Select(type => (AvatarModifier)type).Where(modifier => Enum.IsDefined(modifier))];
 
     public float Speed
     {
@@ -113,11 +134,30 @@ sealed class PluginNpc(Session session, Npc npc) : INpc
 
     public void Damage(float amount, IPlayer? by = null) => Damage(amount, by, Vector3.Zero);
 
-    public void Damage(float amount, IPlayer? by, Vector3 impulse) => npc.Damages.Enqueue((amount, by?.Actor ?? npc.Actor, impulse));
+    public void Damage(float amount, IPlayer? by, Vector3 impulse) => npc.Damages.Enqueue((amount, by?.Actor ?? npc.Actor, impulse, null));
 
     public void Damage(float amount, INpc by) => Damage(amount, by, Vector3.Zero);
 
-    public void Damage(float amount, INpc by, Vector3 impulse) => npc.Damages.Enqueue((amount, by.Id, impulse));
+    public void Damage(float amount, INpc by, Vector3 impulse) => npc.Damages.Enqueue((amount, by.Id, impulse, null));
+
+    public void Damage(NpcDamage damage)
+    {
+        if (!Enum.IsDefined(damage.Reason)) throw new ArgumentException($"unknown kill reason {damage.Reason}, use one of {string.Join(", ", Enum.GetNames<KillReason>())}");
+        npc.Damages.Enqueue((damage.Amount, damage.By?.Actor ?? damage.ByNpc?.Id ?? npc.Actor, damage.Impulse, (KilledBy)damage.Reason));
+    }
+
+    public void Heal(float amount) => npc.Heals.Enqueue(amount);
+
+    public void AddModifier(AvatarModifier modifier, IPlayer? by = null) => npc.ModifierChanges.Enqueue((Package(modifier), by?.Actor ?? npc.Actor, true));
+
+    public void RemoveModifier(AvatarModifier modifier) => npc.ModifierChanges.Enqueue((Package(modifier), npc.Actor, false));
+
+    static ModifierPackageType Package(AvatarModifier modifier) =>
+        Enum.IsDefined(modifier) ? (ModifierPackageType)modifier : throw new ArgumentException($"unknown modifier {modifier}, use one of {string.Join(", ", Enum.GetNames<AvatarModifier>())}");
+
+    IPlayer? PlayerOf(int actor) => session.Players.FirstOrDefault(player => player.Actor == actor) is { } player ? PluginHost.PlayerOf(session, player) : null;
+
+    INpc? NpcOf(int actor) => actor != npc.Actor && session.NpcByActor(actor) is { } other ? new PluginNpc(session, other) : null;
 
     public bool SetTeam(Api.Team? team) => session.Teams.Set(npc, team is Api.Team joined ? (Game.Team)(int)joined : null);
 

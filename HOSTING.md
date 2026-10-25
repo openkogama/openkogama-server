@@ -13,7 +13,7 @@ The rest of this guide is for a server that stays online for everyone.
 ## What you need
 
 - A PC or VPS that stays on. One CPU core and 1 GB of RAM is enough for a few players.
-- These ports open to the internet: TCP 80 and 443 for HTTPS, UDP 5055 for the game, and TCP 843 for the 2012 to 2014 web player builds. At home, forward them on your router.
+- These ports open to the internet: TCP 80 and 443 for HTTPS, UDP and TCP 5055 for the game, and TCP 843 for the 2012 to 2014 web player builds. At home, forward them on your router. The game itself uses UDP; TCP 5055 is for players whose network or VPN blocks UDP (their launcher notices and switches the game to TCP) and for the game in a browser.
 - An HTTPS address. Builds made with Unity 2022 or newer, such as 3.5.x, refuse plain HTTP to anything but localhost. Without a domain, `<your-ip-with-dashes>.sslip.io` (for example `203-0-113-7.sslip.io`) points at your IP and works with Caddy below.
 
 By default the server uses ports 8080, 5055, 843 to 845 and 8081 on its machine, the same as the launcher's own local server, so don't play local worlds in the launcher on that PC while it runs.
@@ -61,7 +61,8 @@ The server reads its program files from `app` and keeps everything else in the f
 | `antiCheatSpoof` | `true` by default: nobody can write in chat as another player or report someone else's death. |
 | `antiCheatBuild` | `true` by default: in a play session nobody can do what only the editor does, like placing, removing, linking or changing objects, and players move and change only their own avatar and vehicles. Only a player's own avatar gets into a vehicle, out of one or a new one from a vehicle spawner, only real vehicles can be sat in, and 2012 clients register nothing but their avatar. In every session the cube gun builds only with the materials of the map's cube guns, and only destructible materials can be destroyed. |
 | `admins` | IP addresses of admins. Admins may type `!reload` to load changed plugins without a restart and get the game's own admin tools on the player list, where they can kick or ban other players. Bans are kept in `bans.json` in the data folder. Players on the server's own machine are always admins. |
-| `httpPort`, `photonPort` | Ports for HTTP and the game, 8080 and 5055 by default. Change them to run a second server on the same machine; the 2012 build always connects to 5055. |
+| `httpPort`, `photonPort` | Ports for HTTP and the game, 8080 and 5055 by default. Change them to run a second server on the same machine; the 2012 build always connects to 5055. The game port takes UDP and, on the same number, TCP and WebSocket connections. |
+| `tcpPort` | An extra TCP port for the game, for networks that only let some ports through. Players who need TCP are sent there instead of `photonPort`. |
 
 To bring your own worlds, close the launcher and copy `%LocalAppData%\OpenKogama\OpenKogama Launcher\server\server.db` into the data folder.
 

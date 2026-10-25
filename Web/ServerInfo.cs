@@ -16,6 +16,7 @@ public sealed class ServerInfo
     public string ListenHost { get; init; } = "127.0.0.1";
     public int HttpPort { get; set; } = 8080;
     public int PhotonPort { get; set; } = 5055;
+    public int? TcpPort { get; set; }
     public string JoinMode { get; init; } = "play";
     public string[] Admins { get; init; } = [];
 
@@ -38,7 +39,7 @@ public sealed class ServerInfo
     public string AccountsUrl { get; init; } = "https://accounts.openkogama.org";
     public string[] Addresses { get; init; } = [];
 
-    public static readonly string[] Features = ["player", "player-deflate", "content"];
+    public static readonly string[] Features = ["player", "player-deflate", "content", "tcp"];
 
     public string[] FeaturesNow() => Accounts == AccountMode.Offline || CentralKey.Current is null ? Features
         : Accounts == AccountMode.Online ? [.. Features, "accounts", "accounts-required"] : [.. Features, "accounts"];

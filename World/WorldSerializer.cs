@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using OpenKogama.Game;
 
 namespace OpenKogama.World;
@@ -21,6 +22,9 @@ public sealed record Snapshot(
 //   int32 runtimeEventCount + records
 public static class WorldSerializer
 {
+    const int MaxPrototypes = 1_000_000;
+    const int MaxObjects = 10_000_000;
+    const float MaxScale = 1000f;
     const byte HasOwner = 1;
     const byte HasPreviewOwner = 2;
 
@@ -45,6 +49,17 @@ public static class WorldSerializer
             writer.WriteBytes(runtimeEvent);
 
         return writer.ToArray();
+    }
+
+    public static bool LooksLikeSnapshot(ReadOnlySpan<byte> head)
+    {
+        if (head.Length < 8) return false;
+        int prototypes = BinaryPrimitives.ReadInt32BigEndian(head);
+        if (prototypes is < 0 or > MaxPrototypes) return false;
+        if (prototypes == 0) return BinaryPrimitives.ReadInt32BigEndian(head[4..]) is >= 0 and <= MaxObjects;
+        if (head.Length < 20) return false;
+        float scale = BinaryPrimitives.ReadSingleBigEndian(head[8..]);
+        return float.IsFinite(scale) && scale > 0f && scale <= MaxScale && BinaryPrimitives.ReadInt32BigEndian(head[16..]) >= 0;
     }
 
     public static byte[] Write(IReadOnlyList<Prototype> prototypes, IReadOnlyList<WorldObject> objects) =>

@@ -70,10 +70,12 @@ public static class CollectTheItem
     static bool Delivers(Player player) =>
         player.Peer.Translator is Kogama.Protocols.OperationRemap remap && remap.Knows(EventCode.CollectTheItemDropOff);
 
-    public static WorldObject? DropTemporary(Session session, int originalId, float[] position, float[] rotation)
+    public static WorldObject? DropTemporary(Session session, int originalId, float[] position, float[] rotation, out int firstLinkId, out int firstObjectLinkId)
     {
+        (firstLinkId, firstObjectLinkId) = (-1, -1);
         if (session.World.Find(originalId) is not { Type: WorldObjectType.CollectTheItemCollectableInstance } original || IsTemporary(original)) return null;
-        if (session.World.CloneTree(originalId) is not { } clone) return null;
+        if (session.World.CloneTree(originalId, out firstLinkId, out firstObjectLinkId) is not { } clone) return null;
+        session.Logic.Settle(clone.Id);
 
         foreach (WorldObject obj in session.World.SubtreeSnapshot(clone.Id).Objects)
             session.World.Modify(obj.Id, part => part.Transient = true);

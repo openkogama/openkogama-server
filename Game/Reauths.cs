@@ -15,7 +15,7 @@ public static class Reauths
     static readonly ConcurrentDictionary<string, string> Launches = new();
 
     public sealed record Origin(int Profile, string? Nickname, string? Client, string? Via, bool WebSocket, int World, GameMode Mode, int Used = 0, string? Key = null, bool Reloads = false,
-        string? Language = null);
+        string? Language = null, bool Tcp = false);
 
     public sealed record Plan(int? World, GameMode? Mode, IReadOnlyDictionary<string, object?> Session);
 

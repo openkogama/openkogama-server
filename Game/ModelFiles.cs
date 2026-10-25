@@ -44,6 +44,10 @@ public static class ModelFiles
         return Read(file) is (CubeModel cubes, float own) ? Add(profile, name, cubes, scale ?? own, [1f, 1f, 1f]) : null;
     }
 
+    public static bool NeedsScale(byte[] file) =>
+        file.Length <= MaxBytes && !file.AsSpan().StartsWith(Magic) && Read(file) is not null
+        && (file.AsSpan().StartsWith(KsCubesMagic) || RegamaFile.Read(file, RegamaFile.Model) is not (_, { Prototypes: [Prototype], Objects: [WorldObject] }));
+
     static Item? Add(int profile, string? name, CubeModel cubes, float scale, float[] objectScale)
     {
         if (cubes.Count == 0 || !ValidScale(scale)) return null;

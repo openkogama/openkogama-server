@@ -16,7 +16,7 @@ public sealed class CloneTempWorldObjectWithOriginalReference(Session session) :
         float[] position = Floats(request, ParameterKey.PosX, ParameterKey.PosY, ParameterKey.PosZ);
         float[] rotation = Floats(request, ParameterKey.RotX, ParameterKey.RotY, ParameterKey.RotZ, ParameterKey.RotW);
 
-        if (CollectTheItem.DropTemporary(session, originalId, position, rotation) is not { } clone)
+        if (CollectTheItem.DropTemporary(session, originalId, position, rotation, out int firstLinkId, out int firstObjectLinkId) is not { } clone)
         {
             peer.Send(new OperationResponse(request) { ReturnCode = -1 });
             return;
@@ -28,8 +28,8 @@ public sealed class CloneTempWorldObjectWithOriginalReference(Session session) :
             {
                 [(byte)ParameterKey.WorldObjectIDs] = new[] { originalId, clone.Id },
                 [(byte)ParameterKey.OwnerActorNr] = owner,
-                [(byte)ParameterKey.LinkID] = -1,
-                [(byte)ParameterKey.ObjectLinkID] = -1,
+                [(byte)ParameterKey.LinkID] = firstLinkId,
+                [(byte)ParameterKey.ObjectLinkID] = firstObjectLinkId,
                 [(byte)ParameterKey.CloneToRootGroup] = true,
                 [(byte)ParameterKey.PreviewProfileOwnerID] = 0,
                 [(byte)ParameterKey.PosX] = position[0],

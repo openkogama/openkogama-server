@@ -17,6 +17,8 @@ sealed class PluginWorld(Session session) : IWorld
     public IReadOnlyList<IWorldObject> Objects => _editor.Objects;
     public ITerrain Terrain => _editor.Terrain;
 
+    public ICubeModel? Model(int objectId) => _editor.Model(objectId);
+
     public IWorldObject? Find(int id) => _editor.Find(id);
 
     public IReadOnlyList<IWorldObject> Markers(string name) => _editor.Markers(name);

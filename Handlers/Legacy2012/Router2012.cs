@@ -691,6 +691,23 @@ public sealed class Router2012
             return;
         }
 
+        if (Plugins.PluginHost.WatchesCubes && session.For(peer) is Player editor)
+        {
+            var parsed = Plugins.PluginCubes.Parse(changes);
+            if (parsed.Count > 0 && Plugins.PluginHost.CubesChanged(session, editor, prototype, parsed))
+            {
+                Send2012(peer, new EventData((byte)Event2012.UpdatePrototype)
+                {
+                    Parameters =
+                    {
+                        [(byte)Key2012.WorldInventoryID] = prototypeId,
+                        [(byte)Key2012.WorldInventoryData] = Plugins.PluginCubes.Revert(prototype, parsed),
+                    },
+                });
+                return;
+            }
+        }
+
         prototype.Cubes.Apply(changes);
         session.World.MarkChanged();
         Broadcast(peer, new EventData((byte)Event2012.UpdatePrototype) { Parameters = new Dictionary<byte, object?>(request.Parameters) });

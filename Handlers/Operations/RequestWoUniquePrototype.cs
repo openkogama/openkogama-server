@@ -21,7 +21,12 @@ public sealed class RequestWoUniquePrototype(Session session) : IOperationHandle
         }
 
         session.World.MarkChanged();
+        Announce(session, objectId, unique);
+        peer.Send(new OperationResponse(request));
+    }
 
+    public static void Announce(Session session, int objectId, Prototype unique)
+    {
         var evt = new EventData((byte)EventCode.WoUniquePrototype)
         {
             Parameters =
@@ -32,7 +37,5 @@ public sealed class RequestWoUniquePrototype(Session session) : IOperationHandle
         };
         foreach (Player player in session.Players)
             player.Peer.Send(evt);
-
-        peer.Send(new OperationResponse(request));
     }
 }

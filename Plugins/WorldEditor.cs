@@ -13,7 +13,9 @@ sealed class WorldEditor(GameWorld world, Session? session) : IWorldBuilder
 {
     public IReadOnlyList<IWorldObject> Objects => [.. world.ToSnapshot().Objects.Select(obj => new PluginObject(obj))];
 
-    public ITerrain Terrain { get; } = new TerrainEditor(world, session);
+    public ITerrain Terrain { get; } = new CubesEditor(world, session, null);
+
+    public ICubeModel? Model(int objectId) => world.Find(objectId)?.PrototypeId is not null ? new CubesEditor(world, session, objectId) : null;
 
     public IWorldObject? Find(int id) => world.Find(id) is { } obj ? new PluginObject(obj) : null;
 
@@ -56,9 +58,9 @@ sealed class WorldEditor(GameWorld world, Session? session) : IWorldBuilder
         world.MarkChanged();
         if (session is not null)
         {
-            UnregisterWorldObject.Broadcast(session, id, removedPrototypes, null, links);
             session.Logic.Evaluate();
             session.Teams.Update();
+            UnregisterWorldObject.Broadcast(session, id, removedPrototypes, null, links);
         }
         return true;
     }
@@ -154,9 +156,15 @@ sealed class WorldEditor(GameWorld world, Session? session) : IWorldBuilder
     }
 }
 
-sealed class TerrainEditor(GameWorld world, Session? session) : ITerrain
+sealed class CubesEditor(GameWorld world, Session? session, int? objectId) : ICubeModel
 {
     const int MaxFillCubes = 500_000;
+
+    public int ObjectId => Target()?.Id ?? objectId ?? 0;
+
+    public float CubeSize => Prototype()?.Scale ?? 0f;
+
+    public bool Shared => Target()?.PrototypeId is int id && world.PrototypeUsers(id) > 1;
 
     public int Count => Prototype()?.Cubes.Count ?? 0;
 
@@ -209,16 +217,31 @@ sealed class TerrainEditor(GameWorld world, Session? session) : ITerrain
 
     public (int X, int Y, int Z) CubeAt(Vector3 position)
     {
-        WorldObject terrain = world.FindFirst(WorldObjectType.CubeModelPrototypeTerrain) ?? throw new InvalidOperationException("this world has no terrain");
-        Matrix4x4.Invert(CollisionWorld.Local(terrain, world) * world.WorldMatrix(terrain.ParentId), out Matrix4x4 toTerrain);
-        Vector3 cube = Vector3.Transform(position, toTerrain);
+        WorldObject target = Target() ?? throw new InvalidOperationException(Missing);
+        Matrix4x4.Invert(CollisionWorld.Local(target, world) * world.WorldMatrix(target.ParentId), out Matrix4x4 toCubes);
+        Vector3 cube = Vector3.Transform(position, toCubes);
         return ((int)MathF.Floor(cube.X + 0.5f), (int)MathF.Floor(cube.Y + 0.5f), (int)MathF.Floor(cube.Z + 0.5f));
     }
 
-    public ICubeEdit Edit() => new CubeEdit(world, session, Prototype() ?? throw new InvalidOperationException("this world has no terrain"));
+    public ICubeEdit Edit() => new CubeEdit(world, session, Prototype() ?? throw new InvalidOperationException(Missing));
 
-    Prototype? Prototype() =>
-        world.FindFirst(WorldObjectType.CubeModelPrototypeTerrain)?.PrototypeId is int id ? world.FindPrototype(id) : null;
+    public bool MakeUnique()
+    {
+        if (Target() is not { PrototypeId: int id } target) return false;
+        if (world.PrototypeUsers(id) <= 1) return true;
+        if (world.MakeUniquePrototype(target.Id) is not Prototype unique) return false;
+        world.MarkChanged();
+        if (session is not null) RequestWoUniquePrototype.Announce(session, target.Id, unique);
+        return true;
+    }
+
+    WorldObject? Target() => objectId is int id
+        ? world.Find(id) is { PrototypeId: not null } model ? model : null
+        : world.FindFirst(WorldObjectType.CubeModelPrototypeTerrain);
+
+    string Missing => objectId is int id ? $"there is no model {id}" : "this world has no terrain";
+
+    Prototype? Prototype() => Target()?.PrototypeId is int id ? world.FindPrototype(id) : null;
 
     static (int From, int To) Order(int a, int b) => a <= b ? (a, b) : (b, a);
 }

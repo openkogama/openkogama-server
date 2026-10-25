@@ -8,6 +8,8 @@ namespace OpenKogama.Game;
 [Flags]
 public enum NpcMode { Playing = 1, Dead = 2, Hidden = 4 }
 
+sealed record DamageTaken(float Amount, KilledBy KilledBy, int Actor, Vector3 Impulse);
+
 public sealed class Npc(int actor, int avatarId, string name, float[] position, float yaw)
 {
     public const int NoTeam = 5;
@@ -50,14 +52,15 @@ public sealed class Npc(int actor, int avatarId, string name, float[] position, 
 
     internal ConcurrentQueue<(int Actor, Interaction Interaction)> Hits { get; } = new();
     internal ConcurrentQueue<Vector3> Respawns { get; } = new();
-    internal ConcurrentQueue<(float Amount, int Actor, Vector3 Impulse)> Damages { get; } = new();
+    internal ConcurrentQueue<(float Amount, int Actor, Vector3 Impulse, KilledBy? Reason)> Damages { get; } = new();
+    internal ConcurrentQueue<float> Heals { get; } = new();
+    internal ConcurrentQueue<(ModifierPackageType Type, int Actor, bool Add)> ModifierChanges { get; } = new();
     internal long DiedAt { get; set; }
-    internal long NoFrictionUntil { get; set; }
-    internal long BurnUntil { get; set; }
-    internal int BurnActor { get; set; }
-    internal long HealRayUntil { get; set; }
-    internal int HealRayActor { get; set; }
+    internal DamageTaken? LastDamage { get; set; }
+    internal (int Actor, KilledBy KilledBy, long At)? LastAttacker { get; set; }
     internal Dictionary<string, byte> Modifiers { get; } = [];
+    internal ModifierPackages Packages { get; } = new();
+    internal WaterState Water { get; } = new();
     internal bool HealthChanged { get; set; }
     internal bool ModeChanged { get; set; }
     internal bool ModifiersChanged { get; set; }

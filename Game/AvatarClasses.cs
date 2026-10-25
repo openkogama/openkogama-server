@@ -54,7 +54,8 @@ public static class AvatarClasses
         GameWorld world = session.World;
         if (world.Find(creatorId) is not { Type: WorldObjectType.AvatarSpawnRoleCreator } creator) return;
         SyncSkills(world, creatorId);
-        if (PreviewOf(world, creatorId) is not { } preview || world.CloneTree(preview.Id) is not { } role) return;
+        if (PreviewOf(world, creatorId) is not { } preview || world.CloneTree(preview.Id, out int firstLinkId, out int firstObjectLinkId) is not { } role) return;
+        session.Logic.Settle(role.Id);
 
         WorldObject? current = world.Find(player.ActiveSpawnRole);
         float[] position = player.LastPosition ?? current?.Position ?? creator.Position;
@@ -81,8 +82,8 @@ public static class AvatarClasses
             {
                 [(byte)ParameterKey.WorldObjectIDs] = new[] { preview.Id, role.Id },
                 [(byte)ParameterKey.OwnerActorNr] = player.Actor,
-                [(byte)ParameterKey.LinkID] = -1,
-                [(byte)ParameterKey.ObjectLinkID] = -1,
+                [(byte)ParameterKey.LinkID] = firstLinkId,
+                [(byte)ParameterKey.ObjectLinkID] = firstObjectLinkId,
                 [(byte)ParameterKey.CloneToRootGroup] = true,
                 [(byte)ParameterKey.PreviewProfileOwnerID] = 0,
             },

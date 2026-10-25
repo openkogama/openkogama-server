@@ -1,10 +1,1 @@
 #nullable enable
-OpenKogama.Api.INpc.Damage(float amount, OpenKogama.Api.INpc! by) -> void
-OpenKogama.Api.INpc.Damage(float amount, OpenKogama.Api.INpc! by, System.Numerics.Vector3 impulse) -> void
-OpenKogama.Api.INpc.Damage(float amount, OpenKogama.Api.IPlayer? by, System.Numerics.Vector3 impulse) -> void
-OpenKogama.Api.INpc.Say(string! text) -> void
-OpenKogama.Api.INpc.SetTeam(OpenKogama.Api.Team? team) -> bool
-OpenKogama.Api.INpc.Skin.get -> OpenKogama.Api.AvatarSkin!
-OpenKogama.Api.INpc.Team.get -> OpenKogama.Api.Team?
-OpenKogama.Api.INpc.World.get -> OpenKogama.Api.IWorld!
-OpenKogama.Api.IServer.PlayerDamagedByNpc -> System.Action<OpenKogama.Api.IPlayer!, OpenKogama.Api.INpc!, float>?

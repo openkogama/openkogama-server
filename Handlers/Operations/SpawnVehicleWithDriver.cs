@@ -35,7 +35,8 @@ public sealed class SpawnVehicleWithDriver(PhotonServer server, Session session)
 
     public static int? Spawn(Session session, Player player, int driverId, WorldObject spawner, byte seat, int now)
     {
-        if (TemplateOf(spawner) is not int templateId || session.World.CloneTree(templateId) is not { } vehicle) return null;
+        if (TemplateOf(spawner) is not int templateId || session.World.CloneTree(templateId, out int firstLinkId, out int firstObjectLinkId) is not { } vehicle) return null;
+        session.Logic.Settle(vehicle.Id);
         int spawnerId = spawner.Id;
 
         List<WorldObject> parts = session.World.Subtree(vehicle.Id);
@@ -62,8 +63,8 @@ public sealed class SpawnVehicleWithDriver(PhotonServer server, Session session)
                 [(byte)ParameterKey.WorldObjectIDs] = spawned,
                 [(byte)ParameterKey.ActorNr] = player.Actor,
                 [(byte)ParameterKey.Timestamp] = now,
-                [(byte)ParameterKey.LinkID] = -1,
-                [(byte)ParameterKey.ObjectLinkID] = -1,
+                [(byte)ParameterKey.LinkID] = firstLinkId,
+                [(byte)ParameterKey.ObjectLinkID] = firstObjectLinkId,
                 [(byte)ParameterKey.SeatID] = seat,
             },
         };
