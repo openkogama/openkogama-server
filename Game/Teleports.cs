@@ -67,6 +67,27 @@ public static class Teleports
         return true;
     }
 
+    public static bool Direct(Player player, Vector3 target)
+    {
+        if (!Reauths.Teleports(player)) return false;
+        float[] turn = player.LastRotation is { Length: 4 } rotation ? rotation : [0f, 0f, 0f, 1f];
+        player.Peer.Send(new EventData((byte)EventCode.UpdateWorldObject)
+        {
+            Parameters =
+            {
+                [(byte)ParameterKey.WorldObjectID] = player.ActiveSpawnRole,
+                [(byte)ParameterKey.ActorNr] = 0,
+                [(byte)ParameterKey.Timestamp] = player.Peer.ServerTime,
+                [(byte)ParameterKey.PosX] = target.X,
+                [(byte)ParameterKey.PosY] = target.Y,
+                [(byte)ParameterKey.PosZ] = target.Z,
+                [(byte)ParameterKey.ByteRotation] = QuaternionCompression.ToBytes(turn[0], turn[1], turn[2], turn[3]),
+                [(byte)ParameterKey.TransformPackageType] = (byte)TransformPackage.Teleport,
+            },
+        });
+        return true;
+    }
+
     public static bool Teleporter(Session session, Player player, Vector3 target)
     {
         int groupId = session.World.NewObjectId();

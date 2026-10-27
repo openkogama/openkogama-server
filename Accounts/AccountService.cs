@@ -96,6 +96,15 @@ public sealed partial class AccountService(AccountStore store, ECDsa key, Func<s
         {
             if (request.HttpMethod == "POST" && path == "/maps/upload" && Maps is not null)
                 reply = await Maps.AcceptAsync(request, SourceOf(request));
+            else if (Maps is not null && MapSubmissions.Queue(path))
+            {
+                if (Maps.Download(request, path) is string file)
+                {
+                    await SendFileAsync(response, file);
+                    return;
+                }
+                reply = Maps.Manage(request, path);
+            }
             else
                 reply = await HandleAsync(request.HttpMethod, path, request.HttpMethod == "POST" ? await BodyAsync(request) : null, SourceOf(request));
         }
@@ -109,6 +118,16 @@ public sealed partial class AccountService(AccountStore store, ECDsa key, Func<s
         response.ContentType = "application/json";
         response.ContentLength64 = data.Length;
         await response.OutputStream.WriteAsync(data);
+        response.Close();
+    }
+
+    static async Task SendFileAsync(HttpListenerResponse response, string file)
+    {
+        await using FileStream stream = File.OpenRead(file);
+        response.StatusCode = 200;
+        response.ContentType = "application/octet-stream";
+        response.ContentLength64 = stream.Length;
+        await stream.CopyToAsync(response.OutputStream);
         response.Close();
     }
 

@@ -7,6 +7,7 @@ sealed class PluginAssets : IAssets
 {
     public ISounds Sounds { get; } = new PluginSounds();
     public IBundles Bundles { get; } = new PluginBundles();
+    public IThemes Themes { get; } = new PluginThemes();
 }
 
 sealed class PluginSounds : ISounds

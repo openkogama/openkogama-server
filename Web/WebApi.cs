@@ -11,7 +11,7 @@ using OpenKogama.Storage;
 
 namespace OpenKogama.Web;
 
-public sealed record ApiRequest(string Method, string Path, NameValueCollection Query, string? ContentType, byte[] Body, bool Local, string? Via = null, string? Encoding = null);
+public sealed record ApiRequest(string Method, string Path, NameValueCollection Query, string? ContentType, byte[] Body, bool Local, string? Via = null, string? Encoding = null, System.Net.IPAddress? From = null);
 
 public sealed record ApiResponse(int Status, string? ContentType, byte[] Body)
 {
@@ -86,13 +86,15 @@ public sealed class WebApi
                 return ApiResponse.Json(JsonSerializer.Serialize(new { error = $"This server accepts {string.Join(", ", ServerInfo.Clients)}" }), 403);
             if (Reauths.Resume(query["key"]) is { } resumed)
                 return ApiResponse.Json(Reauthed(resumed));
-            int profile = request.Via is null && int.TryParse(query["profile"], out int requested) && requested > 0 ? requested : 1;
-            string? nickname = SessionToken.Clean(query["name"]);
             bool remote = ServerInfo.Shared || request.Via is not null;
+            int profile = !remote && int.TryParse(query["profile"], out int requested) && requested > 0 ? requested : 1;
+            string? nickname = SessionToken.Clean(query["name"]);
+            string? account = null;
             if (remote && ServerInfo.Accounts != AccountMode.Offline && AccountTickets.Accept(query["ticket"], ServerInfo.Accepts) is Ticket ticket)
             {
                 profile = Stores.Profiles.ForAccount(ticket.Account, ticket.Name);
                 nickname = ticket.Name;
+                account = SessionToken.Clean(ticket.Name);
             }
             else if (remote && ServerInfo.Accounts == AccountMode.Online)
                 return Refused("This server needs an OpenKogama account, sign in with the launcher");
@@ -104,6 +106,8 @@ public sealed class WebApi
             }
             if (remote && !request.Local && profile == 1)
                 return Refused("Pick a nickname in the launcher settings");
+            if (remote && !request.Local && !Access.Admits(request.From, account))
+                return Refused("This server only lets in invited players");
             SessionLocator.Remember(profile, request.Via, int.TryParse(query["local"], out int local) && local is > 0 and < 65536 ? local : 0);
             bool join = query["mode"] == "play";
             int world = int.TryParse(query["world"], out int chosen) ? chosen : 0;
@@ -123,7 +127,8 @@ public sealed class WebApi
             Console.WriteLine($"profile {profile}: joins world {world} in {mode.ToString().ToLowerInvariant()} mode");
             string[] patches = query["patches"]?.Split(',') ?? [];
             return ApiResponse.Json(Issue(new Reauths.Origin(profile, nickname, query["client"], request.Via, query["transport"] == "ws", world, mode, Key: query["key"],
-                Reloads: patches.Contains("world-switch"), Language: ClientLanguages.Clean(query["language"]), Tcp: patches.Contains("tcp"))));
+                Reloads: patches.Contains("world-switch"), Language: ClientLanguages.Clean(query["language"]), Tcp: patches.Contains("tcp"),
+                Themes: patches.Contains("themes") ? query["themes"] : null, Teleports: patches.Contains("teleport"))));
         }
 
         if (path.TrimEnd('/') == "/session/reauth")
@@ -166,6 +171,12 @@ public sealed class WebApi
                 && query["name"] is { Length: > 0 } name
                 && Stores.Worlds.Rename(id, name.Trim());
             return ApiResponse.Json("{}", renamed ? 200 : 400);
+        }
+
+        if (path.TrimEnd('/') == "/api/worlds/platformer" && request.Method == "POST")
+        {
+            bool changed = int.TryParse(query["id"], out int id) && Stores.Worlds.SetPlatformer(id, query["on"] is "1" or "true");
+            return ApiResponse.Json("{}", changed ? 200 : 400);
         }
 
         if (path.TrimEnd('/') == "/api/worlds/export")
@@ -242,7 +253,10 @@ public sealed class WebApi
             if (request.Method != "POST")
                 return ApiResponse.Json(JsonSerializer.Serialize(Stores.Worlds.List(), WorldJson));
             string name = query["name"] is { Length: > 0 } given ? given : "New World";
-            return ApiResponse.Json(JsonSerializer.Serialize(new { id = Session.CreateWorld(name, query["template"]) }));
+            int created = Session.CreateWorld(name, query["template"]);
+            if (query["platformer"] is "1" or "true")
+                Stores.Worlds.SetPlatformer(created, true);
+            return ApiResponse.Json(JsonSerializer.Serialize(new { id = created }));
         }
 
         if (Bundle(path) is byte[] asset)
@@ -394,7 +408,7 @@ public sealed class WebApi
         if (slash < 0) return null;
         string set = path["/bundles-".Length..slash];
         string file = BundleSets.FileOf(Uri.UnescapeDataString(path[(slash + 1)..]));
-        if (CustomContent.Bundle(set, file) is { } custom) return custom;
+        if (CustomContent.Bundle(set, file, name => Original(set, name)) is { } custom) return custom;
         return Original(set, file) is { } original ? CustomContent.Replace(set, file, original) : null;
     }
 

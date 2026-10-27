@@ -10,6 +10,8 @@ public sealed class Join(Session session) : IOperationHandler
     const int OldSpinEnabled = 0x20;
     const int SpinEnabled = 0x10;
     static readonly Version MovedFlagsVersion = new(1, 74);
+    static readonly Version FirstPlatformer = new(1, 25);
+    static readonly Version LastPlatformer = new(2, 6, 11);
     const byte Www = 4;
     internal static readonly int[] AllPermissions = [14, 15, 16, 17, 18, 19, 20, 22];
     const string NoBannedTools = """{"ApplicationDescs":[],"applicationDescFactoryBase":{"ApplicationDescs":[]}}""";
@@ -34,12 +36,27 @@ public sealed class Join(Session session) : IOperationHandler
         (int profile, string? nickname) = SessionTokens.Find(player.Token);
         if (profile > 0) player.ProfileId = profile;
         nickname ??= profile > 0 ? SessionToken.Clean(Storage.Stores.Profiles.Name(profile)) : null;
+        if (profile > 0 && Storage.Stores.Profiles.Claimed(profile))
+        {
+            player.Account = SessionToken.Clean(nickname);
+            foreach (Player stale in session.Players.Where(other => other != player && SessionTokens.Find(other.Token).Profile == profile).ToList())
+            {
+                Console.WriteLine($"peer {peer.Id}: {nickname} joined again, dropping the old connection of peer {stale.Peer.Id}");
+                stale.Peer.Disconnect();
+            }
+        }
         if (nickname is not null)
             player.Nickname = session.Players.Any(other => other != player && other.Username == nickname) ? $"{nickname} {player.Actor}" : nickname;
         player.Unity = ClientEngines.Of(player.ProfileId);
         if (Bans.Holds(player))
         {
             Console.WriteLine($"peer {peer.Id}: {player.Username} is banned");
+            peer.Disconnect();
+            return;
+        }
+        if (!Access.Admits(player))
+        {
+            Console.WriteLine($"peer {peer.Id}: {player.Username} is not on the allow list");
             peer.Disconnect();
             return;
         }
@@ -57,7 +74,7 @@ public sealed class Join(Session session) : IOperationHandler
                 [(byte)ParameterKey.PlanetOwnershipType] = (int)session.OwnershipOf(player),
                 [(byte)ParameterKey.PlanetPermissions] = session.OwnershipOf(player) == PlanetOwnership.None ? Array.Empty<int>() : AllPermissions,
                 [(byte)ParameterKey.IsGamePublished] = session.Published,
-                [(byte)ParameterKey.GameType] = (int)GameType.Classic,
+                [(byte)ParameterKey.GameType] = (int)(Platformer(player) ? GameType.Platformer : GameType.Classic),
                 [(byte)ParameterKey.TeamID] = (int)player.Team,
                 [(byte)ParameterKey.ClientSettingFlags] = Version.TryParse(player.Build, out Version? build) && build >= MovedFlagsVersion ? SpinEnabled : OldSpinEnabled,
                 [(byte)ParameterKey.Prices] = prices,
@@ -72,7 +89,7 @@ public sealed class Join(Session session) : IOperationHandler
                 [(byte)ParameterKey.AntiCheatData] = NoBannedTools,
                 [(byte)ParameterKey.IsAdmin] = Plugins.PluginHost.Admin(player),
                 [(byte)ParameterKey.Region] = Www,
-                [(byte)ParameterKey.ThemesEnabled] = true,
+                [(byte)ParameterKey.ThemesEnabled] = Themes.MenuEnabled,
                 [(byte)ParameterKey.GoldAmount] = Storage.Stores.Profiles.Gold(player.ProfileId),
                 [(byte)ParameterKey.EnableInterstitialAds] = false,
                 [(byte)ParameterKey.EnableRewardedAds] = false,
@@ -100,4 +117,8 @@ public sealed class Join(Session session) : IOperationHandler
         peer.Send(response);
         Console.WriteLine($"peer {peer.Id}: joined");
     }
+
+    bool Platformer(Player player) =>
+        session.WorldId is int world && Storage.Stores.Worlds.Platformer(world)
+        && Version.TryParse(player.Build, out Version? build) && build >= FirstPlatformer && build < LastPlatformer;
 }

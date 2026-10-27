@@ -124,6 +124,12 @@ public sealed class Router2012
             peer.Disconnect();
             return;
         }
+        if (!Access.Admits(player))
+        {
+            Console.WriteLine($"peer {peer.Id}: 2012 player {player.Username} is not on the allow list");
+            peer.Disconnect();
+            return;
+        }
 
         Reply(peer, request, new()
         {

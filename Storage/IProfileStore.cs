@@ -14,6 +14,7 @@ public interface IProfileStore
     int? Named(string name);
     int ForAccount(long account, string name);
     bool Claimed(int profile);
+    long? Account(int profile);
     string? Name(int profile);
     int Xp(int profile);
     int AddXp(int profile, int amount);

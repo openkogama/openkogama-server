@@ -63,9 +63,9 @@ public sealed class PurchaseProduct(Session session) : IOperationHandler
             case GameBoosterProduct when session.For(peer) is Player boostBuyer && Value(product, (byte)ParameterKey.Data) is string boost:
                 BuyBooster(peer, request, boostBuyer, boost);
                 break;
-            case ThemeProduct when !session.Play && Value(product, (byte)ParameterKey.Id) is { } theme:
-                bool applied = Themes.Apply(session, Convert.ToInt32(theme), PhotonValues.Table(Value(product, (byte)ParameterKey.MetaData)));
-                peer.Send(applied ? Success(request, session.For(peer)) : new OperationResponse(request) { ReturnCode = -1 });
+            case ThemeProduct when session.For(peer) is Player themeBuyer && Value(product, (byte)ParameterKey.Id) is { } theme:
+                short bought = session.Theme.Buy(themeBuyer, Convert.ToInt32(theme), PhotonValues.Table(Value(product, (byte)ParameterKey.MetaData)));
+                peer.Send(bought == WorldTheme.Bought ? Success(request, themeBuyer) : new OperationResponse(request) { ReturnCode = bought });
                 break;
             default:
                 Console.WriteLine($"peer {peer.Id}: unknown purchase type {type}: {string.Join(", ", product.Select(entry => $"{entry.Key} ({entry.Key.GetType().Name})={entry.Value}"))}");

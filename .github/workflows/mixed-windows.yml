@@ -28,6 +28,10 @@ jobs:
           path: openkogama-photon
       - uses: actions/checkout@v4
         with:
+          repository: openkogama/openkogama-mods
+          path: openkogama-mods
+      - uses: actions/checkout@v4
+        with:
           repository: openkogama/openkogama-player
           path: openkogama-player
       - uses: actions/setup-dotnet@v4

@@ -1,0 +1,26 @@
+namespace OpenKogama.Api;
+
+public enum GameTheme
+{
+    Animals,
+    BoxHalloween,
+    BoxPumpkin,
+    BoxSkull,
+    Candy,
+    Cartoon,
+    Christmas,
+    Cloudy,
+    Heart,
+    Normal,
+    Pumpkin,
+    Puzzle,
+    RoundBoxSkull,
+    RoundCircleSkull,
+    RoundSkull,
+    RoundSquare,
+    RoundSquareSkull,
+    Scary,
+    Square,
+    SquareSkull,
+    Triangles,
+}

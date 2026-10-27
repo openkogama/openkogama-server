@@ -2,7 +2,7 @@ namespace OpenKogama.Storage;
 
 public sealed record StoredWorld(int Id, string Name, int Owner, byte[] Data);
 
-public sealed record WorldInfo(int Id, string Name, int Owner, string SavedAt, string? PublishedAt, string? PlayedAt);
+public sealed record WorldInfo(int Id, string Name, int Owner, string SavedAt, string? PublishedAt, string? PlayedAt, bool Platformer = false);
 
 public interface IWorldStore
 {
@@ -16,5 +16,7 @@ public interface IWorldStore
     void SavePlayState(int id, byte[] data);
     void MarkPlayed(int id);
     bool Rename(int id, string name);
+    bool Platformer(int id);
+    bool SetPlatformer(int id, bool platformer);
     bool Delete(int id);
 }

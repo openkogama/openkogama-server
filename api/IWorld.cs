@@ -5,8 +5,10 @@ public interface IWorld : IWorldBuilder
     int Id { get; }
     string Name { get; }
     bool Play { get; }
+    bool Platformer { get; set; }
     IReadOnlyList<IPlayer> Players { get; }
     IReadOnlyList<INpc> Npcs { get; }
+    IWorldTheme Theme { get; }
 
     INpc SpawnNpc(string name, System.Numerics.Vector3 position, float yaw = 0, IPlayer? skinOf = null);
     INpc SpawnNpc(string name, System.Numerics.Vector3 position, float yaw, AvatarSkin? skin, float size = 1f, int level = 1);

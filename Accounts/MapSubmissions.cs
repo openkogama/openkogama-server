@@ -1,6 +1,7 @@
 using System.Buffers.Text;
 using System.Net;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using OpenKogama.World;
@@ -20,9 +21,71 @@ public sealed class MapSubmissions(string folder)
     const int TicketSize = 24;
     const int MaxTickets = 10_000;
     static readonly TimeSpan TicketLife = TimeSpan.FromHours(12);
+    const string QueuePath = "/maps/pending";
+    const string Bearer = "Bearer ";
+    const int ShaLength = 64;
 
     readonly object _sync = new();
     readonly Dictionary<string, long> _tickets = [];
+    readonly byte[]? _secret = Environment.GetEnvironmentVariable("OPENKOGAMA_MAPS_SECRET") is { Length: > 0 } secret ? Encoding.UTF8.GetBytes(secret) : null;
+
+    public static bool Queue(string path) => path == QueuePath || path.StartsWith(QueuePath + "/", StringComparison.Ordinal);
+
+    public string? Download(HttpListenerRequest request, string path) =>
+        request.HttpMethod == "GET" && Authorized(request) && ShaOf(path) is string sha ? Stored(sha) : null;
+
+    public Reply Manage(HttpListenerRequest request, string path)
+    {
+        if (!Authorized(request)) return Error(401, "unauthorized");
+        return (request.HttpMethod, ShaOf(path)) switch
+        {
+            ("GET", null) when path == QueuePath => new Reply(200, new JsonObject { ["maps"] = Pending() }),
+            ("DELETE", string sha) when Remove(sha) => new Reply(200, new JsonObject()),
+            _ => Error(404, "not found"),
+        };
+    }
+
+    bool Authorized(HttpListenerRequest request) =>
+        _secret is not null && request.Headers["Authorization"] is string header && header.StartsWith(Bearer, StringComparison.Ordinal)
+        && CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(header[Bearer.Length..]), _secret);
+
+    static string? ShaOf(string path) =>
+        path.Length == QueuePath.Length + 1 + ShaLength && path.StartsWith(QueuePath + "/", StringComparison.Ordinal)
+        && path[(QueuePath.Length + 1)..] is string sha && sha.All(char.IsAsciiHexDigitLower) ? sha : null;
+
+    string? Stored(string sha) =>
+        new[] { MapExtension, PlanetExtension }.Select(extension => Path.Combine(folder, sha + extension)).FirstOrDefault(File.Exists);
+
+    JsonArray Pending()
+    {
+        var maps = new JsonArray();
+        lock (_sync)
+        {
+            string index = Path.Combine(folder, Index);
+            if (!File.Exists(index)) return maps;
+            foreach (string line in File.ReadLines(index))
+            {
+                if (JsonNode.Parse(line) is not JsonObject entry || entry["sha"]?.GetValue<string>() is not string sha || Stored(sha) is not string file) continue;
+                entry["format"] = Path.GetExtension(file).TrimStart('.');
+                maps.Add(entry);
+            }
+        }
+        return maps;
+    }
+
+    bool Remove(string sha)
+    {
+        lock (_sync)
+        {
+            if (Stored(sha) is not string file) return false;
+            File.Delete(file);
+            string index = Path.Combine(folder, Index);
+            if (File.Exists(index))
+                File.WriteAllLines(index, [.. File.ReadLines(index).Where(line => !line.Contains($"\"sha\":\"{sha}\"", StringComparison.Ordinal))]);
+            Console.WriteLine($"maps: {sha} archived and removed from the queue");
+            return true;
+        }
+    }
 
     public string Ticket()
     {

@@ -12,8 +12,20 @@ sealed class PluginWorld(Session session) : IWorld
     public int Id => session.WorldId ?? 0;
     public string Name => session.Name;
     public bool Play => session.Play;
+
+    public bool Platformer
+    {
+        get => session.WorldId is int id && Stores.Worlds.Platformer(id);
+        set
+        {
+            if (session.WorldId is int id)
+                Stores.Worlds.SetPlatformer(id, value);
+        }
+    }
+
     public IReadOnlyList<IPlayer> Players => [.. session.Players.Select(player => PluginHost.PlayerOf(session, player))];
     public IReadOnlyList<INpc> Npcs => [.. session.Npcs.Select(npc => new PluginNpc(session, npc))];
+    public IWorldTheme Theme { get; } = new PluginWorldTheme(session);
     public IReadOnlyList<IWorldObject> Objects => _editor.Objects;
     public ITerrain Terrain => _editor.Terrain;
 

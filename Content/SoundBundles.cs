@@ -33,11 +33,11 @@ public static class SoundBundles
         int main = MainNode(nodes);
 
         string id = nodes[main].Name[(nodes[main].Name.IndexOf('-') + 1)..];
-        string newId = Token(seed + "/cab", id.Length);
-        var file = new SerializedFile(Replace(nodes[main].Data.ToArray(), id, newId));
+        string newId = BundleIds.Token(seed + "/cab", id.Length);
+        var file = new SerializedFile(BundleIds.Replace(nodes[main].Data.ToArray(), id, newId));
         string name = new ByteReader(file.ToArray(), file.Offset(Clip(file))).Text();
-        string token = Token(seed + "/name", name.Length);
-        byte[] renamed = Replace(Replace(file.ToArray(), name, token), name.ToLowerInvariant(), token);
+        string token = BundleIds.Token(seed + "/name", name.Length);
+        byte[] renamed = BundleIds.Replace(BundleIds.Replace(file.ToArray(), name, token), name.ToLowerInvariant(), token);
         nodes = [.. nodes.Select((node, i) => node with { Name = node.Name.Replace(id, newId), Data = i == main ? renamed : node.Data })];
         return Swap(format, nodes, main, audio, original);
     }
@@ -181,24 +181,5 @@ public static class SoundBundles
     static void Pad(Stream stream)
     {
         while (stream.Position % 4 != 0) stream.WriteByte(0);
-    }
-
-    static string Token(string seed, int length)
-    {
-        string hex = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(seed)));
-        return string.Concat(Enumerable.Repeat(hex, length / hex.Length + 1))[..length];
-    }
-
-    static byte[] Replace(byte[] data, string old, string replacement)
-    {
-        byte[] from = Encoding.ASCII.GetBytes(old);
-        byte[] to = Encoding.ASCII.GetBytes(replacement);
-        for (int at = data.AsSpan().IndexOf(from); at >= 0;)
-        {
-            to.CopyTo(data, at);
-            int next = data.AsSpan(at + to.Length).IndexOf(from);
-            at = next < 0 ? -1 : at + to.Length + next;
-        }
-        return data;
     }
 }

@@ -19,6 +19,11 @@ public sealed class UnregisterWorldObject(Session session) : IOperationHandler
             Console.WriteLine($"peer {peer.Id}: cannot delete object {objectId}");
             return;
         }
+        if (obj.Type == WorldObjectType.Theme && session.For(peer) is { } remover && !session.Theme.Removing(remover))
+        {
+            peer.Send(new OperationResponse(request) { ReturnCode = -1 });
+            return;
+        }
 
         int count = session.World.Subtree(objectId).Count;
         List<(int Id, bool ObjectLink)> links = session.World.LinksAround(objectId);

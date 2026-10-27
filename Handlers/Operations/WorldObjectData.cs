@@ -24,6 +24,11 @@ public sealed class WorldObjectData(Session session, DataChange change) : IOpera
         object? raw = request[dataKey];
         if (change != DataChange.Remove) AntiCheat.TextObject(session.World.Find(objectId), raw);
         var table = (Dictionary<object, object?>)PhotonValues.Normalize(raw)!;
+        if (change != DataChange.Remove && session.World.Find(objectId)?.Type == WorldObjectType.Theme && session.For(peer) is { } themeEditor)
+        {
+            session.Theme.Edited(themeEditor, objectId, table);
+            return;
+        }
 
         bool found = session.World.Modify(objectId, obj =>
         {

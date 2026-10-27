@@ -10,6 +10,7 @@ public static partial class CustomContent
 {
     public static readonly AssetLibrary<CustomSound> Sounds = new("sound");
     public static readonly AssetLibrary<CustomBundle> Bundles = new("bundle");
+    public static readonly AssetLibrary<CustomTexture> Textures = new("texture");
     public static readonly ReplacedSounds ReplacedSounds = new();
     public static readonly ReplacedBundles ReplacedBundles = new();
     static readonly Dictionary<string, byte[]?> Templates = [];
@@ -28,6 +29,7 @@ public static partial class CustomContent
     {
         Sounds.Clear();
         Bundles.Clear();
+        Textures.Clear();
         ReplacedSounds.Clear();
         ReplacedBundles.Clear();
     }
@@ -52,7 +54,7 @@ public static partial class CustomContent
 
     public static bool IsBundleUrl(object? value) => value is string url && url.EndsWith(".unity3d", StringComparison.OrdinalIgnoreCase);
 
-    public static byte[]? Bundle(string set, string file)
+    public static byte[]? Bundle(string set, string file, Func<string, byte[]?>? original = null)
     {
         Match match = BundlePath().Match(file);
         if (!match.Success) return null;
@@ -62,11 +64,13 @@ public static partial class CustomContent
         {
             "sound" => Sounds.Find(id),
             "bundle" => Bundles.Find(id),
+            "texture" => Textures.Find(id),
             _ => null,
         };
         if (asset is null) return null;
         try
         {
+            if (asset is CustomTexture texture) return original is null ? null : texture.BundleFor(set, original);
             return asset.BundleFor(asset is CustomSound ? SoundKey(set) : BundleSets.EngineOf(set));
         }
         catch (Exception error)
@@ -85,6 +89,8 @@ public static partial class CustomContent
             replaced = ReplacedSounds.All.Select(GameSoundFiles.CacheName)
                 .Concat(ReplacedBundles.All.Select(GameBundles.CacheName))
                 .Distinct(StringComparer.OrdinalIgnoreCase),
+            themes = Themes.Specs(),
+            themesVersion = Themes.Version,
         });
     }
 
@@ -158,6 +164,6 @@ public static partial class CustomContent
     public static bool SameEngine(string bundle, string set) =>
         bundle == set || bundle.StartsWith(set + ".", StringComparison.Ordinal);
 
-    [GeneratedRegex(@"(?:^|/)Custom/(sound|bundle)/(\d+)-[0-9a-f]+\.unity3d$", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"(?:^|/)Custom/(sound|bundle|texture)/(\d+)-[0-9a-f]+\.unity3d$", RegexOptions.IgnoreCase)]
     private static partial Regex BundlePath();
 }

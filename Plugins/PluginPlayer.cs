@@ -14,6 +14,7 @@ sealed class PluginPlayer(Player player, Session session) : IPlayer
 
     public int Actor => player.Actor;
     public int ProfileId => player.ProfileId;
+    public long? AccountId => Stores.Profiles.Account(player.ProfileId);
     public string Name => player.Username;
     public string ClientVersion => player.Build;
     public IWorld World => PluginHost.WorldOf(session);
@@ -51,6 +52,25 @@ sealed class PluginPlayer(Player player, Session session) : IPlayer
 
     public bool PressLocally(int id) => session.Logic.PressFor(player, id);
 
+    public ICubeEdit EditTerrainLocally() =>
+        session.World.FindFirst(WorldObjectType.CubeModelPrototypeTerrain)?.PrototypeId is int id && session.World.FindPrototype(id) is { } terrain
+            ? new CubeEdit(session.World, session, terrain, player)
+            : throw new InvalidOperationException("this world has no terrain");
+
+    public bool SetDataLocally(int id, IReadOnlyDictionary<string, object> values)
+    {
+        if (!player.InWorld || session.World.Find(id) is null || !player.Knows(session.World.SubtreeSnapshot(id))) return false;
+        player.Peer.Send(new Photon.EventData((byte)Kogama.EventCode.UpdateWorldObjectDataPartial)
+        {
+            Parameters =
+            {
+                [(byte)Kogama.ParameterKey.WorldObjectID] = id,
+                [(byte)Kogama.ParameterKey.WorldObjectData] = values.ToDictionary(pair => (object)pair.Key, pair => (object?)pair.Value),
+            },
+        });
+        return true;
+    }
+
     public bool Equip(AvatarItem item)
     {
         if (!Playing || item is AvatarItem.Unknown) return false;
@@ -64,6 +84,7 @@ sealed class PluginPlayer(Player player, Session session) : IPlayer
     {
         TeleportMethod.HiddenVehicle => Free && Teleports.HiddenVehicle(session, player, position),
         TeleportMethod.Teleporter => Playing && Teleports.Teleporter(session, player, position),
+        TeleportMethod.Direct => (Playing || Building) && Teleports.Direct(player, position),
         _ => false,
     };
 
@@ -98,6 +119,8 @@ sealed class PluginPlayer(Player player, Session session) : IPlayer
         WorldMode.AvatarEditor => GameMode.CharacterEditor,
         _ => null,
     };
+
+    bool Building => player.InWorld && player.BuildAvatarId >= 0 && player.ActiveSpawnRole == player.BuildAvatarId;
 
     bool Free => Playing && session.World.Find(player.PlayAvatar) is { } avatar && (Runtime(avatar, "seat") as int? ?? -1) < 0;
 

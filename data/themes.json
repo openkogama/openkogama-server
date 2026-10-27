@@ -1,23 +1,1598 @@
 [
-  "Animals",
-  "BoxHalloween",
-  "BoxPumpkin",
-  "BoxSkull",
-  "Candy",
-  "Cartoon",
-  "Christmas",
-  "Cloudy",
-  "Heart",
-  "Normal",
-  "Pumpkin",
-  "Puzzle",
-  "RoundBoxSkull",
-  "RoundCircleSkull",
-  "RoundSkull",
-  "RoundSquare",
-  "RoundSquareSkull",
-  "Scary",
-  "Square",
-  "SquareSkull",
-  "Triangles"
+  {
+    "name": "Animals",
+    "title": "Sky Animals Theme",
+    "description": "A sky theme for the times you want to see cloud animals",
+    "folder": "animals",
+    "textures": {
+      "clouds": "skybox_cloud_12.unity3d",
+      "stars": "star_texture_07.unity3d",
+      "sun": "sun_texture_01.unity3d",
+      "moon": "moon_texture_01.unity3d",
+      "sunFlare": "sunflare.unity3d",
+      "moonFlare": "moonflare.unity3d",
+      "preview": "animal_preview.unity3d"
+    },
+    "settings": {
+      "useDayNightCycle": true,
+      "useServerTime": false,
+      "colorPresetIndex": 0,
+      "gameStartTime": 56.4236946105957,
+      "cycleLength": 362.79913330078125,
+      "topColor": {
+        "Red": 0.25,
+        "Green": 0.8999999761581421,
+        "Blue": 1.0,
+        "Alpha": 1.0
+      },
+      "bottomColor": {
+        "Red": 1.0,
+        "Green": 1.0,
+        "Blue": 0.8399999737739563,
+        "Alpha": 1.0
+      },
+      "starsTint": {
+        "Red": 0.49803921580314636,
+        "Green": 0.49803921580314636,
+        "Blue": 0.49803921580314636,
+        "Alpha": 1.0
+      },
+      "starsExtinction": 2.0,
+      "starsTwinklingSpeed": 4.0,
+      "sunTint": {
+        "Red": 0.8799999952316284,
+        "Green": 0.7599999904632568,
+        "Blue": 0.5299999713897705,
+        "Alpha": 1.0
+      },
+      "sunSize": 1.0,
+      "sunHeight": 0.5,
+      "sunAxis": 0.0,
+      "sunAltitude": 44.66999816894531,
+      "sunLongitude": 0.0,
+      "sunLightContrast": 0.5,
+      "sunLightIntensity": 0.5177290439605713,
+      "sunFlareBrightness": 1.109054684638977,
+      "moonTint": {
+        "Red": 0.5799999833106995,
+        "Green": 0.6599999666213989,
+        "Blue": 0.8399999737739563,
+        "Alpha": 1.0
+      },
+      "moonSize": 1.0,
+      "moonHeight": -0.5,
+      "moonAxis": 0.0,
+      "moonAltitude": 45.0,
+      "moonLongitude": 0.0,
+      "moonLightContrast": 1.0,
+      "moonLightIntensity": 0.20858804881572723,
+      "moonFlareBrightness": 0.38326555490493774,
+      "cloudsHeight": 0.0,
+      "cloudsOffset": 0.20000000298023224,
+      "cloudsRotationSpeed": 1.0,
+      "useFog": false,
+      "fogDensity": 0.043181199580430984,
+      "exposure": 1.0
+    }
+  },
+  {
+    "name": "BoxHalloween",
+    "title": "Halloween Theme 01",
+    "description": "A halloweenish sky theme with boxy scary faces as the sun and moon",
+    "folder": "box_halloween",
+    "textures": {
+      "clouds": "skybox_cloud_15.unity3d",
+      "stars": "star_texture_06.unity3d",
+      "sun": "sun_texture_12.unity3d",
+      "moon": "moon_texture_16.unity3d",
+      "sunFlare": "sunflare.unity3d",
+      "moonFlare": "moonflare.unity3d",
+      "preview": "box_halloween_preview.unity3d"
+    },
+    "settings": {
+      "useDayNightCycle": false,
+      "useServerTime": false,
+      "colorPresetIndex": 5,
+      "gameStartTime": 50.025455474853516,
+      "cycleLength": 363.5744323730469,
+      "topColor": {
+        "Red": 1.0,
+        "Green": 0.7999999523162842,
+        "Blue": 0.5199999809265137,
+        "Alpha": 1.0
+      },
+      "bottomColor": {
+        "Red": 1.0,
+        "Green": 0.5999999642372131,
+        "Blue": 0.14000000059604645,
+        "Alpha": 1.0
+      },
+      "starsTint": {
+        "Red": 1.0,
+        "Green": 0.6499999761581421,
+        "Blue": 0.3999999761581421,
+        "Alpha": 1.0
+      },
+      "starsExtinction": 10.0,
+      "starsTwinklingSpeed": 1.3044027090072632,
+      "sunTint": {
+        "Red": 0.85999995470047,
+        "Green": 0.6699999570846558,
+        "Blue": 0.4599999785423279,
+        "Alpha": 1.0
+      },
+      "sunSize": 1.0,
+      "sunHeight": -1.0,
+      "sunAxis": 0.0,
+      "sunAltitude": 44.66999816894531,
+      "sunLongitude": 0.0,
+      "sunLightContrast": 0.19694334268569946,
+      "sunLightIntensity": 0.8983321785926819,
+      "sunFlareBrightness": 1.3370368480682373,
+      "moonTint": {
+        "Red": 0.7899999618530273,
+        "Green": 0.5199999809265137,
+        "Blue": 0.6100000143051147,
+        "Alpha": 1.0
+      },
+      "moonSize": 1.0,
+      "moonHeight": 0.4153255224227905,
+      "moonAxis": 0.0,
+      "moonAltitude": 45.0,
+      "moonLongitude": 0.0,
+      "moonLightContrast": 1.0,
+      "moonLightIntensity": 0.2501814067363739,
+      "moonFlareBrightness": 0.35209932923316956,
+      "cloudsHeight": 0.0,
+      "cloudsOffset": 0.20000000298023224,
+      "cloudsRotationSpeed": 1.0,
+      "useFog": false,
+      "fogDensity": 0.06014876440167427,
+      "exposure": 1.0
+    }
+  },
+  {
+    "name": "BoxPumpkin",
+    "title": "Halloween Theme 02",
+    "description": "A halloweenish sky theme with boxy pumpkins as the sun and moon",
+    "folder": "box_pumpkin",
+    "textures": {
+      "clouds": "skybox_cloud_02.unity3d",
+      "stars": "star_texture_06.unity3d",
+      "sun": "sun_texture_12.unity3d",
+      "moon": "moon_texture_15.unity3d",
+      "sunFlare": "sunflare.unity3d",
+      "moonFlare": "moonflare.unity3d",
+      "preview": "box_pumpkin_preview.unity3d"
+    },
+    "settings": {
+      "useDayNightCycle": false,
+      "useServerTime": false,
+      "colorPresetIndex": 2,
+      "gameStartTime": 43.30663299560547,
+      "cycleLength": 359.6235656738281,
+      "topColor": {
+        "Red": 0.429999977350235,
+        "Green": 0.6699999570846558,
+        "Blue": 0.7199999690055847,
+        "Alpha": 1.0
+      },
+      "bottomColor": {
+        "Red": 0.5199999809265137,
+        "Green": 0.3199999928474426,
+        "Blue": 0.3400000035762787,
+        "Alpha": 1.0
+      },
+      "starsTint": {
+        "Red": 0.49803921580314636,
+        "Green": 0.49803921580314636,
+        "Blue": 0.49803921580314636,
+        "Alpha": 1.0
+      },
+      "starsExtinction": 2.0,
+      "starsTwinklingSpeed": 4.0,
+      "sunTint": {
+        "Red": 0.7599999904632568,
+        "Green": 0.6100000143051147,
+        "Blue": 0.5,
+        "Alpha": 1.0
+      },
+      "sunSize": 1.0,
+      "sunHeight": 0.5,
+      "sunAxis": 0.0,
+      "sunAltitude": 44.66999816894531,
+      "sunLongitude": 0.0,
+      "sunLightContrast": 0.4778563976287842,
+      "sunLightIntensity": 0.8996332287788391,
+      "sunFlareBrightness": 1.1599873304367065,
+      "moonTint": {
+        "Red": 0.5299999713897705,
+        "Green": 0.6499999761581421,
+        "Blue": 0.7999999523162842,
+        "Alpha": 1.0
+      },
+      "moonSize": 1.0,
+      "moonHeight": -0.5,
+      "moonAxis": 0.0,
+      "moonAltitude": 45.0,
+      "moonLongitude": 0.0,
+      "moonLightContrast": 1.0,
+      "moonLightIntensity": 0.25977641344070435,
+      "moonFlareBrightness": 0.3519327640533447,
+      "cloudsHeight": 0.0,
+      "cloudsOffset": 0.20000000298023224,
+      "cloudsRotationSpeed": 1.0,
+      "useFog": false,
+      "fogDensity": 0.06086897850036621,
+      "exposure": 1.0
+    }
+  },
+  {
+    "name": "BoxSkull",
+    "title": "Skull Theme 01",
+    "description": "A sky theme in the name of skulls with a boxy look",
+    "folder": "box_skull",
+    "textures": {
+      "clouds": "skybox_cloud_15.unity3d",
+      "stars": "star_texture_06.unity3d",
+      "sun": "sun_texture_10.unity3d",
+      "moon": "moon_texture_11.unity3d",
+      "sunFlare": "sunflare.unity3d",
+      "moonFlare": "moonflare.unity3d",
+      "preview": "box_skull_preview.unity3d"
+    },
+    "settings": {
+      "useDayNightCycle": true,
+      "useServerTime": false,
+      "colorPresetIndex": 10,
+      "gameStartTime": 43.6390266418457,
+      "cycleLength": 360.28271484375,
+      "topColor": {
+        "Red": 0.8399999737739563,
+        "Green": 0.6800000071525574,
+        "Blue": 0.5799999833106995,
+        "Alpha": 1.0
+      },
+      "bottomColor": {
+        "Red": 0.3499999940395355,
+        "Green": 0.1599999964237213,
+        "Blue": 0.35999998450279236,
+        "Alpha": 1.0
+      },
+      "starsTint": {
+        "Red": 0.85999995470047,
+        "Green": 0.6499999761581421,
+        "Blue": 0.47999998927116394,
+        "Alpha": 1.0
+      },
+      "starsExtinction": 10.0,
+      "starsTwinklingSpeed": 0.0,
+      "sunTint": {
+        "Red": 1.0,
+        "Green": 0.6800000071525574,
+        "Blue": 0.3999999761581421,
+        "Alpha": 1.0
+      },
+      "sunSize": 1.0,
+      "sunHeight": 0.4478665590286255,
+      "sunAxis": 0.0,
+      "sunAltitude": 44.66999816894531,
+      "sunLongitude": 0.0,
+      "sunLightContrast": 0.5,
+      "sunLightIntensity": 1.22464120388031,
+      "sunFlareBrightness": 1.0144233703613281,
+      "moonTint": {
+        "Red": 0.7299999594688416,
+        "Green": 0.8199999928474426,
+        "Blue": 0.6100000143051147,
+        "Alpha": 1.0
+      },
+      "moonSize": 1.0,
+      "moonHeight": -1.0,
+      "moonAxis": 0.0,
+      "moonAltitude": 45.0,
+      "moonLongitude": 0.0,
+      "moonLightContrast": 0.5,
+      "moonLightIntensity": 0.3227705657482147,
+      "moonFlareBrightness": 0.34887850284576416,
+      "cloudsHeight": 0.2697923183441162,
+      "cloudsOffset": 0.20000000298023224,
+      "cloudsRotationSpeed": 1.0,
+      "useFog": false,
+      "fogDensity": 0.04516717046499252,
+      "exposure": 0.9923116564750671
+    }
+  },
+  {
+    "name": "Candy",
+    "title": "Candy theme",
+    "description": "A sugary sky theme for the sweet toothed ones",
+    "folder": "candy",
+    "textures": {
+      "clouds": "skybox_cloud_10.unity3d",
+      "stars": "star_texture_06.unity3d",
+      "sun": "sun_texture_05.unity3d",
+      "moon": "moon_texture_07.unity3d",
+      "sunFlare": "sunflare.unity3d",
+      "moonFlare": "moonflare.unity3d",
+      "preview": "candy_preview.unity3d"
+    },
+    "settings": {
+      "useDayNightCycle": true,
+      "useServerTime": false,
+      "colorPresetIndex": 1,
+      "gameStartTime": 52.94213104248047,
+      "cycleLength": 363.5744323730469,
+      "topColor": {
+        "Red": 0.85999995470047,
+        "Green": 0.6200000047683716,
+        "Blue": 0.6100000143051147,
+        "Alpha": 1.0
+      },
+      "bottomColor": {
+        "Red": 0.8799999952316284,
+        "Green": 0.4099999964237213,
+        "Blue": 0.3199999928474426,
+        "Alpha": 1.0
+      },
+      "starsTint": {
+        "Red": 0.7799999713897705,
+        "Green": 0.6399999856948853,
+        "Blue": 0.4699999988079071,
+        "Alpha": 1.0
+      },
+      "starsExtinction": 2.0,
+      "starsTwinklingSpeed": 4.0,
+      "sunTint": {
+        "Red": 0.7699999809265137,
+        "Green": 0.5600000023841858,
+        "Blue": 0.4599999785423279,
+        "Alpha": 1.0
+      },
+      "sunSize": 1.0,
+      "sunHeight": 0.3330082893371582,
+      "sunAxis": 0.0,
+      "sunAltitude": 44.66999816894531,
+      "sunLongitude": 0.0,
+      "sunLightContrast": 0.7465518116950989,
+      "sunLightIntensity": 0.8464803099632263,
+      "sunFlareBrightness": 1.1775842905044556,
+      "moonTint": {
+        "Red": 0.5699999928474426,
+        "Green": 0.429999977350235,
+        "Blue": 0.2800000011920929,
+        "Alpha": 1.0
+      },
+      "moonSize": 1.0,
+      "moonHeight": -1.0,
+      "moonAxis": 0.0,
+      "moonAltitude": 45.0,
+      "moonLongitude": 0.0,
+      "moonLightContrast": 1.0,
+      "moonLightIntensity": 0.2501809000968933,
+      "moonFlareBrightness": 0.35854843258857727,
+      "cloudsHeight": 0.0,
+      "cloudsOffset": 0.20000000298023224,
+      "cloudsRotationSpeed": 1.0,
+      "useFog": false,
+      "fogDensity": 0.03272537142038345,
+      "exposure": 1.0
+    }
+  },
+  {
+    "name": "Cartoon",
+    "title": "Cartoon Theme",
+    "description": "A beautiful cartoonish sky theme",
+    "folder": "cartoon",
+    "textures": {
+      "clouds": "skybox_cloud_13.unity3d",
+      "stars": "star_texture_07.unity3d",
+      "sun": "sun_texture_01.unity3d",
+      "moon": "moon_texture_01.unity3d",
+      "sunFlare": "sunflare.unity3d",
+      "moonFlare": "moonflare.unity3d",
+      "preview": "cartoon_preview.unity3d"
+    },
+    "settings": {
+      "useDayNightCycle": true,
+      "useServerTime": false,
+      "colorPresetIndex": 0,
+      "gameStartTime": 50.0,
+      "cycleLength": 362.79913330078125,
+      "topColor": {
+        "Red": 0.1899999976158142,
+        "Green": 0.9399999976158142,
+        "Blue": 1.0,
+        "Alpha": 1.0
+      },
+      "bottomColor": {
+        "Red": 0.9799999594688416,
+        "Green": 0.949999988079071,
+        "Blue": 0.8399999737739563,
+        "Alpha": 1.0
+      },
+      "starsTint": {
+        "Red": 0.49803921580314636,
+        "Green": 0.49803921580314636,
+        "Blue": 0.49803921580314636,
+        "Alpha": 1.0
+      },
+      "starsExtinction": 2.0,
+      "starsTwinklingSpeed": 4.0,
+      "sunTint": {
+        "Red": 1.0,
+        "Green": 0.8399999737739563,
+        "Blue": 0.5399999618530273,
+        "Alpha": 1.0
+      },
+      "sunSize": 1.0,
+      "sunHeight": 0.5,
+      "sunAxis": 0.0,
+      "sunAltitude": 44.66999816894531,
+      "sunLongitude": 0.0,
+      "sunLightContrast": 0.5,
+      "sunLightIntensity": 0.5945125818252563,
+      "sunFlareBrightness": 0.9698931574821472,
+      "moonTint": {
+        "Red": 0.5,
+        "Green": 0.7599999904632568,
+        "Blue": 1.0,
+        "Alpha": 1.0
+      },
+      "moonSize": 1.0,
+      "moonHeight": -0.5,
+      "moonAxis": 0.0,
+      "moonAltitude": 45.0,
+      "moonLongitude": 0.0,
+      "moonLightContrast": 0.7446995377540588,
+      "moonLightIntensity": 0.3268600106239319,
+      "moonFlareBrightness": 0.30000001192092896,
+      "cloudsHeight": 0.0,
+      "cloudsOffset": 0.20000000298023224,
+      "cloudsRotationSpeed": 1.0,
+      "useFog": false,
+      "fogDensity": 0.05205214023590088,
+      "exposure": 1.0
+    }
+  },
+  {
+    "name": "Christmas",
+    "title": "Christmas Theme",
+    "description": "A sky theme with a christmas touch",
+    "folder": "christmas",
+    "textures": {
+      "clouds": "skybox_cloud_11.unity3d",
+      "stars": "star_texture_07.unity3d",
+      "sun": "sun_texture_01.unity3d",
+      "moon": "moon_texture_01.unity3d",
+      "sunFlare": "sunflare.unity3d",
+      "moonFlare": "moonflare.unity3d",
+      "preview": "christmas_preview.unity3d"
+    },
+    "settings": {
+      "useDayNightCycle": true,
+      "useServerTime": false,
+      "colorPresetIndex": 2,
+      "gameStartTime": 57.51374816894531,
+      "cycleLength": 363.4498596191406,
+      "topColor": {
+        "Red": 0.8999999761581421,
+        "Green": 0.7199999690055847,
+        "Blue": 0.5099999904632568,
+        "Alpha": 1.0
+      },
+      "bottomColor": {
+        "Red": 1.0,
+        "Green": 0.0,
+        "Blue": 0.20999999344348907,
+        "Alpha": 1.0
+      },
+      "starsTint": {
+        "Red": 0.49803921580314636,
+        "Green": 0.49803921580314636,
+        "Blue": 0.49803921580314636,
+        "Alpha": 1.0
+      },
+      "starsExtinction": 2.0,
+      "starsTwinklingSpeed": 4.0,
+      "sunTint": {
+        "Red": 0.8700000047683716,
+        "Green": 0.6800000071525574,
+        "Blue": 0.5,
+        "Alpha": 1.0
+      },
+      "sunSize": 1.0,
+      "sunHeight": 0.5,
+      "sunAxis": 0.0,
+      "sunAltitude": 44.66999816894531,
+      "sunLongitude": 0.0,
+      "sunLightContrast": 0.45546138286590576,
+      "sunLightIntensity": 0.950821578502655,
+      "sunFlareBrightness": 1.3828173875808716,
+      "moonTint": {
+        "Red": 0.5,
+        "Green": 0.6899999976158142,
+        "Blue": 0.8399999737739563,
+        "Alpha": 1.0
+      },
+      "moonSize": 1.0,
+      "moonHeight": -0.5,
+      "moonAxis": 0.0,
+      "moonAltitude": 45.0,
+      "moonLongitude": 0.0,
+      "moonLightContrast": 1.0,
+      "moonLightIntensity": 0.3621545732021332,
+      "moonFlareBrightness": 0.37689900398254395,
+      "cloudsHeight": 0.0,
+      "cloudsOffset": 0.20000000298023224,
+      "cloudsRotationSpeed": 1.0,
+      "useFog": true,
+      "fogDensity": 0.06489848345518112,
+      "exposure": 1.0
+    }
+  },
+  {
+    "name": "Cloudy",
+    "title": "Cloudy Theme",
+    "description": "A cloudy sky theme",
+    "folder": "cloudy",
+    "textures": {
+      "clouds": "clouds.unity3d",
+      "stars": "stars.unity3d",
+      "sun": "sun.unity3d",
+      "moon": "moon.unity3d",
+      "sunFlare": "sunflare.unity3d",
+      "moonFlare": "moonflare.unity3d",
+      "preview": "cloudy_preview.unity3d"
+    },
+    "settings": {
+      "useDayNightCycle": false,
+      "useServerTime": false,
+      "colorPresetIndex": 6,
+      "gameStartTime": 45.546138763427734,
+      "cycleLength": 359.6235046386719,
+      "topColor": {
+        "Red": 0.24700000882148743,
+        "Green": 0.3179999887943268,
+        "Blue": 0.5609999895095825,
+        "Alpha": 1.0
+      },
+      "bottomColor": {
+        "Red": 0.9099999666213989,
+        "Green": 0.44999998807907104,
+        "Blue": 0.4699999988079071,
+        "Alpha": 1.0
+      },
+      "starsTint": {
+        "Red": 0.49803921580314636,
+        "Green": 0.49803921580314636,
+        "Blue": 0.49803921580314636,
+        "Alpha": 1.0
+      },
+      "starsExtinction": 2.0,
+      "starsTwinklingSpeed": 4.0,
+      "sunTint": {
+        "Red": 1.0,
+        "Green": 0.7299999594688416,
+        "Blue": 0.550000011920929,
+        "Alpha": 1.0
+      },
+      "sunSize": 1.0,
+      "sunHeight": 0.5,
+      "sunAxis": 0.0,
+      "sunAltitude": 44.66999816894531,
+      "sunLongitude": 0.0,
+      "sunLightContrast": 0.43306633830070496,
+      "sunLightIntensity": 0.8740390539169312,
+      "sunFlareBrightness": 0.42873460054397583,
+      "moonTint": {
+        "Red": 0.3999999761581421,
+        "Green": 0.9300000071525574,
+        "Blue": 0.8399999737739563,
+        "Alpha": 1.0
+      },
+      "moonSize": 1.0,
+      "moonHeight": -0.5,
+      "moonAxis": 0.0,
+      "moonAltitude": 45.0,
+      "moonLongitude": 0.0,
+      "moonLightContrast": 0.7018060088157654,
+      "moonLightIntensity": 0.720473051071167,
+      "moonFlareBrightness": 0.38963210582733154,
+      "cloudsHeight": 0.0,
+      "cloudsOffset": 0.20000000298023224,
+      "cloudsRotationSpeed": 1.0,
+      "useFog": false,
+      "fogDensity": 0.06736761331558228,
+      "exposure": 1.0
+    }
+  },
+  {
+    "name": "Heart",
+    "title": "Hearts Theme",
+    "description": "A lovely sky theme to heartwarming people",
+    "folder": "heart",
+    "textures": {
+      "clouds": "skybox_cloud_14.unity3d",
+      "stars": "star_texture_07.unity3d",
+      "sun": "sun_texture_14.unity3d",
+      "moon": "moon_texture_18.unity3d",
+      "sunFlare": "sunflare.unity3d",
+      "moonFlare": "moonflare.unity3d",
+      "preview": "heart_preview.unity3d"
+    },
+    "settings": {
+      "useDayNightCycle": false,
+      "useServerTime": false,
+      "colorPresetIndex": 3,
+      "gameStartTime": 58.77548599243164,
+      "cycleLength": 363.5526428222656,
+      "topColor": {
+        "Red": 1.0,
+        "Green": 0.6499999761581421,
+        "Blue": 0.7599999904632568,
+        "Alpha": 1.0
+      },
+      "bottomColor": {
+        "Red": 0.6499999761581421,
+        "Green": 0.28999999165534973,
+        "Blue": 0.35999998450279236,
+        "Alpha": 1.0
+      },
+      "starsTint": {
+        "Red": 0.9300000071525574,
+        "Green": 0.6299999952316284,
+        "Blue": 0.5299999713897705,
+        "Alpha": 1.0
+      },
+      "starsExtinction": 10.0,
+      "starsTwinklingSpeed": 1.5299232006072998,
+      "sunTint": {
+        "Red": 0.9099999666213989,
+        "Green": 0.6800000071525574,
+        "Blue": 0.47999998927116394,
+        "Alpha": 1.0
+      },
+      "sunSize": 1.0,
+      "sunHeight": 0.5802900791168213,
+      "sunAxis": 0.0,
+      "sunAltitude": 46.66227722167969,
+      "sunLongitude": 0.0,
+      "sunLightContrast": 0.5,
+      "sunLightIntensity": 1.0578982830047607,
+      "sunFlareBrightness": 1.6920087337493896,
+      "moonTint": {
+        "Red": 1.0,
+        "Green": 0.7299999594688416,
+        "Blue": 0.6299999952316284,
+        "Alpha": 1.0
+      },
+      "moonSize": 1.0,
+      "moonHeight": -1.0,
+      "moonAxis": 0.0,
+      "moonAltitude": 44.37933349609375,
+      "moonLongitude": 0.0,
+      "moonLightContrast": 0.6882694959640503,
+      "moonLightIntensity": 0.535868227481842,
+      "moonFlareBrightness": 0.6037928462028503,
+      "cloudsHeight": -0.16878099739551544,
+      "cloudsOffset": 0.20000000298023224,
+      "cloudsRotationSpeed": 1.0,
+      "useFog": false,
+      "fogDensity": 0.0598578006029129,
+      "exposure": 1.0
+    }
+  },
+  {
+    "name": "Normal",
+    "title": "Normal Theme",
+    "description": "A sky theme for the normal ones",
+    "folder": "normal",
+    "textures": {
+      "clouds": "skybox_cloud_01.unity3d",
+      "stars": "star_texture_01.unity3d",
+      "sun": "sun_texture_01.unity3d",
+      "moon": "moon_texture_01.unity3d",
+      "sunFlare": "sunflare.unity3d",
+      "moonFlare": "moonflare.unity3d",
+      "preview": "normal_preview.unity3d"
+    },
+    "settings": {
+      "useDayNightCycle": false,
+      "useServerTime": false,
+      "colorPresetIndex": 0,
+      "gameStartTime": 50.0,
+      "cycleLength": 362.79913330078125,
+      "topColor": {
+        "Red": 0.3400000035762787,
+        "Green": 0.85999995470047,
+        "Blue": 1.0,
+        "Alpha": 1.0
+      },
+      "bottomColor": {
+        "Red": 1.0,
+        "Green": 1.0,
+        "Blue": 0.8799999952316284,
+        "Alpha": 1.0
+      },
+      "starsTint": {
+        "Red": 0.49803921580314636,
+        "Green": 0.49803921580314636,
+        "Blue": 0.49803921580314636,
+        "Alpha": 1.0
+      },
+      "starsExtinction": 2.0,
+      "starsTwinklingSpeed": 4.0,
+      "sunTint": {
+        "Red": 1.0,
+        "Green": 0.7400000095367432,
+        "Blue": 0.4599999785423279,
+        "Alpha": 1.0
+      },
+      "sunSize": 1.0,
+      "sunHeight": 0.5,
+      "sunAxis": 0.0,
+      "sunAltitude": 44.66999816894531,
+      "sunLongitude": 0.0,
+      "sunLightContrast": 0.5,
+      "sunLightIntensity": 0.6180963516235352,
+      "sunFlareBrightness": 0.4669340252876282,
+      "moonTint": {
+        "Red": 0.5,
+        "Green": 0.6499999761581421,
+        "Blue": 0.8999999761581421,
+        "Alpha": 1.0
+      },
+      "moonSize": 1.0,
+      "moonHeight": -0.5,
+      "moonAxis": 0.0,
+      "moonAltitude": 45.0,
+      "moonLongitude": 0.0,
+      "moonLightContrast": 0.7337988615036011,
+      "moonLightIntensity": 0.4133429229259491,
+      "moonFlareBrightness": 0.37143540382385254,
+      "cloudsHeight": 0.0,
+      "cloudsOffset": 0.20000000298023224,
+      "cloudsRotationSpeed": 1.0,
+      "useFog": false,
+      "fogDensity": 0.04489696025848389,
+      "exposure": 1.0
+    }
+  },
+  {
+    "name": "Pumpkin",
+    "title": "Pumpkin Theme",
+    "description": "A halloweenish theme with pumpkins as the sun and moon",
+    "folder": "pumpkin",
+    "textures": {
+      "clouds": "skybox_cloud_05.unity3d",
+      "stars": "star_texture_04.unity3d",
+      "sun": "sun_texture_13.unity3d",
+      "moon": "moon_texture_14.unity3d",
+      "sunFlare": "sunflare.unity3d",
+      "moonFlare": "moonflare.unity3d",
+      "preview": "pumpkin_preview.unity3d"
+    },
+    "settings": {
+      "useDayNightCycle": false,
+      "useServerTime": false,
+      "colorPresetIndex": 5,
+      "gameStartTime": 50.0,
+      "cycleLength": 359.6985168457031,
+      "topColor": {
+        "Red": 0.9699999690055847,
+        "Green": 0.7199999690055847,
+        "Blue": 0.3799999952316284,
+        "Alpha": 1.0
+      },
+      "bottomColor": {
+        "Red": 0.9399999976158142,
+        "Green": 0.23999999463558197,
+        "Blue": 0.0,
+        "Alpha": 1.0
+      },
+      "starsTint": {
+        "Red": 0.8899999856948853,
+        "Green": 0.7899999618530273,
+        "Blue": 0.5399999618530273,
+        "Alpha": 1.0
+      },
+      "starsExtinction": 2.0,
+      "starsTwinklingSpeed": 0.9155133962631226,
+      "sunTint": {
+        "Red": 1.0,
+        "Green": 0.7199999690055847,
+        "Blue": 0.4699999988079071,
+        "Alpha": 1.0
+      },
+      "sunSize": 1.0,
+      "sunHeight": 0.49574315547943115,
+      "sunAxis": 0.0,
+      "sunAltitude": 44.66999816894531,
+      "sunLongitude": 0.0,
+      "sunLightContrast": 0.5134719610214233,
+      "sunLightIntensity": 0.9003681540489197,
+      "sunFlareBrightness": 1.4342797994613647,
+      "moonTint": {
+        "Red": 0.9699999690055847,
+        "Green": 0.7099999785423279,
+        "Blue": 0.47999998927116394,
+        "Alpha": 1.0
+      },
+      "moonSize": 1.0,
+      "moonHeight": -1.0,
+      "moonAxis": 0.0,
+      "moonAltitude": 45.0,
+      "moonLongitude": 0.0,
+      "moonLightContrast": 1.0,
+      "moonLightIntensity": 0.22425544261932373,
+      "moonFlareBrightness": 1.158237099647522,
+      "cloudsHeight": 0.0,
+      "cloudsOffset": 0.20000000298023224,
+      "cloudsRotationSpeed": 1.0,
+      "useFog": false,
+      "fogDensity": 0.05085961893200874,
+      "exposure": 1.0
+    }
+  },
+  {
+    "name": "Puzzle",
+    "title": "Puzzle Theme",
+    "description": "A sky theme for all the logic worlds",
+    "folder": "puzzle",
+    "textures": {
+      "clouds": "skybox_cloud_16.unity3d",
+      "stars": "star_texture_07.unity3d",
+      "sun": "sun_texture_07.unity3d",
+      "moon": "moon_texture_06.unity3d",
+      "sunFlare": "sunflare.unity3d",
+      "moonFlare": "moonflare.unity3d",
+      "preview": "puzzle_preview.unity3d"
+    },
+    "settings": {
+      "useDayNightCycle": true,
+      "useServerTime": false,
+      "colorPresetIndex": 11,
+      "gameStartTime": 50.0,
+      "cycleLength": 359.37213134765625,
+      "topColor": {
+        "Red": 0.08999999612569809,
+        "Green": 0.8899999856948853,
+        "Blue": 0.9300000071525574,
+        "Alpha": 1.0
+      },
+      "bottomColor": {
+        "Red": 1.0,
+        "Green": 1.0,
+        "Blue": 0.85999995470047,
+        "Alpha": 1.0
+      },
+      "starsTint": {
+        "Red": 0.49803921580314636,
+        "Green": 0.49803921580314636,
+        "Blue": 0.49803921580314636,
+        "Alpha": 1.0
+      },
+      "starsExtinction": 10.0,
+      "starsTwinklingSpeed": 2.0,
+      "sunTint": {
+        "Red": 1.0,
+        "Green": 0.8999999761581421,
+        "Blue": 0.429999977350235,
+        "Alpha": 1.0
+      },
+      "sunSize": 1.0,
+      "sunHeight": 0.4139869213104248,
+      "sunAxis": 0.0,
+      "sunAltitude": 44.66999816894531,
+      "sunLongitude": 0.0,
+      "sunLightContrast": 0.5,
+      "sunLightIntensity": 0.5374033451080322,
+      "sunFlareBrightness": 1.1887075901031494,
+      "moonTint": {
+        "Red": 0.5,
+        "Green": 0.6599999666213989,
+        "Blue": 0.8100000023841858,
+        "Alpha": 1.0
+      },
+      "moonSize": 1.0,
+      "moonHeight": -1.0,
+      "moonAxis": 0.0,
+      "moonAltitude": 45.0,
+      "moonLongitude": 0.0,
+      "moonLightContrast": 0.5,
+      "moonLightIntensity": 0.2501814067363739,
+      "moonFlareBrightness": 1.137621283531189,
+      "cloudsHeight": 0.0,
+      "cloudsOffset": 0.20000000298023224,
+      "cloudsRotationSpeed": 1.0,
+      "useFog": false,
+      "fogDensity": 0.05205214023590088,
+      "exposure": 1.0
+    }
+  },
+  {
+    "name": "RoundBoxSkull",
+    "title": "Skull Theme 02",
+    "description": "A sky theme with round boxed skulls for the sun and moon",
+    "folder": "round_box_skull",
+    "textures": {
+      "clouds": "skybox_cloud_15.unity3d",
+      "stars": "star_texture_01.unity3d",
+      "sun": "sun_texture_10.unity3d",
+      "moon": "moon_texture_13.unity3d",
+      "sunFlare": "sunflare.unity3d",
+      "moonFlare": "moonflare.unity3d",
+      "preview": "round_box_skull_preview.unity3d"
+    },
+    "settings": {
+      "useDayNightCycle": false,
+      "useServerTime": false,
+      "colorPresetIndex": 4,
+      "gameStartTime": 0.0,
+      "cycleLength": 359.372314453125,
+      "topColor": {
+        "Red": 0.7299999594688416,
+        "Green": 0.8899999856948853,
+        "Blue": 0.6299999952316284,
+        "Alpha": 1.0
+      },
+      "bottomColor": {
+        "Red": 0.19999998807907104,
+        "Green": 0.35999998450279236,
+        "Blue": 0.41999998688697815,
+        "Alpha": 1.0
+      },
+      "starsTint": {
+        "Red": 0.9199999570846558,
+        "Green": 0.8700000047683716,
+        "Blue": 0.6399999856948853,
+        "Alpha": 1.0
+      },
+      "starsExtinction": 10.0,
+      "starsTwinklingSpeed": 1.361652135848999,
+      "sunTint": {
+        "Red": 0.8899999856948853,
+        "Green": 0.9599999785423279,
+        "Blue": 0.7400000095367432,
+        "Alpha": 1.0
+      },
+      "sunSize": 1.0,
+      "sunHeight": 0.3466686010360718,
+      "sunAxis": 0.0,
+      "sunAltitude": 44.66999816894531,
+      "sunLongitude": 0.0,
+      "sunLightContrast": 0.8288905620574951,
+      "sunLightIntensity": 0.9501845836639404,
+      "sunFlareBrightness": 1.0550512075424194,
+      "moonTint": {
+        "Red": 0.5799999833106995,
+        "Green": 0.7299999594688416,
+        "Blue": 0.429999977350235,
+        "Alpha": 1.0
+      },
+      "moonSize": 1.0,
+      "moonHeight": -1.0,
+      "moonAxis": 0.0,
+      "moonAltitude": 45.0,
+      "moonLongitude": 0.0,
+      "moonLightContrast": 1.0,
+      "moonLightIntensity": 0.587219774723053,
+      "moonFlareBrightness": 0.6299172639846802,
+      "cloudsHeight": 0.0,
+      "cloudsOffset": 0.20000000298023224,
+      "cloudsRotationSpeed": 1.0,
+      "useFog": false,
+      "fogDensity": 0.05778656527400017,
+      "exposure": 1.0
+    }
+  },
+  {
+    "name": "RoundCircleSkull",
+    "title": "Skull Theme 03",
+    "description": "A sky theme with round skulls as the sun and moon",
+    "folder": "round_circle_skull",
+    "textures": {
+      "clouds": "skybox_cloud_03.unity3d",
+      "stars": "star_texture_04.unity3d",
+      "sun": "sun_texture_08.unity3d",
+      "moon": "moon_texture_08.unity3d",
+      "sunFlare": "sunflare.unity3d",
+      "moonFlare": "moonflare.unity3d",
+      "preview": "round_circle_skull_preview.unity3d"
+    },
+    "settings": {
+      "useDayNightCycle": false,
+      "useServerTime": false,
+      "colorPresetIndex": 9,
+      "gameStartTime": 45.812461853027344,
+      "cycleLength": 359.37213134765625,
+      "topColor": {
+        "Red": 0.5199999809265137,
+        "Green": 0.6800000071525574,
+        "Blue": 1.0,
+        "Alpha": 1.0
+      },
+      "bottomColor": {
+        "Red": 0.0,
+        "Green": 0.4599999785423279,
+        "Blue": 0.5899999737739563,
+        "Alpha": 1.0
+      },
+      "starsTint": {
+        "Red": 0.8299999833106995,
+        "Green": 0.7899999618530273,
+        "Blue": 0.5699999928474426,
+        "Alpha": 1.0
+      },
+      "starsExtinction": 10.0,
+      "starsTwinklingSpeed": 1.3044027090072632,
+      "sunTint": {
+        "Red": 0.9799999594688416,
+        "Green": 0.7899999618530273,
+        "Blue": 0.5,
+        "Alpha": 1.0
+      },
+      "sunSize": 1.0,
+      "sunHeight": -1.0,
+      "sunAxis": 0.0,
+      "sunAltitude": 44.66999816894531,
+      "sunLongitude": 0.0,
+      "sunLightContrast": 0.6039587259292603,
+      "sunLightIntensity": 1.2094446420669556,
+      "sunFlareBrightness": 0.8104920983314514,
+      "moonTint": {
+        "Red": 0.4899999797344208,
+        "Green": 0.6299999952316284,
+        "Blue": 1.0,
+        "Alpha": 1.0
+      },
+      "moonSize": 1.0,
+      "moonHeight": 0.7394012212753296,
+      "moonAxis": 0.0,
+      "moonAltitude": 45.0,
+      "moonLongitude": 0.0,
+      "moonLightContrast": 1.0,
+      "moonLightIntensity": 0.17554137110710144,
+      "moonFlareBrightness": 0.30000001192092896,
+      "cloudsHeight": 0.0,
+      "cloudsOffset": 0.20000000298023224,
+      "cloudsRotationSpeed": 1.0,
+      "useFog": false,
+      "fogDensity": 0.08925722539424896,
+      "exposure": 1.0
+    }
+  },
+  {
+    "name": "RoundSkull",
+    "title": "Skull Theme 05",
+    "description": "A sky theme with round skulls as the sun and moon",
+    "folder": "round_skull",
+    "textures": {
+      "clouds": "skybox_cloud_15.unity3d",
+      "stars": "star_texture_07.unity3d",
+      "sun": "sun_texture_09.unity3d",
+      "moon": "moon_texture_09.unity3d",
+      "sunFlare": "sunflare.unity3d",
+      "moonFlare": "moonflare.unity3d",
+      "preview": "round_skull_preview.unity3d"
+    },
+    "settings": {
+      "useDayNightCycle": false,
+      "useServerTime": false,
+      "colorPresetIndex": 8,
+      "gameStartTime": 48.10555648803711,
+      "cycleLength": 359.9240417480469,
+      "topColor": {
+        "Red": 0.5099999904632568,
+        "Green": 0.7899999618530273,
+        "Blue": 0.6800000071525574,
+        "Alpha": 1.0
+      },
+      "bottomColor": {
+        "Red": 0.3400000035762787,
+        "Green": 0.26999998092651367,
+        "Blue": 0.47999998927116394,
+        "Alpha": 1.0
+      },
+      "starsTint": {
+        "Red": 0.49803921580314636,
+        "Green": 0.49803921580314636,
+        "Blue": 0.49803921580314636,
+        "Alpha": 1.0
+      },
+      "starsExtinction": 2.0,
+      "starsTwinklingSpeed": 4.0,
+      "sunTint": {
+        "Red": 0.9099999666213989,
+        "Green": 0.7699999809265137,
+        "Blue": 0.5299999713897705,
+        "Alpha": 1.0
+      },
+      "sunSize": 1.0,
+      "sunHeight": 0.5,
+      "sunAxis": 0.0,
+      "sunAltitude": 44.66999816894531,
+      "sunLongitude": 0.0,
+      "sunLightContrast": 0.5,
+      "sunLightIntensity": 1.1811696290969849,
+      "sunFlareBrightness": 0.30000001192092896,
+      "moonTint": {
+        "Red": 0.5,
+        "Green": 0.949999988079071,
+        "Blue": 0.7599999904632568,
+        "Alpha": 1.0
+      },
+      "moonSize": 1.0,
+      "moonHeight": -0.5,
+      "moonAxis": 0.0,
+      "moonAltitude": 45.0,
+      "moonLongitude": 0.0,
+      "moonLightContrast": 0.7945851683616638,
+      "moonLightIntensity": 0.3012658357620239,
+      "moonFlareBrightness": 0.30000001192092896,
+      "cloudsHeight": 0.0,
+      "cloudsOffset": 0.20000000298023224,
+      "cloudsRotationSpeed": 1.0,
+      "useFog": false,
+      "fogDensity": 0.08067288994789124,
+      "exposure": 1.0
+    }
+  },
+  {
+    "name": "RoundSquare",
+    "title": "Square Theme 02",
+    "description": "A sky theme in a round square form",
+    "folder": "round_square",
+    "textures": {
+      "clouds": "skybox_cloud_07.unity3d",
+      "stars": "star_texture_05.unity3d",
+      "sun": "sun_texture_02.unity3d",
+      "moon": "moon_texture_03.unity3d",
+      "sunFlare": "sunflare.unity3d",
+      "moonFlare": "moonflare.unity3d",
+      "preview": "round_square_preview.unity3d"
+    },
+    "settings": {
+      "useDayNightCycle": true,
+      "useServerTime": false,
+      "colorPresetIndex": 10,
+      "gameStartTime": 50.0,
+      "cycleLength": 359.9240417480469,
+      "topColor": {
+        "Red": 0.7099999785423279,
+        "Green": 0.8499999642372131,
+        "Blue": 0.5600000023841858,
+        "Alpha": 1.0
+      },
+      "bottomColor": {
+        "Red": 0.7699999809265137,
+        "Green": 0.32999998331069946,
+        "Blue": 0.35999998450279236,
+        "Alpha": 1.0
+      },
+      "starsTint": {
+        "Red": 0.49803921580314636,
+        "Green": 0.49803921580314636,
+        "Blue": 0.49803921580314636,
+        "Alpha": 1.0
+      },
+      "starsExtinction": 2.0,
+      "starsTwinklingSpeed": 4.0,
+      "sunTint": {
+        "Red": 0.85999995470047,
+        "Green": 0.7400000095367432,
+        "Blue": 0.5,
+        "Alpha": 1.0
+      },
+      "sunSize": 1.0,
+      "sunHeight": 0.5,
+      "sunAxis": 0.0,
+      "sunAltitude": 44.66999816894531,
+      "sunLongitude": 0.0,
+      "sunLightContrast": 0.5,
+      "sunLightIntensity": 0.9548424482345581,
+      "sunFlareBrightness": 0.9062274098396301,
+      "moonTint": {
+        "Red": 0.5,
+        "Green": 0.8299999833106995,
+        "Blue": 0.7999999523162842,
+        "Alpha": 1.0
+      },
+      "moonSize": 1.0,
+      "moonHeight": -0.5,
+      "moonAxis": 0.0,
+      "moonAltitude": 45.0,
+      "moonLongitude": 0.0,
+      "moonLightContrast": 0.637820303440094,
+      "moonLightIntensity": 0.5316134095191956,
+      "moonFlareBrightness": 0.3959987759590149,
+      "cloudsHeight": 0.0,
+      "cloudsOffset": 0.20000000298023224,
+      "cloudsRotationSpeed": 1.0,
+      "useFog": false,
+      "fogDensity": 0.05539429932832718,
+      "exposure": 1.0
+    }
+  },
+  {
+    "name": "RoundSquareSkull",
+    "title": "Skull Theme 06",
+    "description": "A sky theme with round skulls as the sun and moon",
+    "folder": "round_square_skull",
+    "textures": {
+      "clouds": "skybox_cloud_15.unity3d",
+      "stars": "star_texture_07.unity3d",
+      "sun": "sun_texture_10.unity3d",
+      "moon": "moon_texture_12.unity3d",
+      "sunFlare": "sunflare.unity3d",
+      "moonFlare": "moonflare.unity3d",
+      "preview": "round_square_skull_preview.unity3d"
+    },
+    "settings": {
+      "useDayNightCycle": false,
+      "useServerTime": false,
+      "colorPresetIndex": 4,
+      "gameStartTime": 50.0,
+      "cycleLength": 362.79913330078125,
+      "topColor": {
+        "Red": 0.3700000047683716,
+        "Green": 0.8399999737739563,
+        "Blue": 0.5600000023841858,
+        "Alpha": 1.0
+      },
+      "bottomColor": {
+        "Red": 0.29999998211860657,
+        "Green": 0.3100000023841858,
+        "Blue": 0.5899999737739563,
+        "Alpha": 1.0
+      },
+      "starsTint": {
+        "Red": 0.49803921580314636,
+        "Green": 0.49803921580314636,
+        "Blue": 0.49803921580314636,
+        "Alpha": 1.0
+      },
+      "starsExtinction": 2.0,
+      "starsTwinklingSpeed": 4.0,
+      "sunTint": {
+        "Red": 0.9099999666213989,
+        "Green": 1.0,
+        "Blue": 0.5,
+        "Alpha": 1.0
+      },
+      "sunSize": 1.0,
+      "sunHeight": 0.5,
+      "sunAxis": 0.0,
+      "sunAltitude": 44.66999816894531,
+      "sunLongitude": 0.0,
+      "sunLightContrast": 0.5,
+      "sunLightIntensity": 0.8484448790550232,
+      "sunFlareBrightness": 0.30000001192092896,
+      "moonTint": {
+        "Red": 0.5,
+        "Green": 0.9300000071525574,
+        "Blue": 0.7400000095367432,
+        "Alpha": 1.0
+      },
+      "moonSize": 1.0,
+      "moonHeight": -0.5,
+      "moonAxis": 0.0,
+      "moonAltitude": 45.0,
+      "moonLongitude": 0.0,
+      "moonLightContrast": 0.7574965953826904,
+      "moonLightIntensity": 0.5828017592430115,
+      "moonFlareBrightness": 0.30000001192092896,
+      "cloudsHeight": 0.0,
+      "cloudsOffset": 0.20000000298023224,
+      "cloudsRotationSpeed": 1.0,
+      "useFog": false,
+      "fogDensity": 0.05699073523283005,
+      "exposure": 1.0
+    }
+  },
+  {
+    "name": "Scary",
+    "title": "Scary Theme",
+    "description": "A sky theme for the horror loving ones",
+    "folder": "scary",
+    "textures": {
+      "clouds": "skybox_cloud_03.unity3d",
+      "stars": "star_texture_06.unity3d",
+      "sun": "sun_texture_11.unity3d",
+      "moon": "moon_texture_17.unity3d",
+      "sunFlare": "sunflare.unity3d",
+      "moonFlare": "moonflare.unity3d",
+      "preview": "scary_preview.unity3d"
+    },
+    "settings": {
+      "useDayNightCycle": false,
+      "useServerTime": false,
+      "colorPresetIndex": 12,
+      "gameStartTime": 44.906280517578125,
+      "cycleLength": 359.9239807128906,
+      "topColor": {
+        "Red": 0.25999999046325684,
+        "Green": 0.7599999904632568,
+        "Blue": 0.6599999666213989,
+        "Alpha": 1.0
+      },
+      "bottomColor": {
+        "Red": 0.3400000035762787,
+        "Green": 0.25999999046325684,
+        "Blue": 0.3199999928474426,
+        "Alpha": 1.0
+      },
+      "starsTint": {
+        "Red": 0.49803921580314636,
+        "Green": 0.49803921580314636,
+        "Blue": 0.49803921580314636,
+        "Alpha": 1.0
+      },
+      "starsExtinction": 2.0,
+      "starsTwinklingSpeed": 4.0,
+      "sunTint": {
+        "Red": 0.8899999856948853,
+        "Green": 0.8399999737739563,
+        "Blue": 0.550000011920929,
+        "Alpha": 1.0
+      },
+      "sunSize": 1.0,
+      "sunHeight": 0.5,
+      "sunAxis": 0.0,
+      "sunAltitude": 44.66999816894531,
+      "sunLongitude": 0.0,
+      "sunLightContrast": 1.0,
+      "sunLightIntensity": 0.8996332287788391,
+      "sunFlareBrightness": 0.9253270626068115,
+      "moonTint": {
+        "Red": 0.5699999928474426,
+        "Green": 1.0,
+        "Blue": 0.75,
+        "Alpha": 1.0
+      },
+      "moonSize": 1.0,
+      "moonHeight": -0.5,
+      "moonAxis": 0.0,
+      "moonAltitude": 45.0,
+      "moonLongitude": 0.0,
+      "moonLightContrast": 0.85857093334198,
+      "moonLightIntensity": 0.6339901089668274,
+      "moonFlareBrightness": 0.3514326810836792,
+      "cloudsHeight": 0.0,
+      "cloudsOffset": 0.20000000298023224,
+      "cloudsRotationSpeed": 1.0,
+      "useFog": false,
+      "fogDensity": 0.06790898740291595,
+      "exposure": 1.0
+    }
+  },
+  {
+    "name": "Square",
+    "title": "Square Theme 01",
+    "description": "A sky theme in a square form",
+    "folder": "square",
+    "textures": {
+      "clouds": "skybox_cloud_06.unity3d",
+      "stars": "star_texture_05.unity3d",
+      "sun": "sun_texture_03.unity3d",
+      "moon": "moon_texture_02.unity3d",
+      "sunFlare": "sunflare.unity3d",
+      "moonFlare": "moonflare.unity3d",
+      "preview": "square_preview.unity3d"
+    },
+    "settings": {
+      "useDayNightCycle": true,
+      "useServerTime": false,
+      "colorPresetIndex": 7,
+      "gameStartTime": 57.38346481323242,
+      "cycleLength": 362.79913330078125,
+      "topColor": {
+        "Red": 0.429999977350235,
+        "Green": 0.9300000071525574,
+        "Blue": 0.8499999642372131,
+        "Alpha": 1.0
+      },
+      "bottomColor": {
+        "Red": 0.7899999618530273,
+        "Green": 1.0,
+        "Blue": 0.6800000071525574,
+        "Alpha": 1.0
+      },
+      "starsTint": {
+        "Red": 0.49803921580314636,
+        "Green": 0.49803921580314636,
+        "Blue": 0.49803921580314636,
+        "Alpha": 1.0
+      },
+      "starsExtinction": 2.0,
+      "starsTwinklingSpeed": 4.0,
+      "sunTint": {
+        "Red": 1.0,
+        "Green": 0.8799999952316284,
+        "Blue": 0.47999998927116394,
+        "Alpha": 1.0
+      },
+      "sunSize": 1.0,
+      "sunHeight": 0.5,
+      "sunAxis": 0.0,
+      "sunAltitude": 44.66999816894531,
+      "sunLongitude": 0.0,
+      "sunLightContrast": 0.525845468044281,
+      "sunLightIntensity": 0.5689184069633484,
+      "sunFlareBrightness": 1.3009546995162964,
+      "moonTint": {
+        "Red": 0.5,
+        "Green": 0.8199999928474426,
+        "Blue": 0.9099999666213989,
+        "Alpha": 1.0
+      },
+      "moonSize": 1.0,
+      "moonHeight": -0.5,
+      "moonAxis": 0.0,
+      "moonAltitude": 45.0,
+      "moonLongitude": 0.0,
+      "moonLightContrast": 1.0,
+      "moonLightIntensity": 0.2756706774234772,
+      "moonFlareBrightness": 0.3768988847732544,
+      "cloudsHeight": 0.0,
+      "cloudsOffset": 0.20000000298023224,
+      "cloudsRotationSpeed": 1.0,
+      "useFog": false,
+      "fogDensity": 0.05801481008529663,
+      "exposure": 1.0
+    }
+  },
+  {
+    "name": "SquareSkull",
+    "title": "Skull Theme 04",
+    "description": "A sky theme with square skulls",
+    "folder": "square_skull",
+    "textures": {
+      "clouds": "skybox_cloud_15.unity3d",
+      "stars": "star_texture_06.unity3d",
+      "sun": "sun_texture_10.unity3d",
+      "moon": "moon_texture_10.unity3d",
+      "sunFlare": "sunflare.unity3d",
+      "moonFlare": "moonflare.unity3d",
+      "preview": "square_skull_preview.unity3d"
+    },
+    "settings": {
+      "useDayNightCycle": false,
+      "useServerTime": false,
+      "colorPresetIndex": 4,
+      "gameStartTime": 42.02692413330078,
+      "cycleLength": 359.6235046386719,
+      "topColor": {
+        "Red": 0.3199999928474426,
+        "Green": 0.6499999761581421,
+        "Blue": 0.7899999618530273,
+        "Alpha": 1.0
+      },
+      "bottomColor": {
+        "Red": 0.29999998211860657,
+        "Green": 0.949999988079071,
+        "Blue": 0.5999999642372131,
+        "Alpha": 1.0
+      },
+      "starsTint": {
+        "Red": 0.49803921580314636,
+        "Green": 0.49803921580314636,
+        "Blue": 0.49803921580314636,
+        "Alpha": 1.0
+      },
+      "starsExtinction": 2.0,
+      "starsTwinklingSpeed": 4.0,
+      "sunTint": {
+        "Red": 0.6699999570846558,
+        "Green": 0.8700000047683716,
+        "Blue": 0.5,
+        "Alpha": 1.0
+      },
+      "sunSize": 1.0,
+      "sunHeight": 0.5,
+      "sunAxis": 0.0,
+      "sunAltitude": 44.66999816894531,
+      "sunLongitude": 0.0,
+      "sunLightContrast": 0.5066498517990112,
+      "sunLightIntensity": 0.6180963516235352,
+      "sunFlareBrightness": 1.2618523836135864,
+      "moonTint": {
+        "Red": 0.5299999713897705,
+        "Green": 0.8799999952316284,
+        "Blue": 0.6299999952316284,
+        "Alpha": 1.0
+      },
+      "moonSize": 1.0,
+      "moonHeight": -0.5,
+      "moonAxis": 0.0,
+      "moonAltitude": 45.0,
+      "moonLongitude": 0.0,
+      "moonLightContrast": 1.0,
+      "moonLightIntensity": 0.362154096364975,
+      "moonFlareBrightness": 0.4087318778038025,
+      "cloudsHeight": 0.0,
+      "cloudsOffset": 0.20000000298023224,
+      "cloudsRotationSpeed": 1.0,
+      "useFog": false,
+      "fogDensity": 0.04821110889315605,
+      "exposure": 1.0
+    }
+  },
+  {
+    "name": "Triangles",
+    "title": "Triangle Theme",
+    "description": "A sky theme for the triangular lovers!",
+    "folder": "triangles",
+    "textures": {
+      "clouds": "skybox_cloud_08.unity3d",
+      "stars": "star_texture_06.unity3d",
+      "sun": "sun_texture_04.unity3d",
+      "moon": "moon_texture_04.unity3d",
+      "sunFlare": "sunflare.unity3d",
+      "moonFlare": "moonflare.unity3d",
+      "preview": "triangle_preview.unity3d"
+    },
+    "settings": {
+      "useDayNightCycle": true,
+      "useServerTime": false,
+      "colorPresetIndex": 0,
+      "gameStartTime": 56.423683166503906,
+      "cycleLength": 359.27325439453125,
+      "topColor": {
+        "Red": 0.4899999797344208,
+        "Green": 0.9300000071525574,
+        "Blue": 0.9599999785423279,
+        "Alpha": 1.0
+      },
+      "bottomColor": {
+        "Red": 0.8799999952316284,
+        "Green": 0.9199999570846558,
+        "Blue": 0.75,
+        "Alpha": 1.0
+      },
+      "starsTint": {
+        "Red": 0.49803921580314636,
+        "Green": 0.49803921580314636,
+        "Blue": 0.49803921580314636,
+        "Alpha": 1.0
+      },
+      "starsExtinction": 2.0,
+      "starsTwinklingSpeed": 4.0,
+      "sunTint": {
+        "Red": 0.9199999570846558,
+        "Green": 0.7199999690055847,
+        "Blue": 0.4399999976158142,
+        "Alpha": 1.0
+      },
+      "sunSize": 1.0,
+      "sunHeight": 0.5,
+      "sunAxis": 0.0,
+      "sunAltitude": 44.66999816894531,
+      "sunLongitude": 0.0,
+      "sunLightContrast": 0.47276055812835693,
+      "sunLightIntensity": 0.720473051071167,
+      "sunFlareBrightness": 1.3327878713607788,
+      "moonTint": {
+        "Red": 0.5,
+        "Green": 0.6499999761581421,
+        "Blue": 0.8100000023841858,
+        "Alpha": 1.0
+      },
+      "moonSize": 1.0,
+      "moonHeight": -0.5,
+      "moonAxis": 0.0,
+      "moonAltitude": 45.0,
+      "moonLongitude": 0.0,
+      "moonLightContrast": 1.0,
+      "moonLightIntensity": 0.25977689027786255,
+      "moonFlareBrightness": 0.3705323338508606,
+      "cloudsHeight": 0.0,
+      "cloudsOffset": 0.20000000298023224,
+      "cloudsRotationSpeed": 1.0,
+      "useFog": false,
+      "fogDensity": 0.05562974140048027,
+      "exposure": 1.0
+    }
+  }
 ]

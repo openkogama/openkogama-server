@@ -8,7 +8,7 @@ using OpenKogama.World;
 
 namespace OpenKogama.Plugins;
 
-sealed class CubeEdit(GameWorld world, Session? session, Prototype prototype) : ICubeEdit
+sealed class CubeEdit(GameWorld world, Session? session, Prototype prototype, Player? viewer = null) : ICubeEdit
 {
     const int BatchCubes = 2048;
 
@@ -42,7 +42,7 @@ sealed class CubeEdit(GameWorld world, Session? session, Prototype prototype) : 
 
     void Added(int start)
     {
-        prototype.Cubes.Apply(CollectionsMarshal.AsSpan(_changes)[start..]);
+        if (viewer is null) prototype.Cubes.Apply(CollectionsMarshal.AsSpan(_changes)[start..]);
         if (++_pending >= BatchCubes) Send();
     }
 
@@ -52,7 +52,7 @@ sealed class CubeEdit(GameWorld world, Session? session, Prototype prototype) : 
         byte[] data = [.. _changes];
         _changes.Clear();
         _pending = 0;
-        world.MarkChanged();
+        if (viewer is null) world.MarkChanged();
         if (session is null) return;
 
         var evt = new EventData((byte)EventCode.UpdatePrototype)
@@ -63,7 +63,7 @@ sealed class CubeEdit(GameWorld world, Session? session, Prototype prototype) : 
                 [(byte)ParameterKey.WorldInventoryData] = data,
             },
         };
-        foreach (Player player in session.Players)
+        foreach (Player player in viewer is null ? session.Players : [viewer])
             if (player.InWorld)
                 player.Peer.Send(evt);
     }

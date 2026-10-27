@@ -47,8 +47,9 @@ public sealed class HttpServer(string prefix, WebApi api)
             return;
         }
 
-        IPAddress remote = request.RemoteEndPoint.Address;
+        IPAddress remote = Game.Access.Plain(request.RemoteEndPoint.Address);
         bool tunneled = Tunnel.Carries(remote);
+        IPAddress? forwarded = Forwarded(request, remote, tunneled);
         string? via = tunneled ? Tunnel.Via(request.Headers["Host"]) : null;
         if (tunneled && via is null)
         {
@@ -60,7 +61,7 @@ public sealed class HttpServer(string prefix, WebApi api)
         using var body = new MemoryStream();
         if (request.HasEntityBody) request.InputStream.CopyTo(body);
         ApiResponse result = api.Route(new ApiRequest(request.HttpMethod, path, request.QueryString, request.ContentType, body.ToArray(),
-            IPAddress.IsLoopback(remote) && !tunneled, via, request.Headers["Content-Encoding"]));
+            IPAddress.IsLoopback(remote) && !tunneled && forwarded is null, via, request.Headers["Content-Encoding"], forwarded ?? (tunneled ? null : remote)));
 
         if (Handlers.OperationRouter.Trace) Console.WriteLine($"http {request.HttpMethod} {request.Url?.PathAndQuery} {result.Status} {result.Body.Length}");
         response.StatusCode = result.Status;
@@ -68,5 +69,12 @@ public sealed class HttpServer(string prefix, WebApi api)
         response.ContentLength64 = result.Body.Length;
         response.OutputStream.Write(result.Body);
         response.Close();
+    }
+
+    IPAddress? Forwarded(HttpListenerRequest request, IPAddress remote, bool tunneled)
+    {
+        bool proxy = !tunneled && (IPAddress.IsLoopback(remote) || remote.ToString() == api.ServerInfo.ListenHost);
+        string? client = request.Headers["X-Forwarded-For"]?.Split(',')[0].Trim();
+        return proxy && IPAddress.TryParse(client, out IPAddress? address) ? Game.Access.Plain(address) : null;
     }
 }

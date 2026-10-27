@@ -8,12 +8,13 @@ public sealed class SqliteWorldStore(Database database) : IWorldStore
     {
         using SqliteConnection connection = database.Open();
         using SqliteCommand command = connection.CreateCommand();
-        command.CommandText = "SELECT id, name, owner, saved_at, published_at, played_at FROM worlds ORDER BY played_at IS NULL, played_at DESC, id";
+        command.CommandText = "SELECT id, name, owner, saved_at, published_at, played_at, platformer FROM worlds ORDER BY played_at IS NULL, played_at DESC, id";
         using SqliteDataReader reader = command.ExecuteReader();
 
         var worlds = new List<WorldInfo>();
         while (reader.Read())
-            worlds.Add(new WorldInfo(reader.GetInt32(0), reader.GetString(1), reader.GetInt32(2), reader.GetString(3), reader.IsDBNull(4) ? null : reader.GetString(4), reader.IsDBNull(5) ? null : reader.GetString(5)));
+            worlds.Add(new WorldInfo(reader.GetInt32(0), reader.GetString(1), reader.GetInt32(2), reader.GetString(3), reader.IsDBNull(4) ? null : reader.GetString(4), reader.IsDBNull(5) ? null : reader.GetString(5),
+                reader.GetInt32(6) != 0));
         return worlds;
     }
 
@@ -127,6 +128,25 @@ public sealed class SqliteWorldStore(Database database) : IWorldStore
         command.CommandText = "UPDATE worlds SET name = $name WHERE id = $id";
         command.Parameters.AddWithValue("$id", id);
         command.Parameters.AddWithValue("$name", name);
+        return Changed(command.ExecuteNonQuery() > 0);
+    }
+
+    public bool Platformer(int id)
+    {
+        using SqliteConnection connection = database.Open();
+        using SqliteCommand command = connection.CreateCommand();
+        command.CommandText = "SELECT platformer FROM worlds WHERE id = $id";
+        command.Parameters.AddWithValue("$id", id);
+        return command.ExecuteScalar() is long platformer && platformer != 0;
+    }
+
+    public bool SetPlatformer(int id, bool platformer)
+    {
+        using SqliteConnection connection = database.Open();
+        using SqliteCommand command = connection.CreateCommand();
+        command.CommandText = "UPDATE worlds SET platformer = $platformer WHERE id = $id";
+        command.Parameters.AddWithValue("$id", id);
+        command.Parameters.AddWithValue("$platformer", platformer ? 1 : 0);
         return Changed(command.ExecuteNonQuery() > 0);
     }
 

@@ -30,6 +30,7 @@ public sealed partial class Session
         AvatarClasses.AddPreviews(World);
         if (play) WorldMarkers.Hide(World);
         Logic = new Logic(this);
+        Theme = new WorldTheme(this);
         Logic.ResetAll();
         Teams = new Teams(this);
         Round = new Round(this);
@@ -46,6 +47,7 @@ public sealed partial class Session
     public bool Published => _worldId is int id && Stores.Worlds.Published(id) is not null;
     public Func<int> Clock { get; private set; } = () => Environment.TickCount;
     public Logic Logic { get; }
+    public WorldTheme Theme { get; }
     public Teams Teams { get; }
     public Round Round { get; }
     public GamePasses GamePasses { get; }

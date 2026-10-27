@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Text;
 using System.Text.Json;
+using OpenKogama.Game;
 
 namespace OpenKogama.Content;
 
@@ -8,6 +9,7 @@ public static class ClientPatch
 {
     const string SoundRoot = "AmbientAudio/";
     const int MaxSounds = 10_000;
+    const int NothingToChange = 3;
 
     public sealed record SoundEntry(string Url, string Name, string Group);
 
@@ -17,18 +19,31 @@ public static class ClientPatch
     {
         if (args is not [string input, string content, string output])
         {
-            Console.WriteLine("usage: client patch <data.unity3d> <content.json, or - for standard input> <output>");
+            Console.WriteLine("usage: client patch <data.unity3d or sharedassets0.assets> <content.json, or - for standard input> <output>");
             return 2;
         }
         try
         {
             using JsonDocument json = JsonDocument.Parse(content == "-" ? StandardInput() : File.ReadAllText(content));
-            List<SoundEntry> sounds = [.. json.RootElement.GetProperty("sounds").EnumerateArray()
-                .Select(sound => new SoundEntry(Text(sound, "url"), Text(sound, "name"), Text(sound, "group")))];
-            byte[] patched = Patch(File.ReadAllBytes(input), sounds);
+            List<SoundEntry> sounds = json.RootElement.TryGetProperty("sounds", out JsonElement soundList)
+                ? [.. soundList.EnumerateArray().Select(sound => new SoundEntry(Text(sound, "url"), Text(sound, "name"), Text(sound, "group")))]
+                : [];
+            List<ThemeSpec> themes = json.RootElement.TryGetProperty("themes", out JsonElement themeList)
+                ? [.. themeList.EnumerateArray().Select(ThemeOf)]
+                : [];
+            byte[] original = File.ReadAllBytes(input);
+            List<string> applied = [];
+            byte[] patched = original.AsSpan().StartsWith("UnityFS"u8)
+                ? Patch(original, sounds, themes, out applied)
+                : themes.Count > 0 && ThemePatch.Holds(original) ? ThemePatch.Apply(original, themes, out applied) : original;
+            if (sounds.Count == 0 && applied.Count == 0)
+            {
+                Console.WriteLine("client patch: nothing to change");
+                return NothingToChange;
+            }
             File.WriteAllBytes(output + ".tmp", patched);
             File.Move(output + ".tmp", output, overwrite: true);
-            Console.WriteLine($"client patch: {sounds.Count} sounds added");
+            Console.WriteLine($"client patch: {sounds.Count} sounds added, themes {(applied.Count > 0 ? string.Join(", ", applied) : "unchanged")}");
             return 0;
         }
         catch (Exception error)
@@ -38,9 +53,16 @@ public static class ClientPatch
         }
     }
 
-    public static byte[] Patch(byte[] archive, IReadOnlyList<SoundEntry> sounds)
+    public static byte[] Patch(byte[] archive, IReadOnlyList<SoundEntry> sounds) => Patch(archive, sounds, [], out _);
+
+    public static byte[] Patch(byte[] archive, IReadOnlyList<SoundEntry> sounds, IReadOnlyList<ThemeSpec> themes, out List<string> applied)
     {
         (string engine, List<ArchiveNode> nodes) = UnityArchive.Read(archive);
+        applied = [];
+        int holder = themes.Count > 0 ? nodes.FindIndex(node => (node.Flags & UnityArchive.SerializedFileNode) != 0 && ThemePatch.Holds(node.Data)) : -1;
+        if (holder >= 0) nodes[holder] = nodes[holder] with { Data = ThemePatch.Apply(nodes[holder].Data, themes, out applied) };
+        if (sounds.Count == 0) return UnityArchive.Write(engine, nodes);
+
         List<SoundList> lists = FindLists(nodes);
         if (lists.Count == 0) throw new InvalidDataException("the client has no sound list this patch knows");
 
@@ -117,6 +139,21 @@ public static class ClientPatch
     }
 
     static string Text(JsonElement element, string name) => element.GetProperty(name).GetString() ?? "";
+
+    static ThemeSpec ThemeOf(JsonElement theme)
+    {
+        string name = Text(theme, "name");
+        return new ThemeSpec(
+            name,
+            theme.TryGetProperty("base", out JsonElement basis) ? basis.GetString() ?? name : name,
+            theme.TryGetProperty("title", out JsonElement title) ? title.GetString() ?? name : name,
+            theme.TryGetProperty("description", out JsonElement description) ? description.GetString() ?? "" : "",
+            theme.TryGetProperty("settings", out JsonElement settings) ? ThemeValues.FromJson(settings) : new Dictionary<string, object>(),
+            theme.TryGetProperty("textures", out JsonElement textures)
+                ? textures.EnumerateObject().ToDictionary(texture => texture.Name, texture => texture.Value.GetString() ?? "")
+                : new Dictionary<string, string>(),
+            theme.TryGetProperty("cycle", out JsonElement cycle) && cycle.ValueKind == JsonValueKind.Object ? ThemeCycleData.FromJson(cycle) : null);
+    }
 
     static string StandardInput()
     {

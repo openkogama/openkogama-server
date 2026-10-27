@@ -50,6 +50,13 @@ public sealed class SqliteProfileStore(Database database) : IProfileStore
         return (long)command.ExecuteScalar()! != 0;
     }
 
+    public long? Account(int profile)
+    {
+        using SqliteConnection connection = database.Open();
+        using SqliteCommand command = Command(connection, "SELECT account FROM account_profiles WHERE profile = $profile", ("$profile", profile));
+        return command.ExecuteScalar() as long?;
+    }
+
     static object? Scalar(SqliteConnection connection, SqliteTransaction transaction, string sql, params (string Name, object Value)[] parameters)
     {
         using SqliteCommand command = Command(connection, sql, parameters);

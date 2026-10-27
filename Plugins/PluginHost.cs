@@ -76,6 +76,7 @@ public static class PluginHost
         }
         Loaded.Clear();
         CustomContent.Clear();
+        Themes.Reset();
         Server = new PluginServer();
     }
 
@@ -121,9 +122,9 @@ public static class PluginHost
 
     internal static bool Admin(Player player)
     {
-        IPAddress address = player.Peer.EndPoint.Address;
-        if (address.IsIPv4MappedToIPv6) address = address.MapToIPv4();
-        return IPAddress.IsLoopback(address) && !P2p.Tunnel.Carries(address) || Admins.Contains(address.ToString());
+        IPAddress address = Access.Plain(player.Peer.EndPoint.Address);
+        bool tunneled = P2p.Tunnel.Carries(address);
+        return IPAddress.IsLoopback(address) && !tunneled || Access.Admin(tunneled ? null : address, player.Account);
     }
 
     internal static PluginPlayer PlayerOf(Session session, Player player) => Players.GetValue(player, _ => new PluginPlayer(player, session));
@@ -190,6 +191,14 @@ public static class PluginHost
         var edit = new CubeChanges(PlayerOf(session, player), WorldOf(session), model, changes);
         Server.OnCubesChanged(edit);
         return edit.Cancel;
+    }
+
+    public static bool ThemeChanging(Session session, Player player, ThemeEntry? theme, Dictionary<string, object>? settings)
+    {
+        var change = new ThemeChange(PlayerOf(session, player), WorldOf(session), theme is null ? null : PluginThemes.Of(theme),
+            settings is null ? null : ThemeSettingsMap.ToSettings(settings));
+        Server.OnThemeChanged(change);
+        return change.Cancel;
     }
 
     public static void KilledByNpc(Session session, Player victim, Npc npc) =>
@@ -271,6 +280,7 @@ public static class PluginHost
         public event Action<IPlayer, AvatarItem>? PlayerPickedUp;
         public event Action<IPlayer, IWorldObject, bool>? PlayerTriggered;
         public event Action<CubeChanges>? CubesChanged;
+        public event Action<ThemeChange>? ThemeChanged;
         public event Action<IPlayer, string>? Gesture;
         public event Action<IPlayer, string>? Animation;
 
@@ -381,6 +391,12 @@ public static class PluginHost
         {
             foreach (Action<CubeChanges> handler in Handlers(CubesChanged))
                 Guard(() => handler(changes));
+        }
+
+        public void OnThemeChanged(ThemeChange change)
+        {
+            foreach (Action<ThemeChange> handler in Handlers(ThemeChanged))
+                Guard(() => handler(change));
         }
 
         public void OnTriggered(IPlayer player, IWorldObject obj, bool on)

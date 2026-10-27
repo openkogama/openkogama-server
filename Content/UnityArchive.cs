@@ -24,6 +24,7 @@ public static class UnityArchive
     const uint InfoAtEnd = 0x80;
     const uint PaddedInfo = 0x200;
     const ushort StreamedBlock = 0x40;
+    const ushort LzmaBlock = 1;
 
     public static string EngineOf(byte[] archive)
     {
@@ -118,8 +119,10 @@ public static class UnityArchive
 
     public static byte[] Write(string engine, IReadOnlyList<ArchiveNode> nodes) => Write(ArchiveFormat.Current(engine), nodes);
 
-    public static byte[] Write(ArchiveFormat format, IReadOnlyList<ArchiveNode> nodes) =>
-        format.Signature == RawSignature ? WriteRaw(format, nodes) : WriteFs(format, nodes);
+    public static byte[] Write(ArchiveFormat format, IReadOnlyList<ArchiveNode> nodes) => Write(format, nodes, compress: false);
+
+    public static byte[] Write(ArchiveFormat format, IReadOnlyList<ArchiveNode> nodes, bool compress) =>
+        format.Signature == RawSignature ? WriteRaw(format, nodes) : WriteFs(format, nodes, compress);
 
     // UnityRaw is the uncompressed form of the UnityWeb bundles of Unity 3 to 5.2: one level, a directory, then the files.
     static byte[] WriteRaw(ArchiveFormat format, IReadOnlyList<ArchiveNode> nodes)
@@ -162,16 +165,18 @@ public static class UnityArchive
         return archive.ToArray();
     }
 
-    static byte[] WriteFs(ArchiveFormat format, IReadOnlyList<ArchiveNode> nodes)
+    static byte[] WriteFs(ArchiveFormat format, IReadOnlyList<ArchiveNode> nodes, bool compress)
     {
         bool aligned = format.Version >= 7;
-        long size = nodes.Sum(node => (long)node.Data.Length);
+        long unpacked = nodes.Sum(node => (long)node.Data.Length);
+        byte[] block = compress ? Pack(nodes) : [];
+        long size = compress ? block.Length : unpacked;
         using var info = new MemoryStream();
         info.Write(new byte[16]);
         WriteUInt(info, 1);
+        WriteUInt(info, (uint)unpacked);
         WriteUInt(info, (uint)size);
-        WriteUInt(info, (uint)size);
-        WriteUShort(info, StreamedBlock);
+        WriteUShort(info, compress ? (ushort)(StreamedBlock | LzmaBlock) : StreamedBlock);
         WriteUInt(info, (uint)nodes.Count);
         long offset = 0;
         foreach (ArchiveNode node in nodes)
@@ -197,8 +202,21 @@ public static class UnityArchive
         archive.Write(new byte[infoStart - headerEnd]);
         info.WriteTo(archive);
         archive.Write(new byte[dataStart - infoStart - info.Length]);
-        foreach (ArchiveNode node in nodes) archive.Write(node.Data);
+        if (compress) archive.Write(block);
+        else foreach (ArchiveNode node in nodes) archive.Write(node.Data);
         return archive.ToArray();
+    }
+
+    static byte[] Pack(IReadOnlyList<ArchiveNode> nodes)
+    {
+        using var body = new MemoryStream();
+        byte[] properties;
+        using (LzmaStream lzma = LzmaStream.Create(new LzmaEncoderProperties(false, 1 << 21), false, body))
+        {
+            properties = lzma.Properties;
+            foreach (ArchiveNode node in nodes) lzma.Write(node.Data);
+        }
+        return [.. properties, .. body.ToArray()];
     }
 
     static long Align16(long value) => (value + 15) / 16 * 16;

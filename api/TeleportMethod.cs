@@ -4,4 +4,5 @@ public enum TeleportMethod
 {
     HiddenVehicle,
     Teleporter,
+    Direct,
 }

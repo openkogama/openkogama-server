@@ -84,9 +84,10 @@ public static class AdminApi
         {
             given = null;
         }
-        if (given is null || given.Any(entry => !IPAddress.TryParse(entry, out _))) return ApiResponse.Json("{}", 400);
-        PluginHost.Admins = [.. given.Select(IPAddress.Parse).Select(address => (address.IsIPv4MappedToIPv6 ? address.MapToIPv4() : address).ToString()).Distinct()];
-        Console.WriteLine($"admin: {PluginHost.Admins.Count} admin addresses");
+        List<string?> entries = [.. given?.Select(Access.Entry) ?? []];
+        if (given is null || entries.Contains(null)) return ApiResponse.Json("{}", 400);
+        PluginHost.Admins = [.. entries.OfType<string>().Distinct(StringComparer.OrdinalIgnoreCase)];
+        Console.WriteLine($"admin: {PluginHost.Admins.Count} admins");
         return ApiResponse.Json(JsonSerializer.Serialize(PluginHost.Admins));
     }
 }

@@ -30,6 +30,10 @@ jobs:
         with:
           repository: openkogama/openkogama-photon
           path: openkogama-photon
+      - uses: actions/checkout@v4
+        with:
+          repository: openkogama/openkogama-mods
+          path: openkogama-mods
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x

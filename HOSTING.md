@@ -6,7 +6,7 @@ Anyone can host an OpenKogama server and let others join it from the Servers tab
 
 To let others play one of your worlds you don't need any of this. In the launcher, select a world on the Worlds tab and click **Host**. The game starts and a bar at the top of the launcher shows a code like `ABC-DEF`. Others click **Join with code** on the Servers tab, type the code and play with the same game version. Nobody opens ports or needs an IP address: the launchers find each other through small meeting points in Europe, North America, South America and Asia and connect directly. The host uses the nearest one, and when a direct connection can't be made, the game goes through it instead. Keep the launcher open while others play. With `"public": true` in File, Server settings, the hosted world also shows for everyone under Public on the Servers tab while you host.
 
-The same works from the command line. `openkogama-server tunnel host` shares a server running on the same PC (`--http 8080 --photon 5055` by default) and prints its code, `openkogama-server tunnel join CODE` prints a local port that leads to that server, and `openkogama-server rendezvous --port 5058` runs a meeting point of your own, which both sides then pick with `--rendezvous host:port` (several are separated by commas). Players who come through a tunnel get their own profile by nickname, are never admins, and can't reach `/shutdown`, `/api/worlds`, `/api/avatars` or `/api/templates`.
+The same works from the command line. `openkogama-server tunnel host` shares a server running on the same PC (`--http 8080 --photon 5055` by default) and prints its code, `openkogama-server tunnel join CODE` prints a local port that leads to that server, and `openkogama-server rendezvous --port 5058` runs a meeting point of your own, which both sides then pick with `--rendezvous host:port` (several are separated by commas). Players who come through a tunnel get their own profile by nickname, are admins only when `admins` lists their account name, and can't reach `/shutdown`, `/api/worlds`, `/api/avatars` or `/api/templates`.
 
 The rest of this guide is for a server that stays online for everyone.
 
@@ -22,7 +22,7 @@ By default the server uses ports 8080, 5055, 843 to 845 and 8081 on its machine,
 
 **Windows:** install the launcher, then copy `%LocalAppData%\OpenKogamaLauncher\current\server` to a folder of its own, for example `C:\OpenKogamaServer\app`. It runs without installing .NET. Copy it again after a launcher update to update the server.
 
-**Linux:** install the .NET 10 SDK, clone this repository and [openkogama-photon](https://github.com/openkogama/openkogama-photon) next to each other, then build:
+**Linux:** install the .NET 10 SDK, clone this repository, [openkogama-photon](https://github.com/openkogama/openkogama-photon) and [openkogama-mods](https://github.com/openkogama/openkogama-mods) next to each other, then build:
 
 ```sh
 dotnet publish openkogama-server/openkogama-server.csproj -c Release -o app -p:UseAppHost=false

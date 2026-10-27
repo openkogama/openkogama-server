@@ -6,6 +6,7 @@ public interface IPlayer
 {
     int Actor { get; }
     int ProfileId { get; }
+    long? AccountId { get; }
     string Name { get; }
     string ClientVersion { get; }
     IWorld World { get; }
@@ -32,6 +33,9 @@ public interface IPlayer
     bool SetTeam(Team team);
     bool Teleport(Vector3 position, TeleportMethod method);
     bool PressLocally(int id);
+    ICubeEdit EditTerrainLocally();
+    bool SetDataLocally(int id, string key, object value) => SetDataLocally(id, new Dictionary<string, object> { [key] = value });
+    bool SetDataLocally(int id, IReadOnlyDictionary<string, object> values);
     bool Equip(AvatarItem item);
     bool GiveLightningSpeed();
     bool EnterVehicle(IWorldObject vehicle);

@@ -131,6 +131,7 @@ public sealed class Round(Session session)
         int duration = RoundCube() is WorldObject cube ? (cube.Data.Find(pair => pair.Key == "interval").Value as int? ?? 0) * 1000 : -1;
         SetState(GameStateType.Round, duration > 0 ? duration : -1, GameStateReason.None, 0);
         if (duration > 0) After(duration, _version, TimeUp);
+        session.Theme.RoundStarted();
         Plugins.PluginHost.RoundStarted(session);
     }
 

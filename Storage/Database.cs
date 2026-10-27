@@ -163,6 +163,9 @@ public sealed class Database
             profile INTEGER NOT NULL UNIQUE
         );
         """,
+        """
+        ALTER TABLE worlds ADD COLUMN platformer INTEGER NOT NULL DEFAULT 0;
+        """,
     ];
 
     readonly string _connectionString;

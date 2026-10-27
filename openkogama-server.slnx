@@ -1,5 +1,6 @@
 <Solution>
   <Project Path="../openkogama-photon/openkogama-photon.csproj" />
+  <Project Path="../openkogama-mods/patches/OpenKogama.Mods.Patches.csproj" />
   <Project Path="openkogama-server.csproj" />
   <Project Path="api/openkogama-api.csproj" />
   <Project Path="examples/welcome/welcome.csproj" />
@@ -8,5 +9,6 @@
   <Project Path="examples/deadzone/deadzone.csproj" />
   <Project Path="examples/poison/poison.csproj" />
   <Project Path="examples/sounds/sounds.csproj" />
+  <Project Path="examples/themes/themes.csproj" />
   <Project Path="tests/launcher-contract/launcher-contract.csproj" />
 </Solution>

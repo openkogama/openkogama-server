@@ -114,7 +114,7 @@ public sealed class GetNextGameBatch(Session session) : IOperationHandler
             snapshot = LegacyWorld.KnownItems(snapshot, Kogama.Protocols.ProtocolTable.For(me.ClientVersion), out int dropped);
             if (dropped > 0) Console.WriteLine($"peer {peer.Id}: hid {dropped} unsupported or broken objects");
         }
-        deliver(me.WorldData(snapshot));
+        deliver(me.WorldData(session.Theme.ForPlayer(snapshot, me)));
 
         List<Snapshot> avatars = session.AvatarSnapshots(me);
 

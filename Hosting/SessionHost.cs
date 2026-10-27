@@ -319,6 +319,7 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
             TickErrors.Guard(world + " game passes", session.GamePasses.Tick);
             TickErrors.Guard(world + " npcs", session.TickNpcs);
             TickErrors.Guard(world + " announcements", session.TickAnnouncements);
+            TickErrors.Guard(world + " theme", session.Theme.Tick);
         }
         TickErrors.Guard("plugins", Plugins.PluginHost.Tick);
     }

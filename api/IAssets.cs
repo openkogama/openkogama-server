@@ -41,4 +41,5 @@ public interface IAssets
 {
     ISounds Sounds { get; }
     IBundles Bundles { get; }
+    IThemes Themes { get; }
 }

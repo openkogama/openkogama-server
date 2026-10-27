@@ -69,7 +69,7 @@ public sealed class OperationRouter
         Register(new AvatarGesture(session, Kogama.OperationCode.StartWave, Kogama.EventCode.StartWave, reliable: false, Api.Gesture.Wave));
         Register(new AvatarGesture(session, Kogama.OperationCode.SetSayChatBubbleVisible, Kogama.EventCode.SetSayChatBubbleVisible, reliable: true));
         Register(new ReportReachedFinishLine(session));
-        Register(new GetThemesData());
+        Register(new GetThemesData(session));
         Register(new AdminOperation(session));
         Register(new OwnerOperation(session));
         Register(new ReportReachedFinishLine(session, Kogama.OperationCode.ReportReachedTimeAttackFlag));

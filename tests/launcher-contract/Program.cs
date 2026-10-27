@@ -271,6 +271,8 @@ sealed class TestWorlds : IWorldStore
     public void SavePlayState(int id, byte[] data) => throw new NotSupportedException();
     public void MarkPlayed(int id) => throw new NotSupportedException();
     public bool Rename(int id, string name) => false;
+    public bool Platformer(int id) => false;
+    public bool SetPlatformer(int id, bool platformer) => false;
     public bool Delete(int id) => false;
 }
 

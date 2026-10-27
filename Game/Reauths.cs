@@ -15,7 +15,7 @@ public static class Reauths
     static readonly ConcurrentDictionary<string, string> Launches = new();
 
     public sealed record Origin(int Profile, string? Nickname, string? Client, string? Via, bool WebSocket, int World, GameMode Mode, int Used = 0, string? Key = null, bool Reloads = false,
-        string? Language = null, bool Tcp = false);
+        string? Language = null, bool Tcp = false, string? Themes = null, bool Teleports = false);
 
     public sealed record Plan(int? World, GameMode? Mode, IReadOnlyDictionary<string, object?> Session);
 
@@ -42,6 +42,9 @@ public static class Reauths
             : 0;
 
     public static string? LanguageOf(string? token) => Find(token)?.Origin.Language;
+
+    public static string? ThemesOf(string? token) => Find(token)?.Origin.Themes;
+    public static bool Teleports(Player player) => Find(player.Token)?.Origin.Teleports == true;
 
     public static bool Start(Player player, Plan plan)
     {

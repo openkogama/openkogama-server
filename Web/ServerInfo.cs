@@ -19,6 +19,7 @@ public sealed class ServerInfo
     public int? TcpPort { get; set; }
     public string JoinMode { get; init; } = "play";
     public string[] Admins { get; init; } = [];
+    public string[] Allow { get; init; } = [];
 
     public bool BuildJoin => JoinMode.Equals("build", StringComparison.OrdinalIgnoreCase);
     public string[] Clients { get; init; } = [];

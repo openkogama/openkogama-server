@@ -76,6 +76,30 @@ public sealed class CustomSound : CustomAsset, ISound
     }
 }
 
+public sealed class CustomTexture : CustomAsset
+{
+    public required byte[] Data { get; init; }
+    public required string Template { get; init; }
+    public required TextureLook Look { get; init; }
+    public override string Kind => "texture";
+
+    public override bool Fits(string engine) => true;
+    public override byte[]? BundleFor(string engine) => null;
+
+    public byte[]? BundleFor(string set, Func<string, byte[]?> original)
+    {
+        if (original(Template) is not byte[] template) return null;
+
+        string cached = Path.Combine("bundles", "custom", set + "-" + VersionOf(template), $"{Kind}-{Id}-{Version}.unity3d");
+        return CustomContent.Built(cached, () =>
+        {
+            byte[] bundle = TextureBundles.Build(template, Rgba.Decode(Data), Look, $"{Id}-{Version}");
+            Console.WriteLine($"texture {Id} {Name}: bundle for {set} {bundle.Length / 1024} KB");
+            return bundle;
+        });
+    }
+}
+
 public sealed class AssetLibrary<T>(string kind) where T : CustomAsset
 {
     const int FirstId = 1_000_000;
