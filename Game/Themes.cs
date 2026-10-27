@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using OpenKogama.Mods.Patches;
 
 namespace OpenKogama.Game;
 
@@ -132,6 +133,8 @@ public static class Themes
             {
                 name = theme.Name,
                 @base = theme.Base,
+                folder = theme.Folder,
+                files = theme.Textures,
                 textures = theme.Replaced,
                 cycle = theme.Cycle?.ToJson(),
             })];
@@ -142,6 +145,8 @@ public static class Themes
                 title = theme.Title,
                 description = theme.Description,
                 settings = ThemeValues.ToJson(theme.Defaults),
+                folder = theme.Folder,
+                files = theme.Textures,
                 textures = theme.Replaced,
                 cycle = theme.Cycle?.ToJson(),
             }));
@@ -186,7 +191,7 @@ public static class Themes
             Description = theme.GetProperty("description").GetString()!,
             Folder = theme.GetProperty("folder").GetString()!,
             Base = theme.GetProperty("name").GetString()!,
-            Defaults = ThemeValues.FromJson(theme.GetProperty("settings")),
+            Defaults = ThemeKeys.FromJson(theme.GetProperty("settings")),
             Textures = theme.GetProperty("textures").EnumerateObject().ToDictionary(texture => texture.Name, texture => texture.Value.GetString()!),
         })];
     }

@@ -43,7 +43,7 @@ try
     var metadata = api.Route(Get("/api/server"));
     using (var json = JsonDocument.Parse(metadata.Body))
     {
-        Check(metadata.Status == 200 && json.RootElement.EnumerateObject().Count() == 6,
+        Check(metadata.Status == 200 && json.RootElement.EnumerateObject().Count() == 7,
             "launcher metadata exposes only its tile fields and features");
         Check(json.RootElement.GetProperty("clients").GetArrayLength() == 0, "every version is accepted when clients is not set");
         Check(json.RootElement.GetProperty("title").GetString()!.Length == 40, "title has a 40-character limit");
@@ -86,7 +86,7 @@ try
     Check(gated.Route(Get("/session", ("mode", "play"), ("client", "3.5.25"))).Status == 403, "session refuses versions outside clients");
     using (JsonDocument server = JsonDocument.Parse(api.Route(Get("/api/server")).Body))
         Check(server.RootElement.GetProperty("features").EnumerateArray().Select(feature => feature.GetString()).ToHashSet()
-            .SetEquals(["player", "player-deflate", "content"]), "the server lists what newer launchers may use");
+            .SetEquals(["player", "player-deflate", "content", "tcp"]), "the server lists what newer launchers may use");
     Check(api.Route(Get("/session", ("mode", "play"), ("ticket", "from-a-newer-launcher"), ("future", "1"))).Status == 200,
         "session ignores parameters it does not know, so newer launchers still get in");
     string issued = SessionTokens.Issue(4, " nightus ");

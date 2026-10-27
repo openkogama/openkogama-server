@@ -78,6 +78,13 @@ sealed class PluginPlayer(Player player, Session session) : IPlayer
         return true;
     }
 
+    public bool Equip(AvatarItem item, Api.Material material)
+    {
+        if (!Playing || item is AvatarItem.Unknown) return false;
+        Pickup.Give(session, player, (Kogama.AvatarItemType)(int)item, (byte)material);
+        return true;
+    }
+
     public bool GiveLightningSpeed() => Playing && Boosts.LightningSpeed(session, player);
 
     public bool Teleport(Vector3 position, TeleportMethod method) => method switch

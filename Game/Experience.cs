@@ -14,6 +14,8 @@ public static class Experience
     const byte AvatarModeRepeatPlayTime = 3;
     const byte HugeReward = 6;
     const string PlayMinute = "1MinXpRewardPlayMode";
+    const string EditMinute = "1MinXpRewardEditMode";
+    const string AvatarMinute = "1MinXpRewardAvatarMode";
     static readonly TimeSpan Minute = TimeSpan.FromMinutes(1);
 
     public static int Award(Session session, Player player, int amount, byte reason)
@@ -95,16 +97,21 @@ public static class Experience
 
     public static void Tick(Session session)
     {
-        if (!session.Play || session.Players.Count < Leveling.Data.MinPlayersActivateXP) return;
-        int amount = Leveling.Data.Xp.Find(xp => xp.Type == PlayMinute)?.Amount ?? 0;
-        if (amount <= 0) return;
+        if (session.Players.Count < Leveling.Data.MinPlayersActivateXP) return;
 
         DateTime now = DateTime.UtcNow;
         foreach (Player player in session.Players)
         {
-            if (!player.ServerExperience || player.PlayingSince is not DateTime since || now - since < Minute) continue;
+            (string type, byte reason) = player.Mode switch
+            {
+                GameMode.Edit => (EditMinute, EditModeRepeatPlayTime),
+                GameMode.CharacterEditor => (AvatarMinute, AvatarModeRepeatPlayTime),
+                _ => (PlayMinute, PlayModeRepeatPlayTime),
+            };
+            int amount = Leveling.Data.Xp.Find(xp => xp.Type == type)?.Amount ?? 0;
+            if (amount <= 0 || !player.ServerExperience || player.PlayingSince is not DateTime since || now - since < Minute) continue;
             player.PlayingSince = since + Minute;
-            Award(session, player, amount, PlayModeRepeatPlayTime);
+            Award(session, player, amount, reason);
         }
     }
 }

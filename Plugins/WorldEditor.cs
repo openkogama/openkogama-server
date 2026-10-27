@@ -49,6 +49,16 @@ sealed class WorldEditor(GameWorld world, Session? session) : IWorldBuilder
         return new PluginObject(obj);
     }
 
+    public IWorldObject? AddItem(string name, Vector3 position, Quaternion? rotation = null, int? parentId = null)
+    {
+        string version = session?.Players.FirstOrDefault()?.ClientVersion ?? Kogama.Protocols.ClientProtocols.ServerVersion;
+        if (Items.ForClient(version).Items.Find(item => item.Name.Equals(name, StringComparison.OrdinalIgnoreCase)) is not { } item) return null;
+        Quaternion turn = rotation ?? Quaternion.Identity;
+        return AddItemToWorld.Place(world, session, item, [position.X, position.Y, position.Z], [turn.X, turn.Y, turn.Z, turn.W], null, 0, parentId ?? world.RootId, 0) is { } placed
+            ? new PluginObject(placed)
+            : null;
+    }
+
     public bool Remove(int id)
     {
         if (id == world.RootId || world.Find(id) is not { } obj || obj.Type == WorldObjectType.Avatar) return false;

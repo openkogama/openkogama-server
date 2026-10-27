@@ -62,6 +62,14 @@ public static class Pickup
     public static void Give(Session session, Player player, AvatarItemType item) =>
         Hold(session, player, player.PlayAvatar, [("type", PackedType.Int32, (int)item), ("variantId", PackedType.Int32, 0)]);
 
+    public static void Give(Session session, Player player, AvatarItemType item, byte material) =>
+        Hold(session, player, player.PlayAvatar,
+        [
+            ("type", PackedType.Int32, (int)item),
+            ("variantId", PackedType.Int32, 0),
+            ("itemData", PackedType.Hashtable, new List<(string, PackedType, object)> { ("material", PackedType.Byte, material) }),
+        ]);
+
     static void Hold(Session session, Player player, int holderId, List<(string Key, PackedType Type, object Value)> currentItem)
     {
         session.World.Modify(holderId, holder => holder.SetRuntime("currentItem", PackedType.Hashtable, currentItem));

@@ -1,4 +1,6 @@
 #nullable enable
+OpenKogama.Api.IPlayer.Equip(OpenKogama.Api.AvatarItem item, OpenKogama.Api.Material material) -> bool
+OpenKogama.Api.IWorldBuilder.AddItem(string! name, System.Numerics.Vector3 position, System.Numerics.Quaternion? rotation = null, int? parentId = null) -> OpenKogama.Api.IWorldObject?
 OpenKogama.Api.GameTheme
 OpenKogama.Api.GameTheme.Animals = 0 -> OpenKogama.Api.GameTheme
 OpenKogama.Api.GameTheme.BoxHalloween = 1 -> OpenKogama.Api.GameTheme

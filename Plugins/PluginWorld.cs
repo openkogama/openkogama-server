@@ -38,6 +38,9 @@ sealed class PluginWorld(Session session) : IWorld
     public IWorldObject Add(string type, Vector3 position, IReadOnlyDictionary<string, object>? data = null, Quaternion? rotation = null, Vector3? scale = null, int? parentId = null) =>
         _editor.Add(type, position, data, rotation, scale, parentId);
 
+    public IWorldObject? AddItem(string name, Vector3 position, Quaternion? rotation = null, int? parentId = null) =>
+        _editor.AddItem(name, position, rotation, parentId);
+
     public bool Remove(int id) => _editor.Remove(id);
 
     public bool Link(int from, int to) => _editor.Link(from, to);

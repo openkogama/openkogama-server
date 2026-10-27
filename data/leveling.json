@@ -5,6 +5,16 @@
       "type": "1MinXpRewardPlayMode",
       "id": 1,
       "amount": 10
+    },
+    {
+      "type": "1MinXpRewardEditMode",
+      "id": 2,
+      "amount": 10
+    },
+    {
+      "type": "1MinXpRewardAvatarMode",
+      "id": 3,
+      "amount": 10
     }
   ],
   "levels": [

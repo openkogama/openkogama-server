@@ -17,7 +17,6 @@
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.12" />
     <PackageReference Include="NLayer" Version="3.0.0" />
     <PackageReference Include="NVorbis" Version="0.10.5" />
-    <PackageReference Include="SharpCompress" Version="0.50.7" />
     <PackageReference Include="StbImageSharp" Version="2.30.16" />
   </ItemGroup>
 

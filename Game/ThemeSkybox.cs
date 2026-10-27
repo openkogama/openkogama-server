@@ -1,6 +1,7 @@
 using System.Text.Json;
 using OpenKogama.Handlers.Operations;
 using OpenKogama.Kogama;
+using OpenKogama.Mods.Patches;
 using OpenKogama.Photon;
 using OpenKogama.World;
 
@@ -115,7 +116,7 @@ public sealed class ThemeSkybox(Session session)
     {
         float[] top, bottom;
         float sunAngle;
-        if (settings.GetValueOrDefault(ThemeValues.DayNightCycle) is true)
+        if (settings.GetValueOrDefault(ThemeKeys.DayNightCycle) is true)
         {
             int palette = Math.Clamp(settings.GetValueOrDefault("colorPresetIndex") as int? ?? 0, 0, Palettes.Count - 1);
             (top, bottom) = At(palette == 0 && cycle is { Sky.Count: > 0 } ? cycle.Sky : Palettes[palette], time);

@@ -10,6 +10,7 @@ public interface IWorldBuilder
     IWorldObject? Find(int id);
     IReadOnlyList<IWorldObject> Markers(string name);
     IWorldObject Add(string type, Vector3 position, IReadOnlyDictionary<string, object>? data = null, Quaternion? rotation = null, Vector3? scale = null, int? parentId = null);
+    IWorldObject? AddItem(string name, Vector3 position, Quaternion? rotation = null, int? parentId = null);
     bool Remove(int id);
     bool Link(int from, int to);
     bool Move(int id, Vector3 position, Quaternion? rotation) => Move(id, position, rotation, 0);

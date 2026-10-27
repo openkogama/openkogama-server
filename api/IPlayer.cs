@@ -37,6 +37,7 @@ public interface IPlayer
     bool SetDataLocally(int id, string key, object value) => SetDataLocally(id, new Dictionary<string, object> { [key] = value });
     bool SetDataLocally(int id, IReadOnlyDictionary<string, object> values);
     bool Equip(AvatarItem item);
+    bool Equip(AvatarItem item, Material material);
     bool GiveLightningSpeed();
     bool EnterVehicle(IWorldObject vehicle);
     bool BecomeColossus(IWorldObject trigger);

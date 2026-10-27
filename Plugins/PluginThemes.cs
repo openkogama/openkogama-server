@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using OpenKogama.Api;
 using OpenKogama.Content;
 using OpenKogama.Game;
+using OpenKogama.Mods.Patches;
 
 namespace OpenKogama.Plugins;
 
@@ -292,10 +293,10 @@ static class ThemeSettingsMap
             .Select(property =>
             {
                 string name = Renamed.GetValueOrDefault(property.Name) ?? char.ToLowerInvariant(property.Name[0]) + property.Name[1..];
-                return (property, ThemeValues.Find(name) ?? throw new InvalidOperationException($"ThemeSettings.{property.Name} has no client setting {name}"));
+                return (property, ThemeKeys.Find(name) ?? throw new InvalidOperationException($"ThemeSettings.{property.Name} has no client setting {name}"));
             })
             .ToArray();
-        if (map.Length != ThemeValues.Keys.Count) throw new InvalidOperationException("ThemeSettings does not cover every client setting");
+        if (map.Length != ThemeKeys.All.Count) throw new InvalidOperationException("ThemeSettings does not cover every client setting");
         return map;
     }
 }

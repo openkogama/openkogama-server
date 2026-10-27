@@ -1,3 +1,5 @@
+using OpenKogama.Mods.Patches;
+
 namespace OpenKogama.Content;
 
 public enum TextureLook { Picture, Light, Mask, Glow }

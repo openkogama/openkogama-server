@@ -20,30 +20,43 @@ public sealed class AddItemToWorld(Session session) : IOperationHandler
             return;
         }
 
+        float[]? scale = request.Parameters.ContainsKey((byte)ParameterKey.ScaleX)
+            ? Floats(request, ParameterKey.ScaleX, ParameterKey.ScaleY, ParameterKey.ScaleZ)
+            : null;
+        WorldObject? placed = Place(session.World, session, item,
+            Floats(request, ParameterKey.PosX, ParameterKey.PosY, ParameterKey.PosZ),
+            Floats(request, ParameterKey.RotX, ParameterKey.RotY, ParameterKey.RotZ, ParameterKey.RotW),
+            scale, Convert.ToInt32(request[(byte)ParameterKey.OwnerActorNr]),
+            Convert.ToInt32(request[(byte)ParameterKey.WorldObjectGroupID]), owner?.Actor ?? peer.Id);
+        if (placed is not null) Plugins.PluginHost.Added(session, placed, owner);
+
+        Console.WriteLine($"peer {peer.Id}: placed {item.Name} as {placed?.Id}");
+    }
+
+    public static WorldObject? Place(GameWorld world, Session? session, Item item, float[] position, float[] rotation, float[]? scale, int owner, int parentId, int actor)
+    {
         Snapshot template = WorldSerializer.Read(item.Bytes, runtime: false);
         WorldObject root = template.Objects.First(obj => obj.ParentId == -1);
-        root.ItemId = itemId;
-        root.Position = Floats(request, ParameterKey.PosX, ParameterKey.PosY, ParameterKey.PosZ);
-        root.Rotation = Floats(request, ParameterKey.RotX, ParameterKey.RotY, ParameterKey.RotZ, ParameterKey.RotW);
-        if (request.Parameters.ContainsKey((byte)ParameterKey.ScaleX))
-            root.Scale = Floats(request, ParameterKey.ScaleX, ParameterKey.ScaleY, ParameterKey.ScaleZ);
-        root.Owner = Convert.ToInt32(request[(byte)ParameterKey.OwnerActorNr]);
+        root.ItemId = item.Id;
+        root.Position = position;
+        root.Rotation = rotation;
+        if (scale is not null) root.Scale = scale;
+        root.Owner = owner;
 
-        int parentId = Convert.ToInt32(request[(byte)ParameterKey.WorldObjectGroupID]);
-        Snapshot added = session.World.Insert(template, parentId);
+        Snapshot added = world.Insert(template, parentId);
         if (added.Objects.Any(obj => obj.Type == WorldObjectType.AvatarSpawnRoleCreator))
         {
-            AvatarClasses.AddPreviews(session.World);
-            added = session.World.SubtreeSnapshot(added.Objects[0].Id);
+            AvatarClasses.AddPreviews(world);
+            added = world.SubtreeSnapshot(added.Objects[0].Id);
         }
-        session.World.MarkChanged();
-        session.Teams.Update();
-        if (root.Type == WorldObjectType.RoundCube && session.Play) session.Round.Start();
-
-        GetNextGameBatch.SendAdded(session, owner?.Actor ?? peer.Id, added);
-        if (session.World.Find(added.Objects[0].Id) is WorldObject placed) Plugins.PluginHost.Added(session, placed, owner);
-
-        Console.WriteLine($"peer {peer.Id}: placed {item.Name} as {added.Objects[0].Id}");
+        world.MarkChanged();
+        if (session is not null)
+        {
+            session.Teams.Update();
+            if (root.Type == WorldObjectType.RoundCube && session.Play) session.Round.Start();
+            GetNextGameBatch.SendAdded(session, actor, added);
+        }
+        return world.Find(added.Objects[0].Id);
     }
 
     static float[] Floats(OperationRequest request, params ParameterKey[] keys) =>

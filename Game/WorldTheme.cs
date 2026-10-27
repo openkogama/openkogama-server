@@ -1,5 +1,6 @@
 using OpenKogama.Handlers.Operations;
 using OpenKogama.Kogama;
+using OpenKogama.Mods.Patches;
 using OpenKogama.Photon;
 using OpenKogama.Storage;
 using OpenKogama.World;
@@ -45,7 +46,7 @@ public sealed class WorldTheme
         get
         {
             if (Settings is not { } settings) return 0f;
-            if (Flag(settings, ThemeValues.ServerTime))
+            if (Flag(settings, ThemeKeys.ServerTime))
             {
                 DateTime now = DateTime.UtcNow.AddHours(ServerTimeZone);
                 return (float)(now.TimeOfDay.TotalMilliseconds / TimeSpan.FromDays(1).TotalMilliseconds * 100.0);
@@ -100,7 +101,7 @@ public sealed class WorldTheme
         Dictionary<string, object> before = Effective(obj);
         Dictionary<string, object> after = Merge(before, changes);
         Store(obj.Id, after);
-        Retime(before, after, changes.ContainsKey(ThemeValues.StartTime));
+        Retime(before, after, changes.ContainsKey(ThemeKeys.StartTime));
         Broadcast(obj.Id, after);
         return true;
     }
@@ -129,9 +130,9 @@ public sealed class WorldTheme
         Dictionary<string, object> sent = ThemeValues.Read(change.GetValueOrDefault(SettingsKey));
         bool startChanged;
         lock (_sync)
-            startChanged = sent.TryGetValue(ThemeValues.StartTime, out object? start)
+            startChanged = sent.TryGetValue(ThemeKeys.StartTime, out object? start)
                 && !(_sentTime.TryGetValue(player.Actor, out float last) && start is float value && value == last);
-        if (!startChanged) sent.Remove(ThemeValues.StartTime);
+        if (!startChanged) sent.Remove(ThemeKeys.StartTime);
         Dictionary<string, object> after = Merge(before, sent);
 
         if (Plugins.PluginHost.ThemeChanging(_session, player, Themes.Find(Identifier(obj)), after))
@@ -232,14 +233,14 @@ public sealed class WorldTheme
 
     void Retime(Dictionary<string, object> before, Dictionary<string, object> after, bool startChanged)
     {
-        bool modeChanged = Flag(before, ThemeValues.DayNightCycle) != Flag(after, ThemeValues.DayNightCycle)
-            || Flag(before, ThemeValues.ServerTime) != Flag(after, ThemeValues.ServerTime);
+        bool modeChanged = Flag(before, ThemeKeys.DayNightCycle) != Flag(after, ThemeKeys.DayNightCycle)
+            || Flag(before, ThemeKeys.ServerTime) != Flag(after, ThemeKeys.ServerTime);
         if (startChanged || modeChanged)
         {
             RestartClock(after);
             return;
         }
-        if (Value(before, ThemeValues.CycleLength) != Value(after, ThemeValues.CycleLength))
+        if (Value(before, ThemeKeys.CycleLength) != Value(after, ThemeKeys.CycleLength))
         {
             float now = Clock(before);
             lock (_sync)
@@ -254,19 +255,19 @@ public sealed class WorldTheme
     {
         lock (_sync)
         {
-            _clockTime = settings is null ? 0f : Wrap(Value(settings, ThemeValues.StartTime));
+            _clockTime = settings is null ? 0f : Wrap(Value(settings, ThemeKeys.StartTime));
             _clockStart = Environment.TickCount64;
         }
     }
 
     float SentTime(Dictionary<string, object> settings) =>
-        Flag(settings, ThemeValues.DayNightCycle) && !Flag(settings, ThemeValues.ServerTime)
+        Flag(settings, ThemeKeys.DayNightCycle) && !Flag(settings, ThemeKeys.ServerTime)
             ? Clock(settings)
-            : Value(settings, ThemeValues.StartTime);
+            : Value(settings, ThemeKeys.StartTime);
 
     float Clock(Dictionary<string, object> settings)
     {
-        float length = Math.Max(4f, Value(settings, ThemeValues.CycleLength));
+        float length = Math.Max(4f, Value(settings, ThemeKeys.CycleLength));
         lock (_sync)
             return Wrap(_clockTime + (Environment.TickCount64 - _clockStart) / 1000f * 100f / length);
     }
@@ -315,7 +316,7 @@ public sealed class WorldTheme
     };
 
     static Dictionary<object, object?> WireTable(Dictionary<string, object> settings, float time) =>
-        ThemeValues.ToTable(new Dictionary<string, object>(settings) { [ThemeValues.StartTime] = time });
+        ThemeValues.ToTable(new Dictionary<string, object>(settings) { [ThemeKeys.StartTime] = time });
 
     static PhotonDictionary Untyped(Dictionary<object, object?> table)
     {
