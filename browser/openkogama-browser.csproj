@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\openkogama-photon\openkogama-photon.csproj" />
+    <ProjectReference Include="..\..\openkogama-mods\patches\OpenKogama.Mods.Patches.csproj" />
     <ProjectReference Include="..\api\openkogama-api.csproj" />
   </ItemGroup>
 
@@ -30,6 +31,7 @@
     <PackageReference Include="NLayer" Version="3.0.0" />
     <PackageReference Include="NVorbis" Version="0.10.5" />
     <PackageReference Include="SharpCompress" Version="0.50.7" />
+    <PackageReference Include="StbImageSharp" Version="2.30.16" />
   </ItemGroup>
 
   <ItemGroup>
