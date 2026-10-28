@@ -295,3 +295,8 @@ OpenKogama.Api.IPlayer.SetDataLocally(int id, string! key, object! value) -> boo
 OpenKogama.Api.IPlayer.SetDataLocally(int id, System.Collections.Generic.IReadOnlyDictionary<string!, object!>! values) -> bool
 OpenKogama.Api.IWorld.Platformer.get -> bool
 OpenKogama.Api.IWorld.Platformer.set -> void
+OpenKogama.Api.IScripts
+OpenKogama.Api.IScripts.Add(string! name, System.Collections.Generic.IReadOnlyDictionary<string!, byte[]!>! files) -> bool
+OpenKogama.Api.IScripts.All.get -> System.Collections.Generic.IReadOnlyList<string!>!
+OpenKogama.Api.IScripts.Remove(string! name) -> bool
+OpenKogama.Api.IServer.Scripts.get -> OpenKogama.Api.IScripts!

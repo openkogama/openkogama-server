@@ -268,6 +268,12 @@ public sealed class WebApi
         if (path.TrimEnd('/') == "/api/content")
             return ApiResponse.Json(CustomContent.Json(query["client"]));
 
+        if (path.TrimEnd('/') == "/api/scripts")
+            return new ApiResponse(200, "text/plain; charset=utf-8", Encoding.UTF8.GetBytes(ClientScripts.Manifest()));
+
+        if (path.StartsWith("/api/scripts/") && ClientScripts.Find(path["/api/scripts/".Length..]) is byte[] script)
+            return new ApiResponse(200, "application/octet-stream", script);
+
         if (path is "/reward")
             return ApiResponse.Json("""{"rewardEnabled":false,"timeInSeconds":0,"xp":0}""");
 

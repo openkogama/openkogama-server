@@ -30,6 +30,7 @@ public interface IServer
     event Action<IPlayer, string>? Animation;
     ITemplates Templates { get; }
     IAssets Assets { get; }
+    IScripts Scripts { get; }
 
     IReadOnlyList<IPlayer> Players { get; }
     IReadOnlyList<IWorld> Worlds { get; }

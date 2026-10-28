@@ -76,6 +76,7 @@ public static class PluginHost
         }
         Loaded.Clear();
         CustomContent.Clear();
+        ClientScripts.ClearAdded();
         Themes.Reset();
         Server = new PluginServer();
     }
@@ -289,6 +290,7 @@ public static class PluginHost
 
         public ITemplates Templates { get; } = new PluginTemplates();
         public IAssets Assets { get; } = new PluginAssets();
+        public IScripts Scripts { get; } = new PluginScripts();
 
         public IReadOnlyList<IPlayer> Players => [.. Sessions.SelectMany(session => session.Players.Select(player => PlayerOf(session, player)))];
 
