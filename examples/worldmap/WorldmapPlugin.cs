@@ -60,7 +60,7 @@ public sealed partial class WorldmapPlugin : IPlugin
     IServer _server = null!;
     IPluginStorage _settings = null!;
 
-    [GeneratedRegex(@"^map-(\d+)-\d+-\d+\.png$")]
+    [GeneratedRegex(@"^map-(\d+)--?\d+--?\d+\.png$")]
     private static partial Regex TileName();
 
     public void Load(IServer server)
@@ -264,11 +264,10 @@ public sealed partial class WorldmapPlugin : IPlugin
             view = _views.GetValueOrDefault((player.ProfileId, id)) ?? "-";
         }
         MapImage layout = map.Layout;
-        string tiles = layout.Cols * layout.Rows == 0 ? "-" : string.Join(',',
-            from row in Enumerable.Range(0, layout.Rows) from col in Enumerable.Range(0, layout.Cols) select map.Tiles.GetValueOrDefault((col, row)) ?? "-");
+        string tiles = map.Tiles.Count == 0 ? "-" : string.Join(',', map.Tiles.Select(tile => $"{tile.Key.Col}:{tile.Key.Row}:{tile.Value}"));
         player.SendScriptMessage("worldmap:map", string.Join(' ',
             map.Overview, Number(layout.MinX), Number(layout.MinZ), Number(layout.Unit), layout.Width, layout.Height, open ? 1 : 0,
-            layout.Background.ToString("x6"), layout.Cols, layout.Rows, Number(layout.TileWorld), Number(layout.DetailTop), tiles, view));
+            layout.Background.ToString("x6"), Number(layout.TileWorld), tiles, view));
     }
 
     static string? View(string data)

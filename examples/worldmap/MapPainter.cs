@@ -18,10 +18,10 @@ static class MapPainter
     const int OverviewSide = 1024;
     const int MaxBytes = 1_000_000;
     const int TilePixels = 256;
-    const int MaxTiles = 48;
+    const long TileBudget = 16L << 20;
     const int Supersample = 2;
     const float MaxPixelsPerUnit = 16;
-    const float Sharper = 2;
+    const float Sharper = 1.5f;
     const uint Unknown = 0x808080;
     const uint DefaultWater = 0x1A3380;
     const uint DefaultSky = 0x5FB4FE;
@@ -57,6 +57,7 @@ static class MapPainter
     ];
 
     static readonly uint[] Crcs = [.. Enumerable.Range(0, 256).Select(Crc)];
+    static readonly float[] Detail = [16, 8, 4, 2, 1, 0.5f];
 
     public static Scene Read(IWorld world, float? top, bool models, IReadOnlySet<int> hidden)
     {
@@ -148,7 +149,6 @@ static class MapPainter
         float low = quads.Min(quad => MathF.Min(MathF.Min(quad.A.Y, quad.B.Y), MathF.Min(quad.C.Y, quad.D.Y)));
         float high = quads.Max(quad => MathF.Max(MathF.Max(quad.A.Y, quad.B.Y), MathF.Max(quad.C.Y, quad.D.Y)));
 
-        var flat = new Renderer(null, Sun, Ambient, Diffuse);
         float overviewScale = Math.Min(MaxPixelsPerUnit, OverviewSide / Math.Max(spanX, spanZ));
         int width, height;
         byte[] png;
@@ -157,7 +157,7 @@ static class MapPainter
             width = Math.Max(1, (int)MathF.Ceiling(spanX * overviewScale));
             height = Math.Max(1, (int)MathF.Ceiling(spanZ * overviewScale));
             float top = minZ + height / overviewScale, scale = overviewScale;
-            Picture picture = flat.Render(quads, width, height, Supersample, Vector3.UnitY,
+            Picture picture = new Renderer(overviewScale >= 1 ? textures : null, Sun, Ambient, Diffuse).Render(quads, width, height, Supersample, Vector3.UnitY,
                 point => new Vector3((point.X - minX) * scale, (top - point.Z) * scale, point.Y));
             png = Png(width, height, Finish(picture, scene, low, high));
             if (png.Length <= MaxBytes)
@@ -165,47 +165,62 @@ static class MapPainter
             overviewScale /= 1.3f;
         }
 
-        float detailScale = Math.Min(MaxPixelsPerUnit, TilePixels * MathF.Sqrt(MaxTiles / (spanX * spanZ)));
-        while (detailScale > 0 && Tiles(spanX, detailScale) * Tiles(spanZ, detailScale) > MaxTiles)
-            detailScale *= 0.95f;
-        if (detailScale < overviewScale * Sharper)
+        float detail = 0;
+        foreach (float candidate in Detail)
+        {
+            if (candidate < overviewScale * Sharper)
+                break;
+            HashSet<(int, int)> cells = [];
+            foreach (Quad quad in quads)
+            {
+                (int col0, int col1, int row0, int row1) = Span(quad, TilePixels / candidate);
+                for (int row = row0; row <= row1; row++)
+                    for (int col = col0; col <= col1; col++)
+                        cells.Add((col, row));
+            }
+            if ((long)cells.Count * TilePixels * TilePixels <= TileBudget)
+            {
+                detail = candidate;
+                break;
+            }
+        }
+        if (detail == 0)
             return new MapImage(png, minX, minZ, 1 / overviewScale, width, height, scene.Background, 0, 0, 0, 0, []);
 
-        int cols = Tiles(spanX, detailScale), rows = Tiles(spanZ, detailScale);
-        List<Quad>[] buckets = [.. Enumerable.Range(0, cols * rows).Select(_ => new List<Quad>())];
+        float size = TilePixels / detail;
+        Dictionary<(int Col, int Row), List<Quad>> buckets = [];
         foreach (Quad quad in quads)
         {
-            float left = MathF.Min(MathF.Min(quad.A.X, quad.B.X), MathF.Min(quad.C.X, quad.D.X));
-            float right = MathF.Max(MathF.Max(quad.A.X, quad.B.X), MathF.Max(quad.C.X, quad.D.X));
-            float south = MathF.Min(MathF.Min(quad.A.Z, quad.B.Z), MathF.Min(quad.C.Z, quad.D.Z));
-            float north = MathF.Max(MathF.Max(quad.A.Z, quad.B.Z), MathF.Max(quad.C.Z, quad.D.Z));
-            int col0 = Math.Clamp((int)((left - minX) * detailScale / TilePixels), 0, cols - 1);
-            int col1 = Math.Clamp((int)((right - minX) * detailScale / TilePixels), 0, cols - 1);
-            int row0 = Math.Clamp((int)((maxZ - north) * detailScale / TilePixels), 0, rows - 1);
-            int row1 = Math.Clamp((int)((maxZ - south) * detailScale / TilePixels), 0, rows - 1);
+            (int col0, int col1, int row0, int row1) = Span(quad, size);
             for (int row = row0; row <= row1; row++)
                 for (int col = col0; col <= col1; col++)
-                    buckets[row * cols + col].Add(quad);
+                {
+                    if (!buckets.TryGetValue((col, row), out List<Quad>? bucket))
+                        buckets[(col, row)] = bucket = [];
+                    bucket.Add(quad);
+                }
         }
 
         var textured = new Renderer(textures, Sun, Ambient, Diffuse);
         List<MapTile> tiles = [];
-        for (int row = 0; row < rows; row++)
-            for (int col = 0; col < cols; col++)
-            {
-                List<Quad> bucket = buckets[row * cols + col];
-                if (bucket.Count == 0)
-                    continue;
-                float x0 = col * TilePixels, y0 = row * TilePixels, scale = detailScale;
-                Picture picture = textured.Render(bucket, TilePixels, TilePixels, Supersample, Vector3.UnitY,
-                    point => new Vector3((point.X - minX) * scale - x0, (maxZ - point.Z) * scale - y0, point.Y));
-                tiles.Add(new MapTile(col, row, Png(TilePixels, TilePixels, Finish(picture, scene, low, high))));
-            }
-        return new MapImage(png, minX, minZ, 1 / overviewScale, width, height, scene.Background,
-            cols, rows, TilePixels / detailScale, maxZ, tiles);
+        foreach (((int col, int row), List<Quad> bucket) in buckets.OrderBy(pair => pair.Key))
+        {
+            float left = col * size, top = -row * size;
+            Picture picture = textured.Render(bucket, TilePixels, TilePixels, Supersample, Vector3.UnitY,
+                point => new Vector3((point.X - left) * detail, (top - point.Z) * detail, point.Y));
+            tiles.Add(new MapTile(col, row, Png(TilePixels, TilePixels, Finish(picture, scene, low, high))));
+        }
+        return new MapImage(png, minX, minZ, 1 / overviewScale, width, height, scene.Background, 0, 0, size, 0, tiles);
     }
 
-    static int Tiles(float span, float scale) => Math.Max(1, (int)MathF.Ceiling(span * scale / TilePixels));
+    static (int, int, int, int) Span(Quad quad, float size)
+    {
+        float left = MathF.Min(MathF.Min(quad.A.X, quad.B.X), MathF.Min(quad.C.X, quad.D.X));
+        float right = MathF.Max(MathF.Max(quad.A.X, quad.B.X), MathF.Max(quad.C.X, quad.D.X));
+        float south = MathF.Min(MathF.Min(quad.A.Z, quad.B.Z), MathF.Min(quad.C.Z, quad.D.Z));
+        float north = MathF.Max(MathF.Max(quad.A.Z, quad.B.Z), MathF.Max(quad.C.Z, quad.D.Z));
+        return ((int)MathF.Floor(left / size), (int)MathF.Floor(right / size), (int)MathF.Floor(-north / size), (int)MathF.Floor(-south / size));
+    }
 
     public static float OverviewScale(Scene scene)
     {

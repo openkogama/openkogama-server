@@ -1,6 +1,6 @@
 local key = "F4"
 local zoomStep = 1.1
-local maxZoom = 40
+local maxPerUnit = 48
 local startUnits = 100
 local headSize = 48
 local otherSize = 36
@@ -73,11 +73,17 @@ local function playerPoint()
   return mapPoint(px, pz)
 end
 
+local function zoomLimit()
+  local screenWidth, screenHeight = screen.size()
+  local fit = math.min(screenWidth / map.width, screenHeight / map.height)
+  return math.max(1, maxPerUnit * map.unit / fit)
+end
+
 local function zoomAt(factor, atX, atY)
   local screenWidth, screenHeight, scale = view()
   local pointX = centerX + (atX - screenWidth / 2) / scale
   local pointY = centerY + (atY - screenHeight / 2) / scale
-  zoom = math.max(1, math.min(maxZoom, zoom * factor))
+  zoom = math.max(1, math.min(zoomLimit(), zoom * factor))
   local _, _, newScale = view()
   centerX = pointX - (atX - screenWidth / 2) / newScale
   centerY = pointY - (atY - screenHeight / 2) / newScale
@@ -95,7 +101,7 @@ local function start()
   if not x then return reset() end
   local screenWidth, screenHeight = screen.size()
   local fit = math.min(screenWidth / map.width, screenHeight / map.height)
-  zoom = math.max(1, math.min(maxZoom, screenHeight / startUnits * map.unit / fit))
+  zoom = math.max(1, math.min(zoomLimit(), screenHeight / startUnits * map.unit / fit))
   centerX, centerY = x, y
   dragX, dragY = nil, nil
   clampCenter()
@@ -104,7 +110,7 @@ end
 local function restore(saved)
   local x, z, value = (saved or ""):match("^(%-?%d+),(%-?%d+),(%d+)$")
   if not x then return start() end
-  zoom = math.max(1, math.min(maxZoom, tonumber(value) / 1000))
+  zoom = math.max(1, math.min(zoomLimit(), tonumber(value) / 1000))
   centerX, centerY = mapPoint(tonumber(x) / 100, tonumber(z) / 100)
   dragX, dragY = nil, nil
   clampCenter()
@@ -121,7 +127,7 @@ local function switch(new)
   local perUnit = scale / map.unit
   map = new
   local fit = math.min(screenWidth / map.width, screenHeight / map.height)
-  zoom = math.max(1, math.min(maxZoom, perUnit * map.unit / fit))
+  zoom = math.max(1, math.min(zoomLimit(), perUnit * map.unit / fit))
   centerX, centerY = mapPoint(worldX, worldZ)
   clampCenter()
 end
@@ -270,8 +276,8 @@ on("message", function(name, data)
   elseif name == "worldmap:players" then
     receive(data)
   elseif name == "worldmap:map" then
-    local overview, minX, minZ, unit, width, height, opened, background, cols, rows, tileWorld, detailTop, tiles, saved =
-      data:match("^(%S+) (%S+) (%S+) (%S+) (%S+) (%S+) (%S+) (%x+) (%S+) (%S+) (%S+) (%S+) (%S+) (%S+)$")
+    local overview, minX, minZ, unit, width, height, opened, background, tileWorld, tiles, saved =
+      data:match("^(%S+) (%S+) (%S+) (%S+) (%S+) (%S+) (%S+) (%x+) (%S+) (%S+) (%S+)$")
     if not overview then return end
     local new = {
       file = overview,
@@ -281,19 +287,12 @@ on("message", function(name, data)
       width = tonumber(width),
       height = tonumber(height),
       background = "#" .. background,
-      cols = tonumber(cols),
-      rows = tonumber(rows),
       tileWorld = tonumber(tileWorld),
-      detailTop = tonumber(detailTop),
       tiles = {},
       saved = file(saved),
     }
-    if tiles ~= "-" then
-      local index = 0
-      for id in tiles:gmatch("[^,]+") do
-        index = index + 1
-        new.tiles[index] = file(id)
-      end
+    for col, row, id in tiles:gmatch("(%-?%d+):(%-?%d+):(%x+)") do
+      new.tiles[#new.tiles + 1] = { tonumber(col), tonumber(row), id }
     end
     if server.file then server.file(overview) end
     if map and open and map.file ~= overview and not ready(overview) then
@@ -379,19 +378,14 @@ on("draw", function()
   local x = screenWidth / 2 - centerX * scale
   local y = screenHeight / 2 - centerY * scale
   draw.image(map.file, x, y, map.width * scale, map.height * scale, { filter = "nearest" })
-  if scale > 1 and map.cols > 0 then
-    local top = map.minZ + map.height * map.unit
+  if scale > 1 and #map.tiles > 0 then
     local size = map.tileWorld / map.unit * scale
-    for row = 0, map.rows - 1 do
-      for col = 0, map.cols - 1 do
-        local id = map.tiles[row * map.cols + col + 1]
-        if id then
-          local tileX = x + col * map.tileWorld / map.unit * scale
-          local tileY = y + (top - (map.detailTop - row * map.tileWorld)) / map.unit * scale
-          if tileX < screenWidth and tileY < screenHeight and tileX + size > 0 and tileY + size > 0 then
-            draw.image(id, tileX, tileY, size, size, { filter = "nearest" })
-          end
-        end
+    local filter = size > 256 and "nearest" or nil
+    for _, tile in ipairs(map.tiles) do
+      local tileX = x + (tile[1] * map.tileWorld - map.minX) / map.unit * scale
+      local tileY = y + (map.height - (-tile[2] * map.tileWorld - map.minZ) / map.unit) * scale
+      if tileX < screenWidth and tileY < screenHeight and tileX + size > 0 and tileY + size > 0 then
+        draw.image(tile[3], tileX, tileY, size, size, { filter = filter })
       end
     end
   end
