@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using OpenKogama.Accounts;
+using OpenKogama.Content;
 using OpenKogama.Storage;
 
 namespace OpenKogama.Web;
@@ -42,8 +43,12 @@ public sealed class ServerInfo
 
     public static readonly string[] Features = ["player", "player-deflate", "content", "tcp"];
 
-    public string[] FeaturesNow() => Accounts == AccountMode.Offline || CentralKey.Current is null ? Features
-        : Accounts == AccountMode.Online ? [.. Features, "accounts", "accounts-required"] : [.. Features, "accounts"];
+    public string[] FeaturesNow()
+    {
+        string[] features = Accounts == AccountMode.Offline || CentralKey.Current is null ? Features
+            : Accounts == AccountMode.Online ? [.. Features, "accounts", "accounts-required"] : [.. Features, "accounts"];
+        return ClientScripts.Any() ? [.. features, "scripts"] : features;
+    }
 
     public bool Accepts(string audience)
     {

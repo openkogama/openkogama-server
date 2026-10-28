@@ -82,6 +82,8 @@ public static partial class ClientScripts
 
     public static string Manifest() => Current().Manifest;
 
+    public static bool Any() => Current().Manifest.Length > 0;
+
     public static byte[]? Find(string hash) => Current().Files.GetValueOrDefault(hash);
 
     static Snapshot Current()
