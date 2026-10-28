@@ -300,3 +300,5 @@ OpenKogama.Api.IScripts.Add(string! name, System.Collections.Generic.IReadOnlyDi
 OpenKogama.Api.IScripts.All.get -> System.Collections.Generic.IReadOnlyList<string!>!
 OpenKogama.Api.IScripts.Remove(string! name) -> bool
 OpenKogama.Api.IServer.Scripts.get -> OpenKogama.Api.IScripts!
+OpenKogama.Api.IPlayer.SendScriptMessage(string! name, string! data) -> bool
+OpenKogama.Api.IServer.ScriptMessage -> System.Action<OpenKogama.Api.IPlayer!, string!, string!>?

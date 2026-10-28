@@ -1,5 +1,6 @@
 using System.Numerics;
 using OpenKogama.Api;
+using OpenKogama.Content;
 using OpenKogama.Game;
 using OpenKogama.Handlers.Operations;
 using OpenKogama.Storage;
@@ -37,6 +38,8 @@ sealed class PluginPlayer(Player player, Session session) : IPlayer
     public int AddGold(int amount) => Stores.Profiles.AddGold(player.ProfileId, amount);
 
     public void Message(string text, string? color = null) => ServerChat.Message(player, text, color);
+
+    public bool SendScriptMessage(string name, string data) => ScriptMessages.Send(player.Token, name, data);
 
     public void Say(string text) => ServerChat.Say(session, player, text);
 

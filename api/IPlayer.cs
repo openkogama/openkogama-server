@@ -26,6 +26,7 @@ public interface IPlayer
     int AddGold(int amount);
     void Message(string text) => Message(text, null);
     void Message(string text, string? color = null);
+    bool SendScriptMessage(string name, string data);
     void Say(string text);
     void Notify(string text, bool brief = false);
     void Announce(string text, string? icon = null);

@@ -155,9 +155,20 @@ public static class PluginHost
             foreach (Session session in Sessions)
                 TeleporterPads.Watch(session, Triggered);
         Server.OnUpdate((now - Interlocked.Exchange(ref _lastUpdate, now)) / 1000f);
+        foreach ((string token, ScriptMessages.Message message) in ScriptMessages.Take())
+            if (ByToken(token) is (Session session, Player player)) Server.OnScriptMessage(PlayerOf(session, player), message.Name, message.Data);
         if (now - Interlocked.Read(ref _lastTick) < TickMs) return;
         Interlocked.Exchange(ref _lastTick, now);
+        ScriptMessages.Sweep();
         Server.OnTick();
+    }
+
+    static (Session, Player)? ByToken(string token)
+    {
+        foreach (Session session in Sessions)
+            foreach (Player player in session.Players)
+                if (player.Token == token) return (session, player);
+        return null;
     }
 
     public static string? Chat(Session session, Player player, string text)
@@ -282,6 +293,7 @@ public static class PluginHost
         public event Action<IPlayer, IWorldObject, bool>? PlayerTriggered;
         public event Action<CubeChanges>? CubesChanged;
         public event Action<ThemeChange>? ThemeChanged;
+        public event Action<IPlayer, string, string>? ScriptMessage;
         public event Action<IPlayer, string>? Gesture;
         public event Action<IPlayer, string>? Animation;
 
@@ -435,6 +447,12 @@ public static class PluginHost
 
         static IEnumerable<T> Handlers<T>(T? handlers) where T : Delegate =>
             handlers?.GetInvocationList().Cast<T>() ?? [];
+
+        public void OnScriptMessage(IPlayer player, string name, string data)
+        {
+            foreach (Action<IPlayer, string, string> handler in Handlers(ScriptMessage))
+                Guard(() => handler(player, name, data));
+        }
 
         public void OnJoined(IPlayer player) => Raise(PlayerJoined, player);
 

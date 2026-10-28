@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\api\openkogama-api.csproj" Private="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="client\*" LogicalName="client/%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>online</AssemblyName>
+    <RootNamespace>Online</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <Target Name="CopyToServer" AfterTargets="Build">
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="..\..\bin\$(Configuration)\net10.0\plugins" />
+  </Target>
+
+</Project>

@@ -24,6 +24,7 @@ public interface IServer
     event Action<IPlayer, IWorldObject, bool>? PlayerTriggered;
     event Action<CubeChanges>? CubesChanged;
     event Action<ThemeChange>? ThemeChanged;
+    event Action<IPlayer, string, string>? ScriptMessage;
     [Obsolete("Use PlayerGestured")]
     event Action<IPlayer, string>? Gesture;
     [Obsolete("Use PlayerAnimated")]

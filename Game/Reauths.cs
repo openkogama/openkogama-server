@@ -41,6 +41,8 @@ public static class Reauths
             : entry.Origin.Client?.StartsWith(SwitchesUnpatched) == true ? Math.Max(0, player.ReauthTries ?? ClientTries - entry.Origin.Used)
             : 0;
 
+    public static string? TokenOf(string? key) => key is not null && Launches.TryGetValue(key, out string? token) ? token : null;
+
     public static string? LanguageOf(string? token) => Find(token)?.Origin.Language;
 
     public static string? ThemesOf(string? token) => Find(token)?.Origin.Themes;

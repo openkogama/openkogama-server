@@ -60,9 +60,27 @@ public sealed class HttpServer(string prefix, WebApi api)
 
         using var body = new MemoryStream();
         if (request.HasEntityBody) request.InputStream.CopyTo(body);
-        ApiResponse result = api.Route(new ApiRequest(request.HttpMethod, path, request.QueryString, request.ContentType, body.ToArray(),
-            IPAddress.IsLoopback(remote) && !tunneled && forwarded is null, via, request.Headers["Content-Encoding"], forwarded ?? (tunneled ? null : remote)));
+        ApiRequest call = new(request.HttpMethod, path, request.QueryString, request.ContentType, body.ToArray(),
+            IPAddress.IsLoopback(remote) && !tunneled && forwarded is null, via, request.Headers["Content-Encoding"], forwarded ?? (tunneled ? null : remote));
+        if (api.Waiting(call) is Task<ApiResponse> waiting)
+        {
+            waiting.ContinueWith(task =>
+            {
+                try
+                {
+                    Write(request, response, task.IsCompletedSuccessfully ? task.Result : new ApiResponse(500, null, []));
+                }
+                catch (Exception)
+                {
+                }
+            });
+            return;
+        }
+        Write(request, response, api.Route(call));
+    }
 
+    static void Write(HttpListenerRequest request, HttpListenerResponse response, ApiResponse result)
+    {
         if (Handlers.OperationRouter.Trace) Console.WriteLine($"http {request.HttpMethod} {request.Url?.PathAndQuery} {result.Status} {result.Body.Length}");
         response.StatusCode = result.Status;
         if (result.ContentType is not null) response.ContentType = result.ContentType;

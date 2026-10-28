@@ -39,6 +39,12 @@ public sealed class WebApi
     public Func<IReadOnlyList<Session>> Sessions { get; set; } = () => [];
     public ServerInfo ServerInfo { get; init; } = new();
 
+    public Task<ApiResponse>? Waiting(ApiRequest request) =>
+        Regex.Replace(request.Path, "/{2,}", "/").TrimEnd('/') == "/api/scripts/poll"
+            ? ScriptMessages.Poll(Reauths.TokenOf(request.Query["key"])).ContinueWith(task =>
+                task.Result is byte[] body ? new ApiResponse(200, "text/plain; charset=utf-8", body) : new ApiResponse(403, null, []))
+            : null;
+
     public ApiResponse Route(ApiRequest request)
     {
         string path = Regex.Replace(request.Path, "/{2,}", "/");
@@ -270,6 +276,9 @@ public sealed class WebApi
 
         if (path.TrimEnd('/') == "/api/scripts")
             return new ApiResponse(200, "text/plain; charset=utf-8", Encoding.UTF8.GetBytes(ClientScripts.Manifest()));
+
+        if (path.TrimEnd('/') == "/api/scripts/send" && request.Method == "POST")
+            return ScriptMessages.Receive(Reauths.TokenOf(query["key"]), request.Body) ? new ApiResponse(204, null, []) : new ApiResponse(403, null, []);
 
         if (path.StartsWith("/api/scripts/") && ClientScripts.Find(path["/api/scripts/".Length..]) is byte[] script)
             return new ApiResponse(200, "application/octet-stream", script);
