@@ -20,6 +20,7 @@ public static class PluginHost
     static readonly HashSet<string> UnknownAnimations = [];
     static readonly List<AssemblyLoadContext> Contexts = [];
     static readonly List<IPlugin> Loaded = [];
+    static readonly List<string> Failed = [];
     static string _folder = "plugins";
     static readonly ConditionalWeakTable<Player, PluginPlayer> Players = new();
     static readonly ConditionalWeakTable<Session, PluginWorld> Worlds = new();
@@ -83,6 +84,7 @@ public static class PluginHost
 
     static int Load()
     {
+        Failed.Clear();
         foreach (string path in Directory.GetFiles(_folder, "*.dll"))
         {
             var context = new AssemblyLoadContext(Path.GetFileNameWithoutExtension(path), isCollectible: true);
@@ -94,6 +96,7 @@ public static class PluginHost
                 if (assembly.GetReferencedAssemblies().FirstOrDefault(reference => reference.Name == ApiAssembly.Name)?.Version is Version needed && needed > ApiAssembly.Version)
                 {
                     Console.WriteLine($"plugin {Path.GetFileName(path)} needs plugin API {needed.ToString(2)}, this server has {ApiAssembly.Version!.ToString(2)}, update the server");
+                    Failed.Add(Path.GetFileNameWithoutExtension(path));
                     context.Unload();
                     continue;
                 }
@@ -109,6 +112,7 @@ public static class PluginHost
             catch (Exception error)
             {
                 Console.WriteLine($"plugin {Path.GetFileName(path)} failed to load: {error}");
+                Failed.Add(Path.GetFileNameWithoutExtension(path));
                 context.Unload();
             }
         }
@@ -173,6 +177,11 @@ public static class PluginHost
 
     public static string? Chat(Session session, Player player, string text)
     {
+        if (text.Trim() is "/plugins" or "!plugins")
+        {
+            PlayerOf(session, player).Message(PluginList());
+            return null;
+        }
         if (text.Trim() is not ("/reload" or "!reload")) return Server.OnChat(PlayerOf(session, player), text);
 
         PluginPlayer me = PlayerOf(session, player);
@@ -185,6 +194,19 @@ public static class PluginHost
         me.Message($"{count} plugins reloaded");
         Console.WriteLine($"{player.Username} reloaded {count} plugins");
         return null;
+    }
+
+    static string PluginList()
+    {
+        lock (Sync)
+        {
+            string[] names =
+            [
+                .. Loaded.Select(plugin => plugin.GetType().Assembly.GetName().Name!).Distinct().Order().Select(name => $"<color=#55FF55>{name}</color>"),
+                .. Failed.Order().Select(name => $"<color=#FF5555>{name}</color>"),
+            ];
+            return $"Plugins ({names.Length}): {string.Join(", ", names)}";
+        }
     }
 
     public static void Killed(Session session, Player victim, Player killer) =>
@@ -259,6 +281,12 @@ public static class PluginHost
     public static void Removed(Session session, int objectId, Player? by) =>
         Server.OnRemoved(WorldOf(session), objectId, by is null ? null : PlayerOf(session, by));
 
+    public static void LinkAdded(Session session, Link link, bool objectLink, Player? by) =>
+        Server.OnLinkAdded(WorldOf(session), new WorldLink(link.Id, link.From, link.To, objectLink), by is null ? null : PlayerOf(session, by));
+
+    public static void LinkRemoved(Session session, Link link, bool objectLink, Player? by) =>
+        Server.OnLinkRemoved(WorldOf(session), new WorldLink(link.Id, link.From, link.To, objectLink), by is null ? null : PlayerOf(session, by));
+
     public static bool Chat(Session session, Player player, Dictionary<object, object?> data)
     {
         object? key = data.Keys.FirstOrDefault(key => Convert.ToInt32(key) == ChatText);
@@ -284,6 +312,8 @@ public static class PluginHost
         public event Action<IWorld>? RoundStarted;
         public event Action<IWorld, IWorldObject, IPlayer?>? ObjectAdded;
         public event Action<IWorld, int, IPlayer?>? ObjectRemoved;
+        public event Action<IWorld, WorldLink, IPlayer?>? LinkAdded;
+        public event Action<IWorld, WorldLink, IPlayer?>? LinkRemoved;
         public event Action<INpc, IPlayer?, float>? NpcDamaged;
         public event Action<INpc, IPlayer?>? NpcKilled;
         public event Action<IPlayer, Gesture>? PlayerGestured;
@@ -431,6 +461,18 @@ public static class PluginHost
         {
             foreach (Action<IWorld, int, IPlayer?> handler in Handlers(ObjectRemoved))
                 Guard(() => handler(world, objectId, by));
+        }
+
+        public void OnLinkAdded(IWorld world, WorldLink link, IPlayer? by)
+        {
+            foreach (Action<IWorld, WorldLink, IPlayer?> handler in Handlers(LinkAdded))
+                Guard(() => handler(world, link, by));
+        }
+
+        public void OnLinkRemoved(IWorld world, WorldLink link, IPlayer? by)
+        {
+            foreach (Action<IWorld, WorldLink, IPlayer?> handler in Handlers(LinkRemoved))
+                Guard(() => handler(world, link, by));
         }
 
         public void OnNpcDamaged(INpc npc, IPlayer? by, float amount)

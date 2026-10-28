@@ -653,3 +653,335 @@ static OpenKogama.Api.NpcDamage.operator !=(OpenKogama.Api.NpcDamage? left, Open
 static OpenKogama.Api.NpcDamage.operator ==(OpenKogama.Api.NpcDamage? left, OpenKogama.Api.NpcDamage? right) -> bool
 ~override OpenKogama.Api.CubeChange.Equals(object obj) -> bool
 ~override OpenKogama.Api.CubeChange.ToString() -> string
+OpenKogama.Api.IPlayer.Equip(OpenKogama.Api.AvatarItem item, OpenKogama.Api.Material material) -> bool
+OpenKogama.Api.IWorldBuilder.AddItem(string! name, System.Numerics.Vector3 position, System.Numerics.Quaternion? rotation = null, int? parentId = null) -> OpenKogama.Api.IWorldObject?
+OpenKogama.Api.GameTheme
+OpenKogama.Api.GameTheme.Animals = 0 -> OpenKogama.Api.GameTheme
+OpenKogama.Api.GameTheme.BoxHalloween = 1 -> OpenKogama.Api.GameTheme
+OpenKogama.Api.GameTheme.BoxPumpkin = 2 -> OpenKogama.Api.GameTheme
+OpenKogama.Api.GameTheme.BoxSkull = 3 -> OpenKogama.Api.GameTheme
+OpenKogama.Api.GameTheme.Candy = 4 -> OpenKogama.Api.GameTheme
+OpenKogama.Api.GameTheme.Cartoon = 5 -> OpenKogama.Api.GameTheme
+OpenKogama.Api.GameTheme.Christmas = 6 -> OpenKogama.Api.GameTheme
+OpenKogama.Api.GameTheme.Cloudy = 7 -> OpenKogama.Api.GameTheme
+OpenKogama.Api.GameTheme.Heart = 8 -> OpenKogama.Api.GameTheme
+OpenKogama.Api.GameTheme.Normal = 9 -> OpenKogama.Api.GameTheme
+OpenKogama.Api.GameTheme.Pumpkin = 10 -> OpenKogama.Api.GameTheme
+OpenKogama.Api.GameTheme.Puzzle = 11 -> OpenKogama.Api.GameTheme
+OpenKogama.Api.GameTheme.RoundBoxSkull = 12 -> OpenKogama.Api.GameTheme
+OpenKogama.Api.GameTheme.RoundCircleSkull = 13 -> OpenKogama.Api.GameTheme
+OpenKogama.Api.GameTheme.RoundSkull = 14 -> OpenKogama.Api.GameTheme
+OpenKogama.Api.GameTheme.RoundSquare = 15 -> OpenKogama.Api.GameTheme
+OpenKogama.Api.GameTheme.RoundSquareSkull = 16 -> OpenKogama.Api.GameTheme
+OpenKogama.Api.GameTheme.Scary = 17 -> OpenKogama.Api.GameTheme
+OpenKogama.Api.GameTheme.Square = 18 -> OpenKogama.Api.GameTheme
+OpenKogama.Api.GameTheme.SquareSkull = 19 -> OpenKogama.Api.GameTheme
+OpenKogama.Api.GameTheme.Triangles = 20 -> OpenKogama.Api.GameTheme
+OpenKogama.Api.IAssets.Themes.get -> OpenKogama.Api.IThemes!
+OpenKogama.Api.IServer.ThemeChanged -> System.Action<OpenKogama.Api.ThemeChange!>?
+OpenKogama.Api.ITheme
+OpenKogama.Api.ITheme.Base.get -> OpenKogama.Api.GameTheme
+OpenKogama.Api.ITheme.Custom.get -> bool
+OpenKogama.Api.ITheme.Defaults.get -> OpenKogama.Api.ThemeSettings!
+OpenKogama.Api.ITheme.Description.get -> string!
+OpenKogama.Api.ITheme.Id.get -> int
+OpenKogama.Api.ITheme.InMenu.get -> bool
+OpenKogama.Api.ITheme.InMenu.set -> void
+OpenKogama.Api.ITheme.Level.get -> int
+OpenKogama.Api.ITheme.Level.set -> void
+OpenKogama.Api.ITheme.Name.get -> string!
+OpenKogama.Api.ITheme.Price.get -> int
+OpenKogama.Api.ITheme.Price.set -> void
+OpenKogama.Api.ITheme.Title.get -> string!
+OpenKogama.Api.IThemes
+OpenKogama.Api.IThemes.All.get -> System.Collections.Generic.IReadOnlyList<OpenKogama.Api.ITheme!>!
+OpenKogama.Api.IThemes.Find(string! name) -> OpenKogama.Api.ITheme?
+OpenKogama.Api.IThemes.MenuEnabled.get -> bool
+OpenKogama.Api.IThemes.MenuEnabled.set -> void
+OpenKogama.Api.IThemes.this[OpenKogama.Api.GameTheme theme].get -> OpenKogama.Api.ITheme!
+OpenKogama.Api.IWorld.Theme.get -> OpenKogama.Api.IWorldTheme!
+OpenKogama.Api.IWorldTheme
+OpenKogama.Api.IWorldTheme.Change(OpenKogama.Api.ThemeSettings! settings) -> bool
+OpenKogama.Api.IWorldTheme.Current.get -> OpenKogama.Api.ITheme?
+OpenKogama.Api.IWorldTheme.ObjectId.get -> int?
+OpenKogama.Api.IWorldTheme.Remove() -> bool
+OpenKogama.Api.IWorldTheme.Set(OpenKogama.Api.GameTheme theme) -> bool
+OpenKogama.Api.IWorldTheme.Set(OpenKogama.Api.GameTheme theme, OpenKogama.Api.ThemeSettings! settings) -> bool
+OpenKogama.Api.IWorldTheme.Set(OpenKogama.Api.ITheme! theme) -> bool
+OpenKogama.Api.IWorldTheme.Set(OpenKogama.Api.ITheme! theme, OpenKogama.Api.ThemeSettings! settings) -> bool
+OpenKogama.Api.IWorldTheme.Settings.get -> OpenKogama.Api.ThemeSettings?
+OpenKogama.Api.IWorldTheme.Time.get -> float
+OpenKogama.Api.IWorldTheme.Time.set -> void
+OpenKogama.Api.ThemeChange
+OpenKogama.Api.ThemeChange.Cancel.get -> bool
+OpenKogama.Api.ThemeChange.Cancel.set -> void
+OpenKogama.Api.ThemeChange.Player.get -> OpenKogama.Api.IPlayer!
+OpenKogama.Api.ThemeChange.Settings.get -> OpenKogama.Api.ThemeSettings?
+OpenKogama.Api.ThemeChange.Theme.get -> OpenKogama.Api.ITheme?
+OpenKogama.Api.ThemeChange.ThemeChange(OpenKogama.Api.IPlayer! player, OpenKogama.Api.IWorld! world, OpenKogama.Api.ITheme? theme, OpenKogama.Api.ThemeSettings? settings) -> void
+OpenKogama.Api.ThemeChange.World.get -> OpenKogama.Api.IWorld!
+OpenKogama.Api.ThemeColor
+OpenKogama.Api.ThemeColor.A.get -> float
+OpenKogama.Api.ThemeColor.A.init -> void
+OpenKogama.Api.ThemeColor.B.get -> float
+OpenKogama.Api.ThemeColor.B.init -> void
+OpenKogama.Api.ThemeColor.Deconstruct(out float R, out float G, out float B, out float A) -> void
+OpenKogama.Api.ThemeColor.Equals(OpenKogama.Api.ThemeColor other) -> bool
+OpenKogama.Api.ThemeColor.G.get -> float
+OpenKogama.Api.ThemeColor.G.init -> void
+OpenKogama.Api.ThemeColor.R.get -> float
+OpenKogama.Api.ThemeColor.R.init -> void
+OpenKogama.Api.ThemeColor.ThemeColor() -> void
+OpenKogama.Api.ThemeColor.ThemeColor(float R, float G, float B, float A = 1) -> void
+OpenKogama.Api.ThemeColor.ToHex() -> string!
+OpenKogama.Api.ThemePalette
+OpenKogama.Api.ThemePalette.Candy = 1 -> OpenKogama.Api.ThemePalette
+OpenKogama.Api.ThemePalette.DaffodilDelight = 7 -> OpenKogama.Api.ThemePalette
+OpenKogama.Api.ThemePalette.Default = 0 -> OpenKogama.Api.ThemePalette
+OpenKogama.Api.ThemePalette.GreenWarm = 2 -> OpenKogama.Api.ThemePalette
+OpenKogama.Api.ThemePalette.GreyWorld = 12 -> OpenKogama.Api.ThemePalette
+OpenKogama.Api.ThemePalette.IcyPlains = 9 -> OpenKogama.Api.ThemePalette
+OpenKogama.Api.ThemePalette.Love = 3 -> OpenKogama.Api.ThemePalette
+OpenKogama.Api.ThemePalette.MelonMambo = 6 -> OpenKogama.Api.ThemePalette
+OpenKogama.Api.ThemePalette.Mermaid = 11 -> OpenKogama.Api.ThemePalette
+OpenKogama.Api.ThemePalette.Poison = 4 -> OpenKogama.Api.ThemePalette
+OpenKogama.Api.ThemePalette.PoolParty = 8 -> OpenKogama.Api.ThemePalette
+OpenKogama.Api.ThemePalette.PumpkinSpice = 5 -> OpenKogama.Api.ThemePalette
+OpenKogama.Api.ThemePalette.TranquilityLuxury = 10 -> OpenKogama.Api.ThemePalette
+OpenKogama.Api.ThemeSettings
+OpenKogama.Api.ThemeSettings.<Clone>$() -> OpenKogama.Api.ThemeSettings!
+OpenKogama.Api.ThemeSettings.BottomColor.get -> OpenKogama.Api.ThemeColor?
+OpenKogama.Api.ThemeSettings.BottomColor.init -> void
+OpenKogama.Api.ThemeSettings.CloudsHeight.get -> float?
+OpenKogama.Api.ThemeSettings.CloudsHeight.init -> void
+OpenKogama.Api.ThemeSettings.CloudsOffset.get -> float?
+OpenKogama.Api.ThemeSettings.CloudsOffset.init -> void
+OpenKogama.Api.ThemeSettings.CloudsRotationSpeed.get -> float?
+OpenKogama.Api.ThemeSettings.CloudsRotationSpeed.init -> void
+OpenKogama.Api.ThemeSettings.CycleLength.get -> float?
+OpenKogama.Api.ThemeSettings.CycleLength.init -> void
+OpenKogama.Api.ThemeSettings.DayNightCycle.get -> bool?
+OpenKogama.Api.ThemeSettings.DayNightCycle.init -> void
+OpenKogama.Api.ThemeSettings.Equals(OpenKogama.Api.ThemeSettings? other) -> bool
+OpenKogama.Api.ThemeSettings.Exposure.get -> float?
+OpenKogama.Api.ThemeSettings.Exposure.init -> void
+OpenKogama.Api.ThemeSettings.Fog.get -> bool?
+OpenKogama.Api.ThemeSettings.Fog.init -> void
+OpenKogama.Api.ThemeSettings.FogDensity.get -> float?
+OpenKogama.Api.ThemeSettings.FogDensity.init -> void
+OpenKogama.Api.ThemeSettings.MoonAltitude.get -> float?
+OpenKogama.Api.ThemeSettings.MoonAltitude.init -> void
+OpenKogama.Api.ThemeSettings.MoonAxis.get -> float?
+OpenKogama.Api.ThemeSettings.MoonAxis.init -> void
+OpenKogama.Api.ThemeSettings.MoonFlareBrightness.get -> float?
+OpenKogama.Api.ThemeSettings.MoonFlareBrightness.init -> void
+OpenKogama.Api.ThemeSettings.MoonHeight.get -> float?
+OpenKogama.Api.ThemeSettings.MoonHeight.init -> void
+OpenKogama.Api.ThemeSettings.MoonLightContrast.get -> float?
+OpenKogama.Api.ThemeSettings.MoonLightContrast.init -> void
+OpenKogama.Api.ThemeSettings.MoonLightIntensity.get -> float?
+OpenKogama.Api.ThemeSettings.MoonLightIntensity.init -> void
+OpenKogama.Api.ThemeSettings.MoonLongitude.get -> float?
+OpenKogama.Api.ThemeSettings.MoonLongitude.init -> void
+OpenKogama.Api.ThemeSettings.MoonSize.get -> float?
+OpenKogama.Api.ThemeSettings.MoonSize.init -> void
+OpenKogama.Api.ThemeSettings.MoonTint.get -> OpenKogama.Api.ThemeColor?
+OpenKogama.Api.ThemeSettings.MoonTint.init -> void
+OpenKogama.Api.ThemeSettings.Palette.get -> OpenKogama.Api.ThemePalette?
+OpenKogama.Api.ThemeSettings.Palette.init -> void
+OpenKogama.Api.ThemeSettings.ServerTime.get -> bool?
+OpenKogama.Api.ThemeSettings.ServerTime.init -> void
+OpenKogama.Api.ThemeSettings.StarsExtinction.get -> float?
+OpenKogama.Api.ThemeSettings.StarsExtinction.init -> void
+OpenKogama.Api.ThemeSettings.StarsTint.get -> OpenKogama.Api.ThemeColor?
+OpenKogama.Api.ThemeSettings.StarsTint.init -> void
+OpenKogama.Api.ThemeSettings.StarsTwinklingSpeed.get -> float?
+OpenKogama.Api.ThemeSettings.StarsTwinklingSpeed.init -> void
+OpenKogama.Api.ThemeSettings.StartTime.get -> float?
+OpenKogama.Api.ThemeSettings.StartTime.init -> void
+OpenKogama.Api.ThemeSettings.SunAltitude.get -> float?
+OpenKogama.Api.ThemeSettings.SunAltitude.init -> void
+OpenKogama.Api.ThemeSettings.SunAxis.get -> float?
+OpenKogama.Api.ThemeSettings.SunAxis.init -> void
+OpenKogama.Api.ThemeSettings.SunFlareBrightness.get -> float?
+OpenKogama.Api.ThemeSettings.SunFlareBrightness.init -> void
+OpenKogama.Api.ThemeSettings.SunHeight.get -> float?
+OpenKogama.Api.ThemeSettings.SunHeight.init -> void
+OpenKogama.Api.ThemeSettings.SunLightContrast.get -> float?
+OpenKogama.Api.ThemeSettings.SunLightContrast.init -> void
+OpenKogama.Api.ThemeSettings.SunLightIntensity.get -> float?
+OpenKogama.Api.ThemeSettings.SunLightIntensity.init -> void
+OpenKogama.Api.ThemeSettings.SunLongitude.get -> float?
+OpenKogama.Api.ThemeSettings.SunLongitude.init -> void
+OpenKogama.Api.ThemeSettings.SunSize.get -> float?
+OpenKogama.Api.ThemeSettings.SunSize.init -> void
+OpenKogama.Api.ThemeSettings.SunTint.get -> OpenKogama.Api.ThemeColor?
+OpenKogama.Api.ThemeSettings.SunTint.init -> void
+OpenKogama.Api.ThemeSettings.ThemeSettings() -> void
+OpenKogama.Api.ThemeSettings.TopColor.get -> OpenKogama.Api.ThemeColor?
+OpenKogama.Api.ThemeSettings.TopColor.init -> void
+override OpenKogama.Api.ThemeColor.GetHashCode() -> int
+override OpenKogama.Api.ThemeSettings.Equals(object? obj) -> bool
+override OpenKogama.Api.ThemeSettings.GetHashCode() -> int
+override OpenKogama.Api.ThemeSettings.ToString() -> string!
+static OpenKogama.Api.ThemeColor.FromHex(string! hex) -> OpenKogama.Api.ThemeColor
+static OpenKogama.Api.ThemeColor.operator !=(OpenKogama.Api.ThemeColor left, OpenKogama.Api.ThemeColor right) -> bool
+static OpenKogama.Api.ThemeColor.operator ==(OpenKogama.Api.ThemeColor left, OpenKogama.Api.ThemeColor right) -> bool
+static OpenKogama.Api.ThemeSettings.operator !=(OpenKogama.Api.ThemeSettings? left, OpenKogama.Api.ThemeSettings? right) -> bool
+static OpenKogama.Api.ThemeSettings.operator ==(OpenKogama.Api.ThemeSettings? left, OpenKogama.Api.ThemeSettings? right) -> bool
+~override OpenKogama.Api.ThemeColor.Equals(object obj) -> bool
+~override OpenKogama.Api.ThemeColor.ToString() -> string
+OpenKogama.Api.CustomTheme
+OpenKogama.Api.CustomTheme.<Clone>$() -> OpenKogama.Api.CustomTheme!
+OpenKogama.Api.CustomTheme.Base.get -> OpenKogama.Api.GameTheme
+OpenKogama.Api.CustomTheme.Base.init -> void
+OpenKogama.Api.CustomTheme.CustomTheme() -> void
+OpenKogama.Api.CustomTheme.Defaults.get -> OpenKogama.Api.ThemeSettings!
+OpenKogama.Api.CustomTheme.Defaults.init -> void
+OpenKogama.Api.CustomTheme.Description.get -> string?
+OpenKogama.Api.CustomTheme.Description.init -> void
+OpenKogama.Api.CustomTheme.Equals(OpenKogama.Api.CustomTheme? other) -> bool
+OpenKogama.Api.CustomTheme.Name.get -> string!
+OpenKogama.Api.CustomTheme.Name.init -> void
+OpenKogama.Api.CustomTheme.Textures.get -> System.Collections.Generic.IReadOnlyDictionary<OpenKogama.Api.ThemeTexture, byte[]!>!
+OpenKogama.Api.CustomTheme.Textures.init -> void
+OpenKogama.Api.CustomTheme.Title.get -> string?
+OpenKogama.Api.CustomTheme.Title.init -> void
+OpenKogama.Api.ITheme.Replaced.get -> System.Collections.Generic.IReadOnlyList<OpenKogama.Api.ThemeTexture>!
+OpenKogama.Api.IThemes.Add(OpenKogama.Api.CustomTheme! theme) -> OpenKogama.Api.ITheme!
+OpenKogama.Api.IThemes.Remove(OpenKogama.Api.ITheme! theme) -> bool
+OpenKogama.Api.IThemes.Replace(OpenKogama.Api.GameTheme theme, OpenKogama.Api.ThemeTexture texture, byte[]! image) -> void
+OpenKogama.Api.IThemes.Restore(OpenKogama.Api.GameTheme theme, OpenKogama.Api.ThemeTexture texture) -> bool
+OpenKogama.Api.ThemeTexture
+OpenKogama.Api.ThemeTexture.Clouds = 0 -> OpenKogama.Api.ThemeTexture
+OpenKogama.Api.ThemeTexture.Moon = 3 -> OpenKogama.Api.ThemeTexture
+OpenKogama.Api.ThemeTexture.MoonFlare = 5 -> OpenKogama.Api.ThemeTexture
+OpenKogama.Api.ThemeTexture.Preview = 6 -> OpenKogama.Api.ThemeTexture
+OpenKogama.Api.ThemeTexture.Stars = 1 -> OpenKogama.Api.ThemeTexture
+OpenKogama.Api.ThemeTexture.Sun = 2 -> OpenKogama.Api.ThemeTexture
+OpenKogama.Api.ThemeTexture.SunFlare = 4 -> OpenKogama.Api.ThemeTexture
+override OpenKogama.Api.CustomTheme.Equals(object? obj) -> bool
+override OpenKogama.Api.CustomTheme.GetHashCode() -> int
+override OpenKogama.Api.CustomTheme.ToString() -> string!
+static OpenKogama.Api.CustomTheme.operator !=(OpenKogama.Api.CustomTheme? left, OpenKogama.Api.CustomTheme? right) -> bool
+static OpenKogama.Api.CustomTheme.operator ==(OpenKogama.Api.CustomTheme? left, OpenKogama.Api.CustomTheme? right) -> bool
+~override OpenKogama.Api.ThemeLightKey.Equals(object obj) -> bool
+~override OpenKogama.Api.ThemeLightKey.ToString() -> string
+~override OpenKogama.Api.ThemeSkyKey.Equals(object obj) -> bool
+~override OpenKogama.Api.ThemeSkyKey.ToString() -> string
+~override OpenKogama.Api.ThemeStarsKey.Equals(object obj) -> bool
+~override OpenKogama.Api.ThemeStarsKey.ToString() -> string
+OpenKogama.Api.CustomTheme.Cycle.get -> OpenKogama.Api.ThemeCycle?
+OpenKogama.Api.CustomTheme.Cycle.init -> void
+OpenKogama.Api.ITheme.Cycle.get -> OpenKogama.Api.ThemeCycle?
+OpenKogama.Api.ITheme.Cycle.set -> void
+OpenKogama.Api.ThemeCycle
+OpenKogama.Api.ThemeCycle.<Clone>$() -> OpenKogama.Api.ThemeCycle!
+OpenKogama.Api.ThemeCycle.Equals(OpenKogama.Api.ThemeCycle? other) -> bool
+OpenKogama.Api.ThemeCycle.Moon.get -> System.Collections.Generic.IReadOnlyList<OpenKogama.Api.ThemeLightKey>!
+OpenKogama.Api.ThemeCycle.Moon.init -> void
+OpenKogama.Api.ThemeCycle.Moonrise.get -> float?
+OpenKogama.Api.ThemeCycle.Moonrise.init -> void
+OpenKogama.Api.ThemeCycle.Moonset.get -> float?
+OpenKogama.Api.ThemeCycle.Moonset.init -> void
+OpenKogama.Api.ThemeCycle.Sky.get -> System.Collections.Generic.IReadOnlyList<OpenKogama.Api.ThemeSkyKey>!
+OpenKogama.Api.ThemeCycle.Sky.init -> void
+OpenKogama.Api.ThemeCycle.Stars.get -> System.Collections.Generic.IReadOnlyList<OpenKogama.Api.ThemeStarsKey>!
+OpenKogama.Api.ThemeCycle.Stars.init -> void
+OpenKogama.Api.ThemeCycle.Sun.get -> System.Collections.Generic.IReadOnlyList<OpenKogama.Api.ThemeLightKey>!
+OpenKogama.Api.ThemeCycle.Sun.init -> void
+OpenKogama.Api.ThemeCycle.Sunrise.get -> float?
+OpenKogama.Api.ThemeCycle.Sunrise.init -> void
+OpenKogama.Api.ThemeCycle.Sunset.get -> float?
+OpenKogama.Api.ThemeCycle.Sunset.init -> void
+OpenKogama.Api.ThemeCycle.ThemeCycle() -> void
+OpenKogama.Api.ThemeLightKey
+OpenKogama.Api.ThemeLightKey.Deconstruct(out float Time, out OpenKogama.Api.ThemeColor Tint, out OpenKogama.Api.ThemeColor Light, out float Intensity) -> void
+OpenKogama.Api.ThemeLightKey.Equals(OpenKogama.Api.ThemeLightKey other) -> bool
+OpenKogama.Api.ThemeLightKey.Intensity.get -> float
+OpenKogama.Api.ThemeLightKey.Intensity.init -> void
+OpenKogama.Api.ThemeLightKey.Light.get -> OpenKogama.Api.ThemeColor
+OpenKogama.Api.ThemeLightKey.Light.init -> void
+OpenKogama.Api.ThemeLightKey.ThemeLightKey() -> void
+OpenKogama.Api.ThemeLightKey.ThemeLightKey(float Time, OpenKogama.Api.ThemeColor Tint, OpenKogama.Api.ThemeColor Light, float Intensity) -> void
+OpenKogama.Api.ThemeLightKey.Time.get -> float
+OpenKogama.Api.ThemeLightKey.Time.init -> void
+OpenKogama.Api.ThemeLightKey.Tint.get -> OpenKogama.Api.ThemeColor
+OpenKogama.Api.ThemeLightKey.Tint.init -> void
+OpenKogama.Api.ThemeSkyKey
+OpenKogama.Api.ThemeSkyKey.Bottom.get -> OpenKogama.Api.ThemeColor
+OpenKogama.Api.ThemeSkyKey.Bottom.init -> void
+OpenKogama.Api.ThemeSkyKey.Deconstruct(out float Time, out OpenKogama.Api.ThemeColor Top, out OpenKogama.Api.ThemeColor Bottom) -> void
+OpenKogama.Api.ThemeSkyKey.Equals(OpenKogama.Api.ThemeSkyKey other) -> bool
+OpenKogama.Api.ThemeSkyKey.ThemeSkyKey() -> void
+OpenKogama.Api.ThemeSkyKey.ThemeSkyKey(float Time, OpenKogama.Api.ThemeColor Top, OpenKogama.Api.ThemeColor Bottom) -> void
+OpenKogama.Api.ThemeSkyKey.Time.get -> float
+OpenKogama.Api.ThemeSkyKey.Time.init -> void
+OpenKogama.Api.ThemeSkyKey.Top.get -> OpenKogama.Api.ThemeColor
+OpenKogama.Api.ThemeSkyKey.Top.init -> void
+OpenKogama.Api.ThemeStarsKey
+OpenKogama.Api.ThemeStarsKey.Deconstruct(out float Time, out OpenKogama.Api.ThemeColor Tint) -> void
+OpenKogama.Api.ThemeStarsKey.Equals(OpenKogama.Api.ThemeStarsKey other) -> bool
+OpenKogama.Api.ThemeStarsKey.ThemeStarsKey() -> void
+OpenKogama.Api.ThemeStarsKey.ThemeStarsKey(float Time, OpenKogama.Api.ThemeColor Tint) -> void
+OpenKogama.Api.ThemeStarsKey.Time.get -> float
+OpenKogama.Api.ThemeStarsKey.Time.init -> void
+OpenKogama.Api.ThemeStarsKey.Tint.get -> OpenKogama.Api.ThemeColor
+OpenKogama.Api.ThemeStarsKey.Tint.init -> void
+override OpenKogama.Api.ThemeCycle.Equals(object? obj) -> bool
+override OpenKogama.Api.ThemeCycle.GetHashCode() -> int
+override OpenKogama.Api.ThemeCycle.ToString() -> string!
+override OpenKogama.Api.ThemeLightKey.GetHashCode() -> int
+override OpenKogama.Api.ThemeSkyKey.GetHashCode() -> int
+override OpenKogama.Api.ThemeStarsKey.GetHashCode() -> int
+static OpenKogama.Api.ThemeCycle.operator !=(OpenKogama.Api.ThemeCycle? left, OpenKogama.Api.ThemeCycle? right) -> bool
+static OpenKogama.Api.ThemeCycle.operator ==(OpenKogama.Api.ThemeCycle? left, OpenKogama.Api.ThemeCycle? right) -> bool
+static OpenKogama.Api.ThemeLightKey.operator !=(OpenKogama.Api.ThemeLightKey left, OpenKogama.Api.ThemeLightKey right) -> bool
+static OpenKogama.Api.ThemeLightKey.operator ==(OpenKogama.Api.ThemeLightKey left, OpenKogama.Api.ThemeLightKey right) -> bool
+static OpenKogama.Api.ThemeSkyKey.operator !=(OpenKogama.Api.ThemeSkyKey left, OpenKogama.Api.ThemeSkyKey right) -> bool
+static OpenKogama.Api.ThemeSkyKey.operator ==(OpenKogama.Api.ThemeSkyKey left, OpenKogama.Api.ThemeSkyKey right) -> bool
+static OpenKogama.Api.ThemeStarsKey.operator !=(OpenKogama.Api.ThemeStarsKey left, OpenKogama.Api.ThemeStarsKey right) -> bool
+static OpenKogama.Api.ThemeStarsKey.operator ==(OpenKogama.Api.ThemeStarsKey left, OpenKogama.Api.ThemeStarsKey right) -> bool
+OpenKogama.Api.TeleportMethod.Direct = 2 -> OpenKogama.Api.TeleportMethod
+OpenKogama.Api.IPlayer.AccountId.get -> long?
+OpenKogama.Api.IPlayer.EditTerrainLocally() -> OpenKogama.Api.ICubeEdit!
+OpenKogama.Api.IPlayer.SetDataLocally(int id, string! key, object! value) -> bool
+OpenKogama.Api.IPlayer.SetDataLocally(int id, System.Collections.Generic.IReadOnlyDictionary<string!, object!>! values) -> bool
+OpenKogama.Api.IWorld.Platformer.get -> bool
+OpenKogama.Api.IWorld.Platformer.set -> void
+OpenKogama.Api.IScripts
+OpenKogama.Api.IScripts.Add(string! name, System.Collections.Generic.IReadOnlyDictionary<string!, byte[]!>! files) -> bool
+OpenKogama.Api.IScripts.AddFile(byte[]! data) -> string?
+OpenKogama.Api.IScripts.All.get -> System.Collections.Generic.IReadOnlyList<string!>!
+OpenKogama.Api.IScripts.Files.get -> System.Collections.Generic.IReadOnlyList<string!>!
+OpenKogama.Api.IScripts.Remove(string! name) -> bool
+OpenKogama.Api.IScripts.RemoveFile(string! id) -> bool
+OpenKogama.Api.IServer.Scripts.get -> OpenKogama.Api.IScripts!
+OpenKogama.Api.IServer.LinkAdded -> System.Action<OpenKogama.Api.IWorld!, OpenKogama.Api.WorldLink, OpenKogama.Api.IPlayer?>?
+OpenKogama.Api.IServer.LinkRemoved -> System.Action<OpenKogama.Api.IWorld!, OpenKogama.Api.WorldLink, OpenKogama.Api.IPlayer?>?
+OpenKogama.Api.IWorld.Powered(int id) -> bool?
+OpenKogama.Api.IWorldBuilder.LinkObjects(int from, int to) -> bool
+OpenKogama.Api.IWorldBuilder.Links.get -> System.Collections.Generic.IReadOnlyList<OpenKogama.Api.WorldLink>!
+OpenKogama.Api.IWorldBuilder.ObjectLinks.get -> System.Collections.Generic.IReadOnlyList<OpenKogama.Api.WorldLink>!
+OpenKogama.Api.IWorldBuilder.Unlink(int from, int to) -> bool
+OpenKogama.Api.IWorldBuilder.UnlinkObjects(int from, int to) -> bool
+OpenKogama.Api.WorldLink
+OpenKogama.Api.WorldLink.Deconstruct(out int Id, out int From, out int To, out bool ObjectLink) -> void
+OpenKogama.Api.WorldLink.Equals(OpenKogama.Api.WorldLink other) -> bool
+OpenKogama.Api.WorldLink.From.get -> int
+OpenKogama.Api.WorldLink.From.init -> void
+OpenKogama.Api.WorldLink.Id.get -> int
+OpenKogama.Api.WorldLink.Id.init -> void
+OpenKogama.Api.WorldLink.ObjectLink.get -> bool
+OpenKogama.Api.WorldLink.ObjectLink.init -> void
+OpenKogama.Api.WorldLink.To.get -> int
+OpenKogama.Api.WorldLink.To.init -> void
+OpenKogama.Api.WorldLink.WorldLink() -> void
+OpenKogama.Api.WorldLink.WorldLink(int Id, int From, int To, bool ObjectLink) -> void
+override OpenKogama.Api.WorldLink.GetHashCode() -> int
+static OpenKogama.Api.WorldLink.operator !=(OpenKogama.Api.WorldLink left, OpenKogama.Api.WorldLink right) -> bool
+static OpenKogama.Api.WorldLink.operator ==(OpenKogama.Api.WorldLink left, OpenKogama.Api.WorldLink right) -> bool
+~override OpenKogama.Api.WorldLink.Equals(object obj) -> bool
+~override OpenKogama.Api.WorldLink.ToString() -> string
+OpenKogama.Api.IPlayer.SendScriptMessage(string! name, string! data) -> bool
+OpenKogama.Api.IServer.ScriptMessage -> System.Action<OpenKogama.Api.IPlayer!, string!, string!>?

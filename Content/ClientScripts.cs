@@ -8,10 +8,13 @@ public static partial class ClientScripts
 {
     const int FileLimit = 1 << 20;
     const int TotalLimit = 16 << 20;
-    const int FileCount = 64;
+    const int FileCount = 1024;
+    const long PluginFilesLimit = 256L << 20;
     static readonly string[] Kinds = [".lua", ".png", ".jpg", ".jpeg", ".json", ".txt"];
     static readonly object Sync = new();
     static readonly Dictionary<string, Dictionary<string, byte[]>> Added = new(StringComparer.Ordinal);
+    static readonly Dictionary<string, byte[]> PluginFiles = new(StringComparer.Ordinal);
+    static long _pluginBytes;
     static string _folder = "scripts";
     static DateTime _built = DateTime.MinValue;
     static Snapshot _current = new("", new Dictionary<string, byte[]>());
@@ -76,8 +79,55 @@ public static partial class ClientScripts
         lock (Sync)
         {
             Added.Clear();
+            PluginFiles.Clear();
+            _pluginBytes = 0;
             _built = DateTime.MinValue;
         }
+    }
+
+    public static IReadOnlyList<string> Files
+    {
+        get
+        {
+            lock (Sync) return [.. PluginFiles.Keys.Order(StringComparer.Ordinal)];
+        }
+    }
+
+    public static string? AddFile(byte[] data)
+    {
+        if (data.Length > FileLimit)
+        {
+            Console.WriteLine($"scripts: a file of {data.Length} bytes is over {FileLimit >> 20} MB");
+            return null;
+        }
+        string id = Convert.ToHexStringLower(SHA256.HashData(data));
+        lock (Sync)
+        {
+            if (PluginFiles.ContainsKey(id)) return id;
+            if (_pluginBytes + data.Length > PluginFilesLimit)
+            {
+                Console.WriteLine($"scripts: files from plugins take up to {PluginFilesLimit >> 20} MB");
+                return null;
+            }
+            PluginFiles[id] = data.ToArray();
+            _pluginBytes += data.Length;
+        }
+        return id;
+    }
+
+    public static bool RemoveFile(string id)
+    {
+        lock (Sync)
+        {
+            if (!PluginFiles.Remove(id, out byte[]? data)) return false;
+            _pluginBytes -= data.Length;
+            return true;
+        }
+    }
+
+    public static byte[]? FindFile(string id)
+    {
+        lock (Sync) return PluginFiles.GetValueOrDefault(id);
     }
 
     public static string Manifest() => Current().Manifest;

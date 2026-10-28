@@ -11,5 +11,6 @@
   <Project Path="examples/sounds/sounds.csproj" />
   <Project Path="examples/themes/themes.csproj" />
   <Project Path="examples/online/online.csproj" />
+  <Project Path="examples/worldmap/worldmap.csproj" />
   <Project Path="tests/launcher-contract/launcher-contract.csproj" />
 </Solution>

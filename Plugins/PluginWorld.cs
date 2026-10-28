@@ -27,6 +27,8 @@ sealed class PluginWorld(Session session) : IWorld
     public IReadOnlyList<INpc> Npcs => [.. session.Npcs.Select(npc => new PluginNpc(session, npc))];
     public IWorldTheme Theme { get; } = new PluginWorldTheme(session);
     public IReadOnlyList<IWorldObject> Objects => _editor.Objects;
+    public IReadOnlyList<WorldLink> Links => _editor.Links;
+    public IReadOnlyList<WorldLink> ObjectLinks => _editor.ObjectLinks;
     public ITerrain Terrain => _editor.Terrain;
 
     public ICubeModel? Model(int objectId) => _editor.Model(objectId);
@@ -44,6 +46,14 @@ sealed class PluginWorld(Session session) : IWorld
     public bool Remove(int id) => _editor.Remove(id);
 
     public bool Link(int from, int to) => _editor.Link(from, to);
+
+    public bool Unlink(int from, int to) => _editor.Unlink(from, to);
+
+    public bool LinkObjects(int from, int to) => _editor.LinkObjects(from, to);
+
+    public bool UnlinkObjects(int from, int to) => _editor.UnlinkObjects(from, to);
+
+    public bool? Powered(int id) => session.Logic.Powered(id);
 
     public bool Move(int id, Vector3 position, Quaternion? rotation = null, float seconds = 0) => _editor.Move(id, position, rotation, seconds);
 

@@ -15,6 +15,7 @@ public interface IWorld : IWorldBuilder
 
     bool LineOfSight(System.Numerics.Vector3 from, System.Numerics.Vector3 to);
     bool? Toggled(int id);
+    bool? Powered(int id);
     bool SetToggled(int id, bool on);
     bool Press(int id);
 

@@ -10,4 +10,10 @@ sealed class PluginScripts : IScripts
     public bool Add(string name, IReadOnlyDictionary<string, byte[]> files) => ClientScripts.Add(name, files);
 
     public bool Remove(string name) => ClientScripts.Remove(name);
+
+    public IReadOnlyList<string> Files => ClientScripts.Files;
+
+    public string? AddFile(byte[] data) => ClientScripts.AddFile(data);
+
+    public bool RemoveFile(string id) => ClientScripts.RemoveFile(id);
 }

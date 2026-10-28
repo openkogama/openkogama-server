@@ -283,6 +283,9 @@ public sealed class WebApi
         if (path.StartsWith("/api/scripts/") && ClientScripts.Find(path["/api/scripts/".Length..]) is byte[] script)
             return new ApiResponse(200, "application/octet-stream", script);
 
+        if (path.StartsWith("/api/scripts/") && Reauths.TokenOf(query["key"]) is not null && ClientScripts.FindFile(path["/api/scripts/".Length..]) is byte[] fromPlugin)
+            return new ApiResponse(200, "application/octet-stream", fromPlugin);
+
         if (path is "/reward")
             return ApiResponse.Json("""{"rewardEnabled":false,"timeInSeconds":0,"xp":0}""");
 

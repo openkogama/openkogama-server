@@ -27,12 +27,13 @@ public sealed class LinkOperation(Session session, bool objectLink, bool adding)
     {
         var evt = new EventData((byte)Event);
         var response = new OperationResponse(request);
+        Link link;
 
         if (adding)
         {
             int from = Convert.ToInt32(request[(byte)ParameterKey.LinkFromID]);
             int to = Convert.ToInt32(request[(byte)ParameterKey.LinkToID]);
-            Link link = session.World.AddLink(from, to, objectLink);
+            link = session.World.AddLink(from, to, objectLink);
 
             evt.Parameters[(byte)ParameterKey.LinkID] = link.Id;
             evt.Parameters[(byte)ParameterKey.LinkFromID] = link.From;
@@ -42,11 +43,12 @@ public sealed class LinkOperation(Session session, bool objectLink, bool adding)
         else
         {
             int id = Convert.ToInt32(request[(byte)ParameterKey.LinkID]);
-            if (!session.World.RemoveLink(id, objectLink))
+            if (session.World.FindLink(id, objectLink) is not { } removed || !session.World.RemoveLink(id, objectLink))
             {
                 Console.WriteLine($"peer {peer.Id}: no link {id} to remove");
                 return;
             }
+            link = removed;
             evt.Parameters[(byte)ParameterKey.LinkID] = id;
         }
 
@@ -58,5 +60,7 @@ public sealed class LinkOperation(Session session, bool objectLink, bool adding)
                 player.Peer.Send(evt);
 
         peer.Send(response);
+        if (adding) Plugins.PluginHost.LinkAdded(session, link, objectLink, session.For(peer));
+        else Plugins.PluginHost.LinkRemoved(session, link, objectLink, session.For(peer));
     }
 }

@@ -13,6 +13,10 @@ sealed class WorldEditor(GameWorld world, Session? session) : IWorldBuilder
 {
     public IReadOnlyList<IWorldObject> Objects => [.. world.ToSnapshot().Objects.Select(obj => new PluginObject(obj))];
 
+    public IReadOnlyList<WorldLink> Links => [.. world.LinksOf(objectLink: false).Select(link => new WorldLink(link.Id, link.From, link.To, false))];
+
+    public IReadOnlyList<WorldLink> ObjectLinks => [.. world.LinksOf(objectLink: true).Select(link => new WorldLink(link.Id, link.From, link.To, true))];
+
     public ITerrain Terrain { get; } = new CubesEditor(world, session, null);
 
     public ICubeModel? Model(int objectId) => world.Find(objectId)?.PrototypeId is not null ? new CubesEditor(world, session, objectId) : null;
@@ -75,15 +79,23 @@ sealed class WorldEditor(GameWorld world, Session? session) : IWorldBuilder
         return true;
     }
 
-    public bool Link(int from, int to)
+    public bool Link(int from, int to) => Connect(from, to, objectLink: false);
+
+    public bool Unlink(int from, int to) => Disconnect(from, to, objectLink: false);
+
+    public bool LinkObjects(int from, int to) => Connect(from, to, objectLink: true);
+
+    public bool UnlinkObjects(int from, int to) => Disconnect(from, to, objectLink: true);
+
+    bool Connect(int from, int to, bool objectLink)
     {
         if (from == to || world.Find(from) is null || world.Find(to) is null) return false;
-        var link = world.AddLink(from, to, objectLink: false);
+        var link = world.AddLink(from, to, objectLink);
         world.MarkChanged();
         if (session is null) return true;
 
         session.Logic.Evaluate();
-        var added = new EventData((byte)EventCode.AddLink)
+        SendAll(new EventData((byte)(objectLink ? EventCode.AddObjectLink : EventCode.AddLink))
         {
             Parameters =
             {
@@ -91,10 +103,28 @@ sealed class WorldEditor(GameWorld world, Session? session) : IWorldBuilder
                 [(byte)ParameterKey.LinkFromID] = link.From,
                 [(byte)ParameterKey.LinkToID] = link.To,
             },
-        };
-        foreach (Player player in session.Players)
-            player.Peer.Send(added);
+        });
         return true;
+    }
+
+    bool Disconnect(int from, int to, bool objectLink)
+    {
+        List<Link> removed = world.RemoveLinks(from, to, objectLink);
+        if (removed.Count == 0) return false;
+        world.MarkChanged();
+        if (session is null) return true;
+
+        session.Logic.Evaluate();
+        foreach (Link link in removed)
+            SendAll(new EventData((byte)(objectLink ? EventCode.RemoveObjectLink : EventCode.RemoveLink)) { Parameters = { [(byte)ParameterKey.LinkID] = link.Id } });
+        return true;
+    }
+
+    void SendAll(EventData evt)
+    {
+        if (session is null) return;
+        foreach (Player player in session.Players)
+            player.Peer.Send(evt);
     }
 
     public bool Move(int id, Vector3 position, Quaternion? rotation = null, float seconds = 0)

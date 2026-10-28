@@ -213,6 +213,16 @@ public sealed class Logic(Session session)
 
     public bool? Toggled(int id) => session.World.Find(id) is { Type: WorldObjectType.ToggleBox } obj ? State(obj) : null;
 
+    public bool? Powered(int id)
+    {
+        lock (_sync)
+        {
+            if (session.World.Find(id) is null) return null;
+            Graph graph = GraphFor();
+            return graph.Index.TryGetValue(id, out int index) && Propagate(graph)[index];
+        }
+    }
+
     public bool SetToggled(int id, bool on)
     {
         lock (_sync)

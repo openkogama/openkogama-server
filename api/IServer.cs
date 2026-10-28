@@ -15,6 +15,8 @@ public interface IServer
     event Action<IWorld>? RoundStarted;
     event Action<IWorld, IWorldObject, IPlayer?>? ObjectAdded;
     event Action<IWorld, int, IPlayer?>? ObjectRemoved;
+    event Action<IWorld, WorldLink, IPlayer?>? LinkAdded;
+    event Action<IWorld, WorldLink, IPlayer?>? LinkRemoved;
     event Action<INpc, IPlayer?, float>? NpcDamaged;
     event Action<INpc, IPlayer?>? NpcKilled;
     event Action<IPlayer, Gesture>? PlayerGestured;

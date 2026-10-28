@@ -146,6 +146,29 @@ public sealed class GameWorld
         }
     }
 
+    public Link? FindLink(int id, bool objectLink)
+    {
+        lock (_sync) return (objectLink ? _objectLinks : _links).Find(link => link.Id == id);
+    }
+
+    public List<Link> LinksOf(bool objectLink)
+    {
+        lock (_sync) return [.. (objectLink ? _objectLinks : _links)];
+    }
+
+    public List<Link> RemoveLinks(int from, int to, bool objectLink)
+    {
+        lock (_sync)
+        {
+            List<Link> links = objectLink ? _objectLinks : _links;
+            List<Link> removed = links.FindAll(link => link.From == from && link.To == to);
+            if (removed.Count == 0) return removed;
+            _logicVersion++;
+            links.RemoveAll(link => link.From == from && link.To == to);
+            return removed;
+        }
+    }
+
     public List<int> RemoveTree(int id)
     {
         lock (_sync)

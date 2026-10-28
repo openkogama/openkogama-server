@@ -1016,12 +1016,13 @@ public sealed class Router2012
                 [(byte)Key2012.LinkToID] = link.To,
             },
         });
+        Plugins.PluginHost.LinkAdded(session, link, false, session.For(peer));
     }
 
     void RemoveLink(PhotonPeer peer, OperationRequest request)
     {
         int id = Convert.ToInt32(request[(byte)Key2012.LinkID]);
-        if (!session.World.RemoveLink(id, false))
+        if (session.World.FindLink(id, false) is not { } removed || !session.World.RemoveLink(id, false))
         {
             Reply(peer, request);
             return;
@@ -1031,6 +1032,7 @@ public sealed class Router2012
         session.Logic.Evaluate();
         Reply(peer, request);
         Broadcast(peer, new EventData((byte)Event2012.RemoveLink) { Parameters = { [(byte)Key2012.LinkID] = id } });
+        Plugins.PluginHost.LinkRemoved(session, removed, false, session.For(peer));
     }
 
     void ResetLogicChunk(OperationRequest request)
