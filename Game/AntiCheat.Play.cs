@@ -25,6 +25,8 @@ public static partial class AntiCheat
     const byte Vehicle = 4;
     const int MaxVehicles = 4;
     const long VehicleWindowMs = 30_000;
+    const int MaxEdits = 300;
+    const long EditWindowMs = 2000;
 
     static readonly HashSet<byte> Explosions = [3, 4, 6, 7, 8, 9, 10, 15, 16];
     static readonly HashSet<OperationCode> EditorOnly =
@@ -53,6 +55,7 @@ public static partial class AntiCheat
     static readonly ConditionalWeakTable<GameWorld, Terrain> Terrains = new();
     static readonly ConditionalWeakTable<Player, Queue<long>> Events = new();
     static readonly ConditionalWeakTable<Player, Queue<long>> Spawned = new();
+    static readonly ConditionalWeakTable<Player, Queue<long>> Edits = new();
     static readonly ConditionalWeakTable<Player, HashSet<byte>> Refused = new();
     static readonly Lazy<Dictionary<int, float>> Toughness = new(() => Materials.For("2015").Concat(Materials.For("2025"))
         .GroupBy(material => material.Id).ToDictionary(group => group.Key, group => group.Last().Physical is { Length: > 4 } physical ? physical[4] : 0f));
@@ -70,6 +73,7 @@ public static partial class AntiCheat
     {
         var code = (OperationCode)request.OperationCode;
         if (code == OperationCode.RuntimeEvent) return RuntimeEvent(session, player, request[(byte)ParameterKey.Data] as byte[]);
+        if (code == OperationCode.UpdatePrototype && EditFloods(player)) return false;
         if (!Build || !session.Play) return true;
         if (EditorOnly.Contains(code)) return false;
         if (OwnObjects.Contains(code))
@@ -104,10 +108,13 @@ public static partial class AntiCheat
 
     public static bool Allows(Session session, Player? player, Op2012 code, OperationRequest request)
     {
+        if (code is Op2012.UpdatePrototype or Op2012.UpdateTerrain && EditFloods(player)) return false;
         if (!Build || !session.Play) return true;
         if (EditorOnly2012.Contains(code)) return false;
         return !OwnObjects2012.Contains(code) || player is not null && Mine(session, player, Convert.ToInt32(request[(byte)Key2012.WorldObjectID]));
     }
+
+    static bool EditFloods(Player? player) => Spam && player is not null && Floods(Edits.GetOrCreateValue(player), MaxEdits, EditWindowMs);
 
     public static bool Registers(Session session, WorldObject obj) => !Build || !session.Play || obj.Type == WorldObjectType.Avatar;
 
