@@ -82,19 +82,19 @@ $webPlayerReady = $false
 
 $unpack = Join-Path $env:RUNNER_TEMP "unpack.py"
 Set-Content $unpack @'
-import struct, sys
+import lzma, struct, sys
 data = open(sys.argv[1], "rb").read()
 at = data.index(b"\0") + 1
 version = struct.unpack_from(">I", data, at)[0]; at += 4
 at = data.index(b"\0", at) + 1
 at = data.index(b"\0", at) + 1
-if version >= 4: at += 20
 header = struct.unpack_from(">II", data, at)[1]
-count = struct.unpack_from(">I", data, header)[0]; at = header + 4
+block = lzma.decompress(data[header:], format=lzma.FORMAT_ALONE) if data.startswith(b"UnityWeb") else data[header:]
+count = struct.unpack_from(">I", block, 0)[0]; at = 4
 for _ in range(count):
-    end = data.index(b"\0", at); name = data[at:end].decode(); at = end + 1
-    offset, size = struct.unpack_from(">II", data, at); at += 8
-    if name.endswith("Assembly-CSharp.dll"): open(sys.argv[2], "wb").write(data[header + offset:header + offset + size])
+    end = block.index(b"\0", at); name = block[at:end].decode(); at = end + 1
+    offset, size = struct.unpack_from(">II", block, at); at += 8
+    if name.endswith("Assembly-CSharp.dll"): open(sys.argv[2], "wb").write(block[offset:offset + size])
 '@
 $checking = $Fixes.Split(' ') -contains "camera"
 if ($checking) {
@@ -112,9 +112,12 @@ function Fix-Client($file) {
     if (-not $checking) { return }
     $dll = Join-Path $env:RUNNER_TEMP "Assembly-CSharp.dll"
     Remove-Item $dll -ErrorAction SilentlyContinue
-    if ($file.EndsWith(".dll")) { Copy-Item $file $dll } else { python $unpack $file $dll }
-    $code = & (Join-Path $env:USERPROFILE ".dotnet\tools\ilspycmd.exe") -t PlaymodeCamera $dll 2>$null | Out-String
-    Write-Host ("  camera: {0} square roots clamped in PlaymodeCamera" -f ([regex]::Matches($code, "Mathf\.Max\(")).Count)
+    try {
+        if ($file.EndsWith(".dll")) { Copy-Item $file $dll } else { python $unpack $file $dll }
+        $code = & (Join-Path $env:USERPROFILE ".dotnet\tools\ilspycmd.exe") -t PlaymodeCamera $dll 2>$null | Out-String
+        Write-Host ("  camera: {0} square roots clamped in PlaymodeCamera" -f ([regex]::Matches($code, "Mathf\.Max\(")).Count)
+    }
+    catch { Write-Host "  camera: could not check, $_" }
 }
 
 function Stop-Leftovers {
