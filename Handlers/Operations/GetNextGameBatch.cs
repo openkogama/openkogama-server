@@ -99,6 +99,8 @@ public sealed class GetNextGameBatch(Session session) : IOperationHandler
         bool native = peer.Translator is not Kogama.Protocols.LegacyTranslator;
         if (native) Console.WriteLine($"peer {peer.Id}: client {me.ClientVersion}");
         Snapshot snapshot = session.WithoutClassicAvatars(session.World.ToSnapshot());
+        session.IntroduceVisitor(me);
+        snapshot = session.VisitorFor(me, snapshot);
         if (me.SeesNpcs)
         {
             foreach (Npc npc in session.Npcs.Where(npc => !me.Saw(npc.Actor)))

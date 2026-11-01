@@ -34,6 +34,7 @@ public interface IServer
     ITemplates Templates { get; }
     IAssets Assets { get; }
     IScripts Scripts { get; }
+    bool SeasonalEventsEnabled { get; set; }
 
     IReadOnlyList<IPlayer> Players { get; }
     IReadOnlyList<IWorld> Worlds { get; }

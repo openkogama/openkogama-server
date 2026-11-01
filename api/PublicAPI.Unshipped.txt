@@ -1,1 +1,3 @@
 #nullable enable
+OpenKogama.Api.IServer.SeasonalEventsEnabled.get -> bool
+OpenKogama.Api.IServer.SeasonalEventsEnabled.set -> void

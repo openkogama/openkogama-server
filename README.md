@@ -67,6 +67,8 @@ Players type commands as `/hello` or `!hello`. Game versions from 3.0 on keep sl
 
 A plugin built against an older API keeps working on newer servers without a rebuild. The API only grows: existing members keep their signatures and enum values, so a new parameter means a new overload, and a member that gets replaced stays, marked `[Obsolete]`. The `Version` in `api/openkogama-api.csproj` goes up with every release that adds to the API, and a server skips a plugin built against a newer API than its own with a message saying so. `api/PublicAPI.Shipped.txt` lists what released servers offer and `api/PublicAPI.Unshipped.txt` what was added since; the build fails when a listed member changes or disappears, or when a new public member is missing from the lists (`dotnet format analyzers api/openkogama-api.csproj --diagnostics RS0016` adds it). On a release, the unshipped lines move into the shipped file.
 
+Plugins can switch off seasonal events like the Halloween visitor with `server.SeasonalEventsEnabled = false` in `Load`.
+
 ## Credits
 
 Made by nightus.

@@ -79,6 +79,7 @@ public static class PluginHost
         CustomContent.Clear();
         ClientScripts.ClearAdded();
         Themes.Reset();
+        Seasonal.Enabled = true;
         Server = new PluginServer();
     }
 
@@ -333,6 +334,11 @@ public static class PluginHost
         public ITemplates Templates { get; } = new PluginTemplates();
         public IAssets Assets { get; } = new PluginAssets();
         public IScripts Scripts { get; } = new PluginScripts();
+        public bool SeasonalEventsEnabled
+        {
+            get => Seasonal.Enabled;
+            set => Seasonal.Enabled = value;
+        }
 
         public IReadOnlyList<IPlayer> Players => [.. Sessions.SelectMany(session => session.Players.Select(player => PlayerOf(session, player)))];
 
