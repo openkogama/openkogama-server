@@ -46,8 +46,7 @@ public sealed class UpdateWorldObjectRunTimeData(Session session) : IOperationHa
             {
                 session.World.Modify(objectId, obj =>
                 {
-                    if (changes.GetValueOrDefault("currentItem") is Dictionary<object, object?>)
-                        obj.Runtime.RemoveAll(pair => pair.Key == "currentItem");
+                    obj.Runtime.RemoveAll(pair => changes.ContainsKey(pair.Key));
                     PackedData.Merge(obj.Runtime, changes);
                 });
             }
