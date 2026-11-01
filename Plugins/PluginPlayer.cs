@@ -151,7 +151,7 @@ sealed class PluginPlayer(Player player, Session session) : IPlayer
         Npc? attacker = by is null ? null : session.NpcByActor(by.Id);
         if (attacker?.Team == player.Team) return;
         session.DamagePlayer(player, by?.Id ?? player.Actor, amount, impulse ?? Vector3.Zero, by is null ? KilledBy.Environmental
-            : attacker?.ColossusScale is not null ? KilledBy.GodzillaLaser : KilledBy.Mutant);
+            : attacker is not null ? Session.WeaponOf(attacker) : KilledBy.Mutant);
         if (attacker is not null) PluginHost.DamagedByNpc(session, player, attacker, amount);
     }
 }

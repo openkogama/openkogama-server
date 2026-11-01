@@ -37,6 +37,16 @@ public sealed partial class Session
         GamePasses = new GamePasses(this, worldId is not null);
         if (worldId is not null && World.FindFirst(WorldObjectType.GameBoosterDataObject) is null)
             World.Add(new WorldObject { Id = World.NewObjectId(), ParentId = World.RootId, Type = WorldObjectType.GameBoosterDataObject, Owner = -1 });
+        if (World.FindFirst(WorldObjectType.GameBoosterDataObject) is { } boosters)
+            World.Modify(boosters.Id, DropEmptyBoosters);
+    }
+
+    static void DropEmptyBoosters(WorldObject boosters)
+    {
+        const string Prototypes = "GameBoosterPrototypeSetting";
+        if (boosters.Data.Find(pair => pair.Key == Prototypes).Value is not List<(string Key, PackedType Type, object Value)> settings) return;
+        settings.RemoveAll(pair => pair.Value is List<(string Key, PackedType Type, object Value)> booster && !booster.Exists(entry => entry.Key == "sk"));
+        if (settings.Count == 0) boosters.Data.RemoveAll(pair => pair.Key == Prototypes);
     }
 
     public string Name { get; }

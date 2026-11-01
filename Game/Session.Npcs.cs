@@ -253,7 +253,11 @@ public sealed partial class Session
             npc.HeldItemChanged = false;
             var item = new Dictionary<object, object?> { ["type"] = npc.HeldItem ?? (int)AvatarItemType.Hand };
             if (npc.HeldItemData is { } data) item["itemData"] = data;
-            var held = new Dictionary<object, object?> { ["currentItem"] = item };
+            var held = new Dictionary<object, object?>
+            {
+                ["currentItem"] = item,
+                ["hasHandEquippableItem"] = npc.HeldItem is int type && type != (int)AvatarItemType.Hand,
+            };
             World.Modify(npc.AvatarId, obj => PackedData.Merge(obj.Runtime, held));
             foreach (Player player in audience) player.Peer.Send(RuntimeEvent(npc, held));
         }
@@ -261,7 +265,14 @@ public sealed partial class Session
         while (npc.Aims.TryDequeue(out Vector3 aim))
         {
             EventData aimed = LineOfFire(npc, aim);
-            foreach (Player player in audience) player.Peer.Send(aimed);
+            Dictionary<object, object?> limbs = Pointing(npc, aim);
+            World.Modify(npc.AvatarId, obj => PackedData.Merge(obj.Runtime, limbs));
+            EventData pointed = RuntimeEvent(npc, limbs);
+            foreach (Player player in audience)
+            {
+                player.Peer.Send(aimed);
+                player.Peer.Send(pointed, reliable: false);
+            }
         }
 
         if (npc.Firing)
@@ -280,6 +291,25 @@ public sealed partial class Session
         }
         npc.Firing = true;
         npc.FiringUntil = now + Math.Max(FirePulseMs, shot.HoldMs);
+    }
+
+    static Dictionary<object, object?> Pointing(Npc npc, Vector3 direction)
+    {
+        float turn = npc.Yaw * MathF.PI / 180f;
+        Vector3 local = new(
+            direction.X * MathF.Cos(turn) - direction.Z * MathF.Sin(turn),
+            direction.Y,
+            direction.X * MathF.Sin(turn) + direction.Z * MathF.Cos(turn));
+        float yaw = Math.Clamp(MathF.Atan2(local.X, local.Z) * 180f / MathF.PI, -90f, 90f);
+        float pitch = Math.Clamp(-MathF.Asin(Math.Clamp(local.Y / Math.Max(local.Length(), 1e-6f), -1f, 1f)) * 180f / MathF.PI, -90f, 90f);
+        float euler(float angle) => (angle + 360f) % 360f;
+        return new Dictionary<object, object?>
+        {
+            ["pointRotationYaw"] = euler(yaw),
+            ["pointRotationPitch"] = euler(pitch),
+            ["headRotationYaw"] = euler(yaw),
+            ["headRotationPitch"] = euler(pitch),
+        };
     }
 
     static EventData LineOfFire(Npc npc, Vector3 direction) => new((byte)EventCode.UpdateLineOfFire)
@@ -600,8 +630,26 @@ public sealed partial class Session
 
     KilledBy CauseOf(Npc npc, int actor) =>
         actor == npc.Actor ? KilledBy.Environmental
-        : NpcByActor(actor) is { } attacker ? attacker.ColossusScale is not null ? KilledBy.GodzillaLaser : KilledBy.Mutant
+        : NpcByActor(actor) is { } attacker ? WeaponOf(attacker)
         : KilledBy.None;
+
+    internal static KilledBy WeaponOf(Npc attacker) =>
+        attacker.ColossusScale is not null ? KilledBy.GodzillaLaser : (AvatarItemType?)attacker.HeldItem switch
+        {
+            AvatarItemType.CenterGun => KilledBy.CenterGun,
+            AvatarItemType.ImpulseGun => KilledBy.SlapGun,
+            AvatarItemType.Bazooka => KilledBy.BazookaGun,
+            AvatarItemType.RailGun => KilledBy.RailGun,
+            AvatarItemType.Sword => KilledBy.Sword,
+            AvatarItemType.Shotgun => KilledBy.Shotgun,
+            AvatarItemType.Flamethrower => KilledBy.FlameThrower,
+            AvatarItemType.SixShooter => KilledBy.SixShooter,
+            AvatarItemType.DoubleSixShooter => KilledBy.DoubleSixShooter,
+            AvatarItemType.CustomGun => KilledBy.CustomGun,
+            AvatarItemType.GodzillaLaser => KilledBy.GodzillaLaser,
+            AvatarItemType.HealRay => KilledBy.RayHealGun,
+            _ => KilledBy.Mutant,
+        };
 
     public void DamagePlayer(Player victim, int attackerActor, float damage, Vector3 impulse, KilledBy killedBy)
     {
