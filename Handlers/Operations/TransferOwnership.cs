@@ -38,7 +38,7 @@ public sealed class TransferOwnership(Session session) : IOperationHandler
             Parameters = new Dictionary<byte, object?>(request.Parameters),
         };
         foreach (Player player in session.Players)
-            if (player.Peer != peer)
+            if (player.Peer != peer && player.InWorld)
                 player.Peer.Send(evt);
 
         peer.Send(new OperationResponse(request)

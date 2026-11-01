@@ -20,6 +20,6 @@ public sealed class ResetTerrain(Session session) : IOperationHandler
 
         var evt = new EventData((byte)EventCode.ResetTerrain);
         foreach (Player player in session.Players)
-            player.Peer.Send(evt);
+            if (player.InWorld) player.Peer.Send(evt);
     }
 }

@@ -47,7 +47,7 @@ public sealed class UpdatePrototype(Session session) : IOperationHandler
         };
 
         foreach (Player player in session.Players)
-            if (player.Peer != peer)
+            if (player.Peer != peer && player.InWorld)
                 player.Peer.Send(evt);
     }
 }

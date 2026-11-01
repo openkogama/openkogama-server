@@ -18,6 +18,6 @@ public sealed class RuntimeEvent(Session session) : IOperationHandler
             Parameters = { [(byte)ParameterKey.Data] = data },
         };
         foreach (Player player in session.Players)
-            player.Peer.Send(evt);
+            if (player.InWorld) player.Peer.Send(evt);
     }
 }

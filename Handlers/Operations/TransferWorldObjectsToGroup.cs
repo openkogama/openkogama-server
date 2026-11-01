@@ -31,6 +31,6 @@ public sealed class TransferWorldObjectsToGroup(Session session) : IOperationHan
             },
         };
         foreach (Player player in session.Players)
-            player.Peer.Send(evt);
+            if (player.InWorld) player.Peer.Send(evt);
     }
 }

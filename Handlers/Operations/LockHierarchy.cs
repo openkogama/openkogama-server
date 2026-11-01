@@ -40,6 +40,6 @@ public sealed class LockHierarchy(Session session) : IOperationHandler
             },
         };
         foreach (Player player in session.Players)
-            if (player.Peer != peer) player.Peer.Send(evt);
+            if (player.Peer != peer && player.InWorld) player.Peer.Send(evt);
     }
 }

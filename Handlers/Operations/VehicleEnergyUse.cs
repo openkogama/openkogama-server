@@ -42,7 +42,7 @@ public sealed class VehicleEnergyUse(PhotonServer server, Session session) : IOp
                 },
             };
             foreach (Player player in session.Players)
-                player.Peer.Send(evt);
+                if (player.InWorld) player.Peer.Send(evt);
         }
 
         peer.Send(new OperationResponse(request)

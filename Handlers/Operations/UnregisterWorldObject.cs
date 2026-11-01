@@ -50,7 +50,7 @@ public sealed class UnregisterWorldObject(Session session) : IOperationHandler
                 Parameters = { [(byte)ParameterKey.LinkID] = linkId },
             };
             foreach (Player player in session.Players)
-                player.Peer.Send(linkGone);
+                if (player.InWorld) player.Peer.Send(linkGone);
         }
 
         foreach (int prototypeId in removedPrototypes)
@@ -60,7 +60,7 @@ public sealed class UnregisterWorldObject(Session session) : IOperationHandler
                 Parameters = { [(byte)ParameterKey.WorldInventoryID] = prototypeId },
             };
             foreach (Player player in session.Players)
-                player.Peer.Send(prototypeGone);
+                if (player.InWorld) player.Peer.Send(prototypeGone);
         }
 
         var objectGone = new EventData((byte)EventCode.UnregisterWorldObject)
@@ -68,7 +68,7 @@ public sealed class UnregisterWorldObject(Session session) : IOperationHandler
             Parameters = { [(byte)ParameterKey.WorldObjectID] = objectId },
         };
         foreach (Player player in session.Players)
-            if (player.Peer != except)
+            if (player.Peer != except && player.InWorld)
                 player.Peer.Send(objectGone);
     }
 }

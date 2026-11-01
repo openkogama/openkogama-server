@@ -25,7 +25,7 @@ public sealed class DetachWorldObjectFromVehicle(Session session) : IOperationHa
             Parameters = { [(byte)ParameterKey.WorldObjectID] = objectId },
         };
         foreach (Player player in session.Players)
-            player.Peer.Send(evt);
+            if (player.InWorld) player.Peer.Send(evt);
 
         peer.Send(new OperationResponse(request));
     }

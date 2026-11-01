@@ -101,6 +101,6 @@ public static class Pickup
             },
         };
         foreach (Player player in session.Players)
-            player.Peer.Send(evt);
+            if (player.InWorld) player.Peer.Send(evt);
     }
 }
