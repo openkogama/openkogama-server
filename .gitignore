@@ -6,7 +6,5 @@ profiles/
 cache/
 bundles/
 server.db*
-seasonal.json
-seasonal.json.tmp
 logs/
 __pycache__/

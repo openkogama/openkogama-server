@@ -42,7 +42,7 @@ public sealed class ServerInfo
     public string AccountsUrl { get; init; } = "https://accounts.openkogama.org";
     public string[] Addresses { get; init; } = [];
 
-    public static readonly string[] Features = ["player", "player-deflate", "content", "tcp", "builder-tool"];
+    public static readonly string[] Features = ["player", "player-deflate", "content", "tcp"];
 
     public string[] FeaturesNow()
     {

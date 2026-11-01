@@ -318,7 +318,6 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
             TickErrors.Guard(world + " experience", () => Experience.Tick(session));
             TickErrors.Guard(world + " game passes", session.GamePasses.Tick);
             TickErrors.Guard(world + " npcs", session.TickNpcs);
-            TickErrors.Guard(world + " visitor", session.TickVisitor);
             TickErrors.Guard(world + " announcements", session.TickAnnouncements);
             TickErrors.Guard(world + " theme", session.Theme.Tick);
         }
