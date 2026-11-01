@@ -32,3 +32,63 @@ jobs:
         with:
           name: browser-server
           path: server
+
+  smoke:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: openkogama/openkogama-site
+          path: site
+      - uses: actions/download-artifact@v4
+        with:
+          name: browser-server
+          path: server
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: |
+          pip install playwright
+          python -m playwright install --with-deps chromium
+      - run: |
+          rm -rf site/site/server && cp -r server site/site/server
+          (cd site/site && python -m http.server 8092 --bind 127.0.0.1 > /dev/null 2>&1 &)
+          python - <<'PY'
+          import asyncio
+          from playwright.async_api import async_playwright
+
+          CHECK = """async () => {
+            OpenKogamaServer.install();
+            const server = await fetch("http://127.0.0.1:8080/api/server");
+            const worlds = await fetch("http://127.0.0.1:8080/api/worlds");
+            const opened = await new Promise(resolve => {
+              const socket = new WebSocket("ws://127.0.0.1:5055");
+              socket.onopen = () => resolve(true);
+              socket.onclose = () => resolve(false);
+              setTimeout(() => resolve(false), 30000);
+            });
+            return { server: server.status, info: await server.json(), worlds: worlds.status, opened };
+          }"""
+
+          async def main():
+              async with async_playwright() as playwright:
+                  browser = await playwright.chromium.launch()
+                  page = await browser.new_page()
+                  lines = []
+                  page.on("console", lambda message: lines.append(message.text))
+                  page.on("pageerror", lambda error: lines.append(f"page error: {error}"))
+                  await page.route("http://127.0.0.1:8092/smoke.html", lambda route: route.fulfill(body="<!doctype html><title>smoke</title>", content_type="text/html"))
+                  await page.goto("http://127.0.0.1:8092/smoke.html")
+                  await page.add_script_tag(url="/js/server.js")
+                  result = await page.evaluate(CHECK)
+                  await browser.close()
+              print(result)
+              print("\n".join(lines))
+              ready = any("browser server ready" in line for line in lines)
+              if not (ready and result["server"] == 200 and result["worlds"] == 200 and result["opened"]):
+                  raise SystemExit("the browser server did not come up")
+
+          asyncio.run(main())
+          PY
