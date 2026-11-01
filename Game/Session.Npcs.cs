@@ -72,7 +72,7 @@ public sealed partial class Session
         lock (_npcs)
             if (!_npcs.Remove(npc)) return false;
         Colossus.Release(this, npc.AvatarId);
-        World.RemoveTree(npc.AvatarId);
+        World.RemoveTree(npc.AvatarId, _avatarPrototypes);
 
         var unregister = new EventData((byte)EventCode.UnregisterWorldObject)
         {

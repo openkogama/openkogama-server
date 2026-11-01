@@ -150,13 +150,13 @@ public sealed partial class Session
         {
             if (!Seasonal.TryMarkSeen(VisitorKey))
             {
-                World.RemoveTree(avatar[0].Id);
+                World.RemoveTree(avatar[0].Id, _avatarPrototypes);
                 return;
             }
         }
         catch
         {
-            World.RemoveTree(avatar[0].Id);
+            World.RemoveTree(avatar[0].Id, _avatarPrototypes);
             throw;
         }
         _visitorActor = actor;
@@ -210,7 +210,7 @@ public sealed partial class Session
         int actor = _visitorActor;
         _visitorAvatar = -1;
         _visitorActor = -1;
-        World.RemoveTree(id);
+        World.RemoveTree(id, _avatarPrototypes);
         var unregister = new EventData((byte)EventCode.UnregisterWorldObject)
         {
             Parameters = { [(byte)ParameterKey.WorldObjectID] = id },

@@ -169,11 +169,11 @@ public sealed class GameWorld
         }
     }
 
-    public List<int> RemoveTree(int id)
+    public List<int> RemoveTree(int id, IEnumerable<int>? keep = null)
     {
         lock (_sync)
         {
-            List<int> candidates = [.. Subtree(id).Select(obj => obj.PrototypeId).OfType<int>().Distinct()];
+            List<int> candidates = [.. Subtree(id).Select(obj => obj.PrototypeId).OfType<int>().Distinct().Except(keep ?? [])];
             Remove(id);
 
             var stillUsed = _objects.Select(obj => obj.PrototypeId).OfType<int>().ToHashSet();
