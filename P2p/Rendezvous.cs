@@ -49,6 +49,7 @@ public sealed class Rendezvous(int port) : INatPunchListener
         events.ConnectionRequestEvent += request => request.AcceptIfKey(Tunnel.Key);
         events.NetworkReceiveEvent += Receive;
         events.PeerDisconnectedEvent += (peer, _) => Forget(peer);
+        events.PeerAddressChangedEvent += (peer, previous) => Console.WriteLine($"{previous} moved to {peer.Address}:{peer.Port}");
         _manager = Tunnel.Manager(events, this);
         if (!_manager.Start(port)) throw new InvalidOperationException($"rendezvous cannot listen on udp {port}");
         Console.WriteLine($"rendezvous udp {port}");
