@@ -5,14 +5,14 @@ using Microsoft.Data.Sqlite;
 
 namespace OpenKogama.Accounts;
 
-public sealed record Account(long Id, string Name, string? Email, string? Password, bool Verified, string? Google);
+public sealed record Account(long Id, string Name, string? Email, string? Password, bool Verified, string? Google, bool Terms);
 
 public sealed class AccountStore
 {
     const int TokenSize = 32;
     const int MaxAttempts = 5;
     static readonly TimeSpan SessionLife = TimeSpan.FromDays(180);
-    const string Columns = "id, name, email, password, verified, google";
+    const string Columns = "id, name, email, password, verified, google, terms";
 
     readonly string _connection;
 
@@ -28,7 +28,8 @@ public sealed class AccountStore
                 password TEXT,
                 verified INTEGER NOT NULL DEFAULT 0,
                 google TEXT UNIQUE,
-                created INTEGER NOT NULL
+                created INTEGER NOT NULL,
+                terms INTEGER
             );
             CREATE TABLE IF NOT EXISTS sessions (
                 token TEXT PRIMARY KEY,
@@ -61,6 +62,7 @@ public sealed class AccountStore
             ALTER TABLE accounts_new RENAME TO accounts;
             COMMIT;
             """);
+        if (!HasColumn("terms")) Execute("ALTER TABLE accounts ADD COLUMN terms INTEGER");
     }
 
     bool EmailRequired()
@@ -68,6 +70,13 @@ public sealed class AccountStore
         using SqliteConnection connection = Open();
         using SqliteCommand command = Command(connection, "SELECT \"notnull\" FROM pragma_table_info('accounts') WHERE name = 'email'");
         return command.ExecuteScalar() is long required && required == 1;
+    }
+
+    bool HasColumn(string name)
+    {
+        using SqliteConnection connection = Open();
+        using SqliteCommand command = Command(connection, "SELECT COUNT(*) FROM pragma_table_info('accounts') WHERE name = $name", ("$name", name));
+        return command.ExecuteScalar() is long count && count > 0;
     }
 
     public Account? Find(string login) => One($"SELECT {Columns} FROM accounts WHERE name = $v OR email = $v", login);
@@ -91,6 +100,15 @@ public sealed class AccountStore
     public void SetPassword(long id, string hash) => Execute("UPDATE accounts SET password = $hash, verified = 1 WHERE id = $id", ("$id", id), ("$hash", hash));
     public void LinkGoogle(long id, string subject) => Execute("UPDATE accounts SET google = $google, verified = 1 WHERE id = $id", ("$id", id), ("$google", subject));
     public void DropUnverified(TimeSpan age) => Execute("DELETE FROM accounts WHERE verified = 0 AND created < $before", ("$before", Now() - (long)age.TotalSeconds));
+    public void AcceptTerms(long id) => Execute("UPDATE accounts SET terms = $now WHERE id = $id", ("$id", id), ("$now", Now()));
+
+    public void Delete(long id, string? email, string purpose) => Execute("""
+        BEGIN;
+        DELETE FROM sessions WHERE account = $id;
+        DELETE FROM codes WHERE email = $email OR purpose = $purpose;
+        DELETE FROM accounts WHERE id = $id;
+        COMMIT;
+        """, ("$id", id), ("$email", (object?)email ?? DBNull.Value), ("$purpose", purpose));
 
     public string StartSession(long account)
     {
@@ -143,7 +161,7 @@ public sealed class AccountStore
         using SqliteDataReader reader = command.ExecuteReader();
         return reader.Read()
             ? new Account(reader.GetInt64(0), reader.GetString(1), reader.IsDBNull(2) ? null : reader.GetString(2), reader.IsDBNull(3) ? null : reader.GetString(3),
-                reader.GetInt32(4) != 0, reader.IsDBNull(5) ? null : reader.GetString(5))
+                reader.GetInt32(4) != 0, reader.IsDBNull(5) ? null : reader.GetString(5), !reader.IsDBNull(6))
             : null;
     }
 

@@ -143,6 +143,8 @@ public sealed partial class AccountService(AccountStore store, ECDsa key, Func<s
         ("POST", "/me") => Me(body),
         ("POST", "/ticket") => Issue(body),
         ("POST", "/logout") => Logout(body),
+        ("POST", "/terms") => AcceptTerms(body),
+        ("POST", "/delete") => DeleteAccount(body, source),
         ("POST", "/email") => await AddEmailAsync(body, source),
         ("POST", "/email/confirm") => ConfirmEmail(body, source),
         ("POST", "/launcher/code") => HandOff(body),
@@ -174,7 +176,9 @@ public sealed partial class AccountService(AccountStore store, ECDsa key, Func<s
         {
             return Error(409, "that name or email is taken");
         }
-        if (email is null) return Signed(new Account(id, name, null, hash, true, null));
+        bool terms = Flag(body, "terms");
+        if (terms) store.AcceptTerms(id);
+        if (email is null) return Signed(new Account(id, name, null, hash, true, null, terms));
         await SendCodeAsync(email, Verify, name);
         return Ok(new JsonObject { ["pending"] = true });
     }
@@ -265,7 +269,7 @@ public sealed partial class AccountService(AccountStore store, ECDsa key, Func<s
     static string EmailFor(Account account) => "email " + account.Id;
 
     Reply Me(JsonObject? body) => Text(body, "token") is string token && store.Session(token) is Account account
-        ? Ok(new JsonObject { ["name"] = account.Name, ["email"] = account.Email })
+        ? Ok(new JsonObject { ["name"] = account.Name, ["email"] = account.Email, ["terms"] = account.Terms })
         : Error(401, "sign in again");
 
     Reply Issue(JsonObject? body)
@@ -279,6 +283,26 @@ public sealed partial class AccountService(AccountStore store, ECDsa key, Func<s
     {
         if (Text(body, "token") is string token) store.EndSession(token);
         return Ok(new JsonObject());
+    }
+
+    Reply AcceptTerms(JsonObject? body)
+    {
+        if (Text(body, "token") is not string token || store.Session(token) is not Account account) return Error(401, "sign in again");
+        store.AcceptTerms(account.Id);
+        return Ok(new JsonObject { ["terms"] = true });
+    }
+
+    Reply DeleteAccount(JsonObject? body, string source)
+    {
+        if (!Allow("login " + source, 20, TenMinutes)) return TooMany();
+        if (Text(body, "token") is not string token || store.Session(token) is not Account account) return Error(401, "sign in again");
+        if (!Passwords.Verify(Text(body, "password") ?? "", account.Password ?? Decoy.Value)) return Error(401, "wrong password");
+        store.Delete(account.Id, account.Email, EmailFor(account));
+        lock (_handoffs)
+            foreach (string code in _handoffs.Where(pair => pair.Value.Account.Id == account.Id).Select(pair => pair.Key).ToList())
+                _handoffs.Remove(code);
+        Console.WriteLine($"accounts: {account.Id} deleted");
+        return Ok(new JsonObject { ["deleted"] = true });
     }
 
     Reply HandOff(JsonObject? body)
@@ -336,7 +360,7 @@ public sealed partial class AccountService(AccountStore store, ECDsa key, Func<s
         await send(email, mail);
     }
 
-    Reply Signed(Account account) => Ok(new JsonObject { ["token"] = store.StartSession(account.Id), ["name"] = account.Name });
+    Reply Signed(Account account) => Ok(new JsonObject { ["token"] = store.StartSession(account.Id), ["name"] = account.Name, ["terms"] = account.Terms });
 
     static Reply Ok(JsonObject body) => new(200, body);
     static Reply Error(int status, string message) => new(status, new JsonObject { ["error"] = message });
@@ -355,6 +379,9 @@ public sealed partial class AccountService(AccountStore store, ECDsa key, Func<s
 
     static string? Text(JsonObject? body, string name) =>
         body?[name] is JsonValue value && value.TryGetValue(out string? text) ? text : null;
+
+    static bool Flag(JsonObject? body, string name) =>
+        body?[name] is JsonValue value && value.TryGetValue(out bool flag) && flag;
 
     static string? Email(string? text)
     {

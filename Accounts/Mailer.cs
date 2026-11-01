@@ -28,11 +28,11 @@ public sealed class Mailer(string? apiKey, string from)
         try
         {
             using HttpResponseMessage response = await Http.SendAsync(request);
-            if (!response.IsSuccessStatusCode) Console.WriteLine($"mail to {to} failed with {(int)response.StatusCode}");
+            if (!response.IsSuccessStatusCode) Console.WriteLine($"mail failed with {(int)response.StatusCode}");
         }
         catch (HttpRequestException error)
         {
-            Console.WriteLine($"mail to {to} failed: {error.Message}");
+            Console.WriteLine($"mail failed: {error.Message}");
         }
     }
 }
