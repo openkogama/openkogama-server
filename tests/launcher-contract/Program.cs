@@ -43,8 +43,9 @@ try
     var metadata = api.Route(Get("/api/server"));
     using (var json = JsonDocument.Parse(metadata.Body))
     {
-        Check(metadata.Status == 200 && json.RootElement.EnumerateObject().Count() == 7,
-            "launcher metadata exposes only its tile fields and features");
+        Check(metadata.Status == 200 && json.RootElement.EnumerateObject().Count() == 8,
+            "launcher metadata exposes only its tile fields, address and features");
+        Check(json.RootElement.GetProperty("url").ValueKind == JsonValueKind.Null, "a local server gives no address of its own");
         Check(json.RootElement.GetProperty("clients").GetArrayLength() == 0, "every version is accepted when clients is not set");
         Check(json.RootElement.GetProperty("title").GetString()!.Length == 40, "title has a 40-character limit");
         Check(json.RootElement.GetProperty("thumbnail").GetString() == "/api/server/thumbnail", "thumbnail uses the fixed endpoint");

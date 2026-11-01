@@ -11,9 +11,14 @@ public static class TunnelGuests
     const int IdLength = 16;
 
     static readonly ConcurrentDictionary<int, string> Ids = new();
+    static readonly ConcurrentDictionary<string, byte> Codes = new();
     static readonly Lazy<byte[]> Salt = new(LoadSalt);
 
     public static void Report(int port, IPAddress address) => Ids[port] = IdOf(address);
+
+    public static void Hosting(string code) => Codes[$"p2p:{code}".ToLowerInvariant()] = 0;
+
+    public static bool Hosts(string audience) => Codes.ContainsKey(audience);
 
     public static string? Of(IPEndPoint endPoint) =>
         P2p.Tunnel.Carries(endPoint.Address) && Ids.TryGetValue(endPoint.Port, out string? id) ? id : null;

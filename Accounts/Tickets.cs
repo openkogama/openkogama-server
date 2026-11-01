@@ -23,18 +23,31 @@ public static class Tickets
         return Base64Url.EncodeToString(data) + "." + Base64Url.EncodeToString(key.SignData(data, HashAlgorithmName.SHA256));
     }
 
-    public static Ticket? Verify(ECDsa key, string ticket, Func<string, bool> audience)
+    public static Ticket? Verify(ECDsa key, string ticket, Func<string, bool> audience) => Verify(key, ticket, audience, out _);
+
+    public static Ticket? Verify(ECDsa key, string ticket, Func<string, bool> audience, out string? problem)
     {
+        problem = "unreadable ticket";
         int dot = ticket.IndexOf('.');
         if (dot <= 0) return null;
         try
         {
             byte[] data = Base64Url.DecodeFromChars(ticket.AsSpan(0, dot));
-            if (!key.VerifyData(data, Base64Url.DecodeFromChars(ticket.AsSpan(dot + 1)), HashAlgorithmName.SHA256)) return null;
+            if (!key.VerifyData(data, Base64Url.DecodeFromChars(ticket.AsSpan(dot + 1)), HashAlgorithmName.SHA256))
+            {
+                problem = "ticket not signed by the accounts server";
+                return null;
+            }
             Payload? payload = JsonSerializer.Deserialize<Payload>(data, Json);
+            if (payload is null) return null;
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            if (payload is null || payload.Exp + Skew.TotalSeconds < now || payload.Iat - Skew.TotalSeconds > now || !audience(payload.Aud)) return null;
-            return new Ticket(payload.Jti, payload.Sub, payload.Name, payload.Aud);
+            problem = payload.Exp + Skew.TotalSeconds < now ? $"ticket expired {now - payload.Exp} s ago"
+                : payload.Iat - Skew.TotalSeconds > now ? $"ticket issued {payload.Iat - now} s in the future, check the clock"
+                : !audience(payload.Aud) ? payload.Aud.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+                    ? $"ticket for {payload.Aud}, add it to addresses in server.json if that is this server"
+                    : $"ticket for {payload.Aud}, not this server"
+                : null;
+            return problem is null ? new Ticket(payload.Jti, payload.Sub, payload.Name, payload.Aud) : null;
         }
         catch (Exception error) when (error is FormatException or JsonException or CryptographicException)
         {

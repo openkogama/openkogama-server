@@ -83,6 +83,7 @@ public sealed class HttpServer(string prefix, WebApi api)
     {
         if (Handlers.OperationRouter.Trace) Console.WriteLine($"http {request.HttpMethod} {request.Url?.PathAndQuery} {result.Status} {result.Body.Length}");
         response.StatusCode = result.Status;
+        if (result.Location is not null) response.RedirectLocation = result.Location;
         if (result.ContentType is not null) response.ContentType = result.ContentType;
         response.ContentLength64 = result.Body.Length;
         response.OutputStream.Write(result.Body);

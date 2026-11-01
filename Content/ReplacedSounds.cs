@@ -33,6 +33,12 @@ public sealed class ReplacedSounds
         lock (_sync) _sounds.Clear();
     }
 
+    public bool Covers(string file)
+    {
+        if (GameSoundFiles.Find(file) is not GameSound sound) return false;
+        lock (_sync) return _sounds.ContainsKey(sound);
+    }
+
     public byte[] Apply(string set, string file, byte[] original)
     {
         if (GameSoundFiles.Find(file) is not GameSound sound) return original;

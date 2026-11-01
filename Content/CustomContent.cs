@@ -37,6 +37,9 @@ public static partial class CustomContent
     public static byte[] Replace(string set, string file, byte[] original) =>
         ReplacedBundles.For(set, file) ?? ReplacedSounds.Apply(set, file, original);
 
+    public static bool Covers(string set, string file) =>
+        BundlePath().IsMatch(file) || ReplacedBundles.For(set, file) is not null || ReplacedSounds.Covers(file);
+
     public static string GroupName(SoundGroup group) => group == SoundGroup.Suspense ? "Suspence" : group.ToString();
 
     public static byte[] Built(string file, Func<byte[]> build)

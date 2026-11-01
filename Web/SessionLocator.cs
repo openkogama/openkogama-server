@@ -7,7 +7,8 @@ namespace OpenKogama.Web;
 public static class SessionLocator
 {
     static readonly ConcurrentDictionary<int, string> Tunneled = new();
-    static readonly ConcurrentDictionary<int, string> Bundles = new();
+    static readonly ConcurrentDictionary<int, int> Locals = new();
+    const int FirstRedirectingEngine = 2017;
 
     public static string GameServer { get; set; } = "127.0.0.1";
     public static string? GameServer2012 { get; set; }
@@ -18,11 +19,18 @@ public static class SessionLocator
     {
         if (via is null) Tunneled.TryRemove(profile, out _);
         else Tunneled[profile] = via;
-        if (via is not null && local > 0) Bundles[profile] = $"http://127.0.0.1:{local}";
-        else Bundles.TryRemove(profile, out _);
+        if (via is not null && local > 0) Locals[profile] = local;
+        else Locals.TryRemove(profile, out _);
     }
 
-    public static string BundlesFor(int profile) => Bundles.TryGetValue(profile, out string? root) ? root : PublicUrl;
+    public static string BundlesFor(int profile, string? unity = null)
+    {
+        if (!Locals.TryGetValue(profile, out int local)) return PublicUrl;
+        return Redirects(unity) && Tunneled.TryGetValue(profile, out string? via) ? $"http://{via}/local/{local}" : $"http://127.0.0.1:{local}";
+    }
+
+    static bool Redirects(string? unity) =>
+        int.TryParse(unity?.Split('.')[0], out int major) && major >= FirstRedirectingEngine;
 
     public static string UrlFor(int profile) => Tunneled.TryGetValue(profile, out string? via) ? "http://" + via : PublicUrl;
 

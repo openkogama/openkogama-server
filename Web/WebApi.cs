@@ -17,7 +17,11 @@ public sealed record ApiResponse(int Status, string? ContentType, byte[] Body)
 {
     public static readonly ApiResponse NotFound = new(404, null, []);
 
+    public string? Location { get; init; }
+
     public static ApiResponse Json(string body, int status = 200) => new(status, "application/json", Encoding.UTF8.GetBytes(body));
+
+    public static ApiResponse Redirect(string location) => new(302, null, []) { Location = location };
 }
 
 public sealed class WebApi
@@ -68,6 +72,7 @@ public sealed class WebApi
                 players = Players(),
                 udp = ServerInfo.PhotonPort,
                 @public = ServerInfo.Public,
+                url = ServerInfo.Address,
                 features = ServerInfo.FeaturesNow(),
             }));
         }
@@ -96,16 +101,22 @@ public sealed class WebApi
             int profile = !remote && int.TryParse(query["profile"], out int requested) && requested > 0 ? requested : 1;
             string? nickname = SessionToken.Clean(query["name"]);
             string? account = null;
-            if (remote && ServerInfo.Accounts != AccountMode.Offline && AccountTickets.Accept(query["ticket"], ServerInfo.Accepts) is Ticket ticket)
+            string? problem = null;
+            if (remote && ServerInfo.Accounts != AccountMode.Offline && AccountTickets.Accept(query["ticket"], ServerInfo.Accepts, out problem) is Ticket ticket)
             {
                 profile = Stores.Profiles.ForAccount(ticket.Account, ticket.Name);
                 nickname = ticket.Name;
                 account = SessionToken.Clean(ticket.Name);
             }
             else if (remote && ServerInfo.Accounts == AccountMode.Online)
+            {
+                Console.WriteLine($"session refused for {nickname ?? "a player"}: {problem}");
                 return Refused("This server needs an OpenKogama account, sign in with the launcher");
+            }
             else if (remote && nickname is not null)
             {
+                if (ServerInfo.Accounts != AccountMode.Offline && !string.IsNullOrEmpty(query["ticket"]))
+                    Console.WriteLine($"ticket of {nickname} not taken, joins without the account: {problem}");
                 profile = Stores.Profiles.ForName(nickname);
                 if (ServerInfo.Accounts == AccountMode.Optional && Stores.Profiles.Claimed(profile))
                     return Refused("That name belongs to an OpenKogama account, sign in with the launcher to use it");
@@ -149,6 +160,20 @@ public sealed class WebApi
             GuestSeen(port);
             return ApiResponse.Json("{}");
         }
+
+        if (path.TrimEnd('/') == "/api/tunnel/host" && request.Method == "POST")
+        {
+            if (!request.Local || ServerInfo.Shared || P2p.Tunnel.Normalize(query["code"]) is not string code)
+                return new ApiResponse(403, null, []);
+            TunnelGuests.Hosting(code);
+            if (ServerInfo.Accounts != AccountMode.Offline) CentralKey.Start(ServerInfo.AccountsUrl, "accounts.pub");
+            return ApiResponse.Json("{}");
+        }
+
+        if (request.Via is not null && LocalBundle(path) is (int localPort, string bundlePath))
+            return Hosted(bundlePath) && Bundle(bundlePath) is byte[] hosted
+                ? new ApiResponse(200, "application/octet-stream", hosted)
+                : ApiResponse.Redirect($"http://127.0.0.1:{localPort}{bundlePath}");
 
         if (path.TrimEnd('/') == "/api/player" && request.Method == "POST")
             return ApiResponse.Json("{}", PlayerPackages.Offer(query["key"], request.Body, request.Encoding) ? 200 : 400);
@@ -420,14 +445,27 @@ public sealed class WebApi
             string legacy = Uri.UnescapeDataString(path["/bundles/".Length..]);
             return CustomContent.Bundle(BundleSets.Legacy, legacy) ?? Assets?.Get(legacy);
         }
-        if (!path.StartsWith("/bundles-")) return null;
-
-        int slash = path.IndexOf('/', "/bundles-".Length);
-        if (slash < 0) return null;
-        string set = path["/bundles-".Length..slash];
-        string file = BundleSets.FileOf(Uri.UnescapeDataString(path[(slash + 1)..]));
+        if (BundleFile(path) is not var (set, file)) return null;
         if (CustomContent.Bundle(set, file, name => Original(set, name)) is { } custom) return custom;
         return Original(set, file) is { } original ? CustomContent.Replace(set, file, original) : null;
+    }
+
+    static (string Set, string File)? BundleFile(string path)
+    {
+        if (path.StartsWith("/bundles/")) return (BundleSets.Legacy, Uri.UnescapeDataString(path["/bundles/".Length..]));
+        if (!path.StartsWith("/bundles-")) return null;
+        int slash = path.IndexOf('/', "/bundles-".Length);
+        if (slash < 0) return null;
+        return (path["/bundles-".Length..slash], BundleSets.FileOf(Uri.UnescapeDataString(path[(slash + 1)..])));
+    }
+
+    static bool Hosted(string path) => BundleFile(path) is var (set, file) && CustomContent.Covers(set, file);
+
+    static (int Port, string Path)? LocalBundle(string path)
+    {
+        if (!path.StartsWith("/local/")) return null;
+        int slash = path.IndexOf('/', "/local/".Length);
+        return slash > 0 && int.TryParse(path["/local/".Length..slash], out int port) && port is > 0 and < 65536 ? (port, path[slash..]) : null;
     }
 
     byte[]? Original(string set, string file)

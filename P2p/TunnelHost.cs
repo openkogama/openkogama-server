@@ -174,6 +174,7 @@ public sealed class TunnelHost : INatPunchListener
                     reader.GetByte();
                     _code = reader.GetString(16);
                     Console.WriteLine($"code {_code}");
+                    Tell($"http://127.0.0.1:{_http}/api/tunnel/host?code={Uri.EscapeDataString(_code)}");
                     long registeredAt = Environment.TickCount64;
                     if (!_relayed.IsEmpty) _ = Task.Delay(RebindMs).ContinueWith(_ => DropRelayed(registeredAt));
                     _manager.NatPunchModule.SendNatIntroduceRequest(new IPEndPoint(peer.Address, peer.Port), "h:" + _code);
@@ -206,9 +207,10 @@ public sealed class TunnelHost : INatPunchListener
         }
     }
 
-    void Report(int port, IPAddress address) =>
-        _ = Server.PostAsync($"http://127.0.0.1:{_http}/api/tunnel/guest?port={port}&ip={address.MapToIPv4()}", null)
-            .ContinueWith(task => { if (task.IsCompletedSuccessfully) task.Result.Dispose(); });
+    void Report(int port, IPAddress address) => Tell($"http://127.0.0.1:{_http}/api/tunnel/guest?port={port}&ip={address.MapToIPv4()}");
+
+    static void Tell(string url) =>
+        _ = Server.PostAsync(url, null).ContinueWith(task => { if (task.IsCompletedSuccessfully) task.Result.Dispose(); });
 
     void Count()
     {

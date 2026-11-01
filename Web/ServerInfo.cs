@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using OpenKogama.Accounts;
 using OpenKogama.Content;
+using OpenKogama.Game;
 using OpenKogama.Storage;
 
 namespace OpenKogama.Web;
@@ -53,8 +54,11 @@ public sealed class ServerInfo
     public bool Accepts(string audience)
     {
         string wanted = AccountTickets.Audience(audience);
-        return AccountTickets.Audience(PublicUrl) == wanted || Addresses.Any(address => AccountTickets.Audience(address) == wanted);
+        return AccountTickets.Audience(PublicUrl) == wanted || Addresses.Any(address => AccountTickets.Audience(address) == wanted)
+            || TunnelGuests.Hosts(wanted);
     }
+
+    public string? Address => Shared ? AccountTickets.Audience(PublicUrl) : null;
 
     public static ServerInfo Load(string path) => File.Exists(path)
         ? JsonSerializer.Deserialize<ServerInfo>(File.ReadAllText(path), new JsonSerializerOptions { PropertyNameCaseInsensitive = true, Converters = { new JsonStringEnumConverter() } })
