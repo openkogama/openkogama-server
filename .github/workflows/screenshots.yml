@@ -14,6 +14,15 @@ on:
       spawn:
         description: press play and wait in the world
         default: "true"
+      only:
+        description: versions to play, comma separated, empty for all
+        default: ""
+      mods:
+        description: openkogama-mods branch to build the server with
+        default: ""
+      fixes:
+        description: client fixes the launcher would apply, space separated
+        default: ""
 
 env:
   TEMPLATE: ${{ inputs.template || 'poison' }}
@@ -35,6 +44,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: openkogama/openkogama-mods
+          ref: ${{ inputs.mods }}
           path: openkogama-mods
       - uses: actions/checkout@v4
         with:
@@ -63,7 +73,8 @@ jobs:
         shell: pwsh
         run: |
           $size = [int]("${{ inputs.chunk }}" -replace '^$', '12')
-          $ids = (Invoke-RestMethod "https://cdn.openkogama.org/versions.json" -Headers @{ "User-Agent" = "openkogama-server" }).versions | Sort-Object timestamp | ForEach-Object id
+          $only = "${{ inputs.only }}".Split(',', [StringSplitOptions]::RemoveEmptyEntries) | ForEach-Object { $_.Trim() }
+          $ids = (Invoke-RestMethod "https://cdn.openkogama.org/versions.json" -Headers @{ "User-Agent" = "openkogama-server" }).versions | Where-Object { -not $only -or $only -contains $_.version } | Sort-Object timestamp | ForEach-Object id
           $chunks = for ($i = 0; $i -lt $ids.Count; $i += $size) { @{ n = $i / $size; ids = ($ids[$i..([Math]::Min($i + $size, $ids.Count) - 1)] -join ',') } }
           "chunks=$($chunks | ConvertTo-Json -Compress -AsArray)" >> $env:GITHUB_OUTPUT
           Write-Host "$($ids.Count) builds in $(@($chunks).Count) jobs"
@@ -95,7 +106,7 @@ jobs:
         with:
           name: player
           path: player
-      - run: ./.github/screenshot.ps1 -Ids "${{ matrix.chunk.ids }}" -Server server -Player player -Out shots -Template $env:TEMPLATE -Spawn:($env:SPAWN -eq "true") -Settle 3
+      - run: ./.github/screenshot.ps1 -Ids "${{ matrix.chunk.ids }}" -Server server -Player player -Out shots -Template $env:TEMPLATE -Spawn:($env:SPAWN -eq "true") -Settle 3 -Fixes "${{ inputs.fixes }}"
         shell: powershell
       - uses: actions/upload-artifact@v4
         if: always()

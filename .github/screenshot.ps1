@@ -1,4 +1,4 @@
-param([string]$Ids, [string]$Server, [string]$Player, [string]$Out, [int]$Width = 1080, [int]$Height = 1920, [int]$Timeout = 180, [string]$Template = "city", [switch]$Spawn, [int]$Settle = 6)
+param([string]$Ids, [string]$Server, [string]$Player, [string]$Out, [int]$Width = 1080, [int]$Height = 1920, [int]$Timeout = 180, [string]$Template = "city", [switch]$Spawn, [int]$Settle = 6, [string]$Fixes = "")
 $ErrorActionPreference = "Stop"
 $Server = (Resolve-Path $Server).Path
 New-Item -ItemType Directory -Force $Out | Out-Null
@@ -80,6 +80,43 @@ $versions = (Invoke-RestMethod "https://cdn.openkogama.org/versions.json" -Heade
 $results = Join-Path $Out "results.jsonl"
 $webPlayerReady = $false
 
+$unpack = Join-Path $env:RUNNER_TEMP "unpack.py"
+Set-Content $unpack @'
+import struct, sys
+data = open(sys.argv[1], "rb").read()
+at = data.index(b"\0") + 1
+version = struct.unpack_from(">I", data, at)[0]; at += 4
+at = data.index(b"\0", at) + 1
+at = data.index(b"\0", at) + 1
+if version >= 4: at += 20
+header = struct.unpack_from(">II", data, at)[1]
+count = struct.unpack_from(">I", data, header)[0]; at = header + 4
+for _ in range(count):
+    end = data.index(b"\0", at); name = data[at:end].decode(); at = end + 1
+    offset, size = struct.unpack_from(">II", data, at); at += 8
+    if name.endswith("Assembly-CSharp.dll"): open(sys.argv[2], "wb").write(data[header + offset:header + offset + size])
+'@
+$checking = $Fixes.Split(' ') -contains "camera"
+if ($checking) {
+    dotnet tool install -g ilspycmd --version 9.1.0.7988 | Out-Null
+    $env:DOTNET_ROLL_FORWARD = "Major"
+}
+
+function Fix-Client($file) {
+    $script:fixed = $null
+    if (-not $Fixes -or -not $file) { return }
+    Copy-Item $file "$file.original" -Force
+    $lines = & (Join-Path $Server "openkogama-server.exe") client fix "$file.original" $file $Fixes.Split(' ', [StringSplitOptions]::RemoveEmptyEntries) 2>&1
+    $lines | ForEach-Object { Write-Host "  $_" }
+    $script:fixed = ($lines | Where-Object { "$_" -match "applied" }) -join "; "
+    if (-not $checking) { return }
+    $dll = Join-Path $env:RUNNER_TEMP "Assembly-CSharp.dll"
+    Remove-Item $dll -ErrorAction SilentlyContinue
+    if ($file.EndsWith(".dll")) { Copy-Item $file $dll } else { python $unpack $file $dll }
+    $code = & (Join-Path $env:USERPROFILE ".dotnet\tools\ilspycmd.exe") -t PlaymodeCamera $dll 2>$null | Out-String
+    Write-Host ("  camera: {0} square roots clamped in PlaymodeCamera" -f ([regex]::Matches($code, "Mathf\.Max\(")).Count)
+}
+
 function Stop-Leftovers {
     Get-Process kogama, openkogama-player, openkogama-server -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
     Start-Sleep 2
@@ -148,6 +185,7 @@ function Capture-Build($entry) {
     if ($entry.unityVersion.StartsWith("3.")) {
         if (-not $script:webPlayerReady) { Install-WebPlayer; $script:webPlayerReady = $true }
         $webFile = (Get-ChildItem $client -Recurse -Include *.unity3d, *.unityweb | Select-Object -First 1).FullName
+        Fix-Client $webFile
         $psi.FileName = Join-Path $Player "openkogama-player.exe"
         $psi.WorkingDirectory = $Player
         if ($entry.unityVersion.StartsWith("3.4")) {
@@ -158,6 +196,7 @@ function Capture-Build($entry) {
         }
     } else {
         $exe = Get-ChildItem $client -Recurse -Filter kogama.exe | Select-Object -First 1
+        Fix-Client (Get-ChildItem $client -Recurse -Filter Assembly-CSharp.dll | Where-Object { $_.FullName -match "Managed" } | Select-Object -First 1).FullName
         $session = "http://127.0.0.1:8080/session?mode=play&world=$world&client=$version&unity=$($entry.unityVersion)"
         $psi.FileName = $exe.FullName
         $psi.WorkingDirectory = $exe.DirectoryName
@@ -193,7 +232,7 @@ function Capture-Build($entry) {
     Stop-Leftovers
     New-Item -ItemType Directory -Force (Join-Path $Out "logs") | Out-Null
     foreach ($log in @($serverLog, $clientLog)) { if (Test-Path $log) { Copy-Item $log (Join-Path $Out "logs\$name-$(Split-Path $log -Leaf)") } }
-    [ordered]@{ id = $entry.id; version = $version; unity = $entry.unityVersion; timestamp = $entry.timestamp; ready = $ready; blank = $blank; file = $file; clicked = $clicked } | ConvertTo-Json -Compress | Add-Content $results
+    [ordered]@{ id = $entry.id; version = $version; unity = $entry.unityVersion; timestamp = $entry.timestamp; ready = $ready; blank = $blank; file = $file; clicked = $clicked; fixed = $script:fixed } | ConvertTo-Json -Compress | Add-Content $results
 }
 
 foreach ($id in $Ids.Split(',')) {
