@@ -42,17 +42,20 @@ public sealed partial class AccountService(AccountStore store, ECDsa key, Func<s
     public HashSet<string> Origins { get; init; } = ["https://openkogama.org", "https://www.openkogama.org"];
     public Func<string?, string, Task<bool>>? Human { get; init; }
     public MapSubmissions? Maps { get; init; }
+    public PluginHub? Plugins { get; set; }
 
     public static int Run(string[] options)
     {
         int port = int.TryParse(Tunnel.Option(options, "port"), out int given) ? given : 8098;
-        var store = new AccountStore(Tunnel.Option(options, "db") ?? "accounts.db");
+        string db = Tunnel.Option(options, "db") ?? "accounts.db";
+        var store = new AccountStore(db);
         ECDsa key = Tickets.LoadOrCreate(Tunnel.Option(options, "key") ?? "accounts.key");
         var service = new AccountService(store, key, Mailer.FromEnvironment().SendAsync)
         {
             Human = Turnstile.FromEnvironment(),
             Maps = new MapSubmissions(Tunnel.Option(options, "maps") ?? "maps"),
         };
+        service.Plugins = new PluginHub(store, new PluginStore(db), Tunnel.Option(options, "plugins") ?? "plugins", service.Allow);
         foreach (string origin in (Tunnel.Option(options, "origins") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
             service.Origins.Add(origin);
         service.Serve(port);
@@ -83,7 +86,7 @@ public sealed partial class AccountService(AccountStore store, ECDsa key, Func<s
         if (request.HttpMethod == "OPTIONS")
         {
             response.AddHeader("Access-Control-Allow-Methods", "GET, POST");
-            response.AddHeader("Access-Control-Allow-Headers", "Content-Type");
+            response.AddHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
             response.AddHeader("Access-Control-Max-Age", "600");
             response.StatusCode = 204;
             response.Close();
@@ -92,6 +95,11 @@ public sealed partial class AccountService(AccountStore store, ECDsa key, Func<s
 
         Reply reply;
         string path = request.Url?.AbsolutePath.TrimEnd('/') ?? "";
+        if (Plugins is not null && PluginHub.Handles(path))
+        {
+            await Plugins.ServeAsync(context, path, SourceOf(request));
+            return;
+        }
         try
         {
             if (request.HttpMethod == "POST" && path == "/maps/upload" && Maps is not null)
@@ -297,6 +305,7 @@ public sealed partial class AccountService(AccountStore store, ECDsa key, Func<s
         if (!Allow("login " + source, 20, TenMinutes)) return TooMany();
         if (Text(body, "token") is not string token || store.Session(token) is not Account account) return Error(401, "sign in again");
         if (!Passwords.Verify(Text(body, "password") ?? "", account.Password ?? Decoy.Value)) return Error(401, "wrong password");
+        Plugins?.DeleteOwner(account.Id);
         store.Delete(account.Id, account.Email, EmailFor(account));
         lock (_handoffs)
             foreach (string code in _handoffs.Where(pair => pair.Value.Account.Id == account.Id).Select(pair => pair.Key).ToList())

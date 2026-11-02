@@ -56,6 +56,12 @@ sealed class Moderation(string file, string? key)
             Judge(TitleHash(title), $"title \"{title}\" of {address}", new JsonObject { ["type"] = "text", ["text"] = title }, TitleBlocks);
     }
 
+    public void JudgeText(string text, string what)
+    {
+        if (text.Length > 0)
+            Judge(TitleHash(text), what, new JsonObject { ["type"] = "text", ["text"] = text }, TitleBlocks);
+    }
+
     void Judge(string hash, string what, JsonObject input, string[] blocks)
     {
         if (key is null)
