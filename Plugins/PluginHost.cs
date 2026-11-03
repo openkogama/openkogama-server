@@ -67,7 +67,12 @@ public static class PluginHost
 
     public static IReadOnlyList<PluginFile> Status()
     {
-        lock (Sync) return [.. Files];
+        lock (Files) return [.. Files];
+    }
+
+    static void Record(string path, string[] plugins, string? error)
+    {
+        lock (Files) Files.Add(new(Path.GetFileName(path), plugins, error));
     }
 
     static void UnloadPlugins()
@@ -92,7 +97,7 @@ public static class PluginHost
 
     static int Load()
     {
-        Files.Clear();
+        lock (Files) Files.Clear();
         foreach (string path in Directory.GetFiles(_folder, "*.dll"))
         {
             var context = new AssemblyLoadContext(Path.GetFileNameWithoutExtension(path), isCollectible: true);
@@ -105,7 +110,7 @@ public static class PluginHost
                 {
                     string reason = $"needs plugin API {needed.ToString(2)}, this server has {ApiAssembly.Version!.ToString(2)}, update the server";
                     Console.WriteLine($"plugin {Path.GetFileName(path)} {reason}");
-                    Files.Add(new(Path.GetFileName(path), [], reason));
+                    Record(path, [], reason);
                     context.Unload();
                     continue;
                 }
@@ -118,13 +123,13 @@ public static class PluginHost
                     plugins.Add(type.FullName!);
                     Console.WriteLine($"plugin {type.FullName} loaded from {Path.GetFileName(path)}");
                 }
-                Files.Add(new(Path.GetFileName(path), [.. plugins], null));
+                Record(path, [.. plugins], null);
                 Contexts.Add(context);
             }
             catch (Exception error)
             {
                 Console.WriteLine($"plugin {Path.GetFileName(path)} failed to load: {error}");
-                Files.Add(new(Path.GetFileName(path), [], error.Message));
+                Record(path, [], error.Message);
                 context.Unload();
             }
         }

@@ -272,7 +272,7 @@ async def main(app, wanted, out):
     result = {"versions": [entry["version"] + "@" + entry["unity"] for entry in entries], "clients": [], "checks": {}}
     clients = [Client(chr(ord("a") + index), entry) for index, entry in enumerate(entries)]
     try:
-        if await server.wait("http 8080", 0, 120) is None:
+        if await server.wait("server ready", 0, 120) is None:
             raise SystemExit("server did not start")
         world = server.create_world(os.environ["TEMPLATE"]) if os.environ.get("TEMPLATE") else 1
         result["world"] = world

@@ -89,44 +89,66 @@ Player.ActorName = actor => host.Sessions().SelectMany(session => session.Player
 PluginHost.Admins = [.. (serverInfo.Admins ?? []).Select(Access.Entry).OfType<string>()];
 PluginHost.Rules = serverInfo.DisplayRules;
 Access.Allow = [.. (serverInfo.Allow ?? []).Select(Access.Entry).OfType<string>()];
-PluginHost.LoadAll("plugins", host.Sessions);
-if (mixedClients) Console.WriteLine("mixed client versions enabled");
 
-server.Connected += peer => Console.WriteLine($"peer {peer.Id}: photon init done");
-server.Disconnected += (peer, reason) =>
+var ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+void StartGame()
 {
-    Console.WriteLine($"peer {peer.Id}: gone ({reason})");
-    host.Disconnect(peer);
-};
-server.Operation = host.Handle;
+    PluginHost.LoadAll("plugins", host.Sessions);
+    if (mixedClients) Console.WriteLine("mixed client versions enabled");
 
-_ = server.RunAsync();
-Console.WriteLine($"udp {serverInfo.PhotonPort}");
-IPAddress tcpHost = IPAddress.TryParse(serverInfo.ListenHost, out IPAddress? parsedHost) ? parsedHost : IPAddress.Any;
-foreach (int tcp in new[] { serverInfo.PhotonPort, serverInfo.TcpPort ?? serverInfo.PhotonPort }.Distinct())
-{
-    _ = server.RunTcpAsync(new IPEndPoint(tcpHost, tcp)).ContinueWith(failed =>
-        Console.WriteLine($"tcp {tcp} failed: {failed.Exception?.InnerException?.Message}"), TaskContinuationOptions.OnlyOnFaulted);
-    Console.WriteLine($"tcp and websocket {tcp}");
-}
-if (publicUrl.IsLoopback && serverInfo.PhotonPort != Tunnel.Photon2012)
-{
-    if (new Relay2012(serverInfo.PhotonPort).Start())
+    server.Connected += peer => Console.WriteLine($"peer {peer.Id}: photon init done");
+    server.Disconnected += (peer, reason) =>
     {
-        SessionLocator.GameServer2012 = Relay2012.Address.ToString();
-        Console.WriteLine($"kogama 2012 {Relay2012.Address}:{Tunnel.Photon2012}");
+        Console.WriteLine($"peer {peer.Id}: gone ({reason})");
+        host.Disconnect(peer);
+    };
+    server.Operation = host.Handle;
+
+    _ = server.RunAsync();
+    Console.WriteLine($"udp {serverInfo.PhotonPort}");
+    IPAddress tcpHost = IPAddress.TryParse(serverInfo.ListenHost, out IPAddress? parsedHost) ? parsedHost : IPAddress.Any;
+    foreach (int tcp in new[] { serverInfo.PhotonPort, serverInfo.TcpPort ?? serverInfo.PhotonPort }.Distinct())
+    {
+        _ = server.RunTcpAsync(new IPEndPoint(tcpHost, tcp)).ContinueWith(failed =>
+            Console.WriteLine($"tcp {tcp} failed: {failed.Exception?.InnerException?.Message}"), TaskContinuationOptions.OnlyOnFaulted);
+        Console.WriteLine($"tcp and websocket {tcp}");
     }
-    else Console.WriteLine($"note {Relay2012.Address}:{Tunnel.Photon2012} is busy, so KoGaMa 2012 cannot join");
+    if (publicUrl.IsLoopback && serverInfo.PhotonPort != Tunnel.Photon2012)
+    {
+        if (new Relay2012(serverInfo.PhotonPort).Start())
+        {
+            SessionLocator.GameServer2012 = Relay2012.Address.ToString();
+            Console.WriteLine($"kogama 2012 {Relay2012.Address}:{Tunnel.Photon2012}");
+        }
+        else Console.WriteLine($"note {Relay2012.Address}:{Tunnel.Photon2012} is busy, so KoGaMa 2012 cannot join");
+    }
+
+    _ = Task.Run(async () =>
+    {
+        while (true)
+        {
+            await Task.Delay(5000);
+            host.SaveAll();
+        }
+    });
+    _ = Task.Run(async () =>
+    {
+        while (true)
+        {
+            await Task.Delay(50);
+            TickErrors.Guard("server", host.Tick);
+        }
+    });
+
+    if (serverInfo.Public && serverInfo.Shared)
+    {
+        Announcer.Start(serverInfo.List, () => new { url = publicBase }, () => new { url = publicBase, left = true });
+        Console.WriteLine($"listed on {serverInfo.List}");
+    }
+    Console.WriteLine($"server ready in {(long)(DateTime.Now - System.Diagnostics.Process.GetCurrentProcess().StartTime).TotalMilliseconds} ms");
+    ready.SetResult();
 }
 
-_ = Task.Run(async () =>
-{
-    while (true)
-    {
-        await Task.Delay(5000);
-        host.SaveAll();
-    }
-});
 int stopping = 0;
 void SaveBeforeExit()
 {
@@ -140,15 +162,6 @@ AppDomain.CurrentDomain.ProcessExit += (_, _) => SaveBeforeExit();
 using var sigterm = PosixSignalRegistration.Create(PosixSignal.SIGTERM, _ => SaveBeforeExit());
 using var sigint = PosixSignalRegistration.Create(PosixSignal.SIGINT, _ => SaveBeforeExit());
 using var sighup = PosixSignalRegistration.Create(PosixSignal.SIGHUP, _ => SaveBeforeExit());
-
-_ = Task.Run(async () =>
-{
-    while (true)
-    {
-        await Task.Delay(50);
-        TickErrors.Guard("server", host.Tick);
-    }
-});
 
 var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 string SessionJson(int profile, GameMode mode, int world, string? client, string? via)
@@ -192,16 +205,18 @@ var api = new WebApi
     Shutdown = () => _ = Task.Delay(100).ContinueWith(_ => Environment.Exit(0)),
     Players = () => host.Sessions().Sum(session => session.Players.Count),
     Sessions = host.Sessions,
+    Ready = ready.Task,
 };
-if (serverInfo.Public && serverInfo.Shared)
-{
-    Announcer.Start(serverInfo.List, () => new { url = publicBase }, () => new { url = publicBase, left = true });
-    Console.WriteLine($"listed on {serverInfo.List}");
-}
 var web = new HttpServer($"http://{serverInfo.ListenHost}:{serverInfo.HttpPort}/", api);
-Console.WriteLine($"http {serverInfo.HttpPort}");
 try
 {
+    web.Start();
+    Console.WriteLine($"http {serverInfo.HttpPort}");
+    _ = Task.Run(StartGame).ContinueWith(failed =>
+    {
+        Console.WriteLine($"error {failed.Exception?.InnerException?.Message}");
+        Environment.Exit(1);
+    }, TaskContinuationOptions.OnlyOnFaulted);
     web.Run();
 }
 catch (HttpListenerException error)

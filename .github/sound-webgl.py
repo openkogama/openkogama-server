@@ -62,7 +62,7 @@ async def main(app, wanted, out, formats):
     server = mixed.Server(app, data)
     results = []
     try:
-        if await server.wait("http 8080", 0, 120) is None:
+        if await server.wait("server ready", 0, 120) is None:
             raise SystemExit("server did not start")
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True, args=["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist",

@@ -23,7 +23,7 @@ New-Item -ItemType Directory -Force (Join-Path $data "plugins") | Out-Null
 Get-ChildItem (Join-Path $Server "plugins") -Filter *.dll -ErrorAction SilentlyContinue | Copy-Item -Destination (Join-Path $data "plugins")
 $env:OPENKOGAMA_TRACE = "1"
 $serverProcess = Start-Process (Join-Path $Server "openkogama-server.exe") -WorkingDirectory $data -RedirectStandardOutput $serverLog -RedirectStandardError (Join-Path $work "server-errors.log") -PassThru -NoNewWindow
-if (-not (Wait-Log "http 8080" 0 90)) { throw "server did not start" }
+if (-not (Wait-Log "server ready" 0 90)) { throw "server did not start" }
 $world = (Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/worlds?name=$Template&template=$Template" -Body "").id
 $result.world = $world
 

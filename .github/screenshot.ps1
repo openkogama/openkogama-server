@@ -177,7 +177,7 @@ function Capture-Build($entry) {
     Get-ChildItem $Server -Filter "server.db*" | Remove-Item -Force
     $serverLog = Join-Path $work "server.log"
     $serverProcess = Start-Process (Join-Path $Server "openkogama-server.exe") -WorkingDirectory $Server -RedirectStandardOutput $serverLog -RedirectStandardError (Join-Path $work "server-errors.log") -PassThru -NoNewWindow
-    for ($i = 0; $i -lt 60 -and -not ((Test-Path $serverLog) -and (Select-String -Path $serverLog -Pattern "http 8080" -Quiet)); $i++) { Start-Sleep 1 }
+    for ($i = 0; $i -lt 60 -and -not ((Test-Path $serverLog) -and (Select-String -Path $serverLog -Pattern "server ready" -Quiet)); $i++) { Start-Sleep 1 }
     $world = (Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/worlds?name=$Template&template=$Template" -Body "").id
 
     $clientLog = Join-Path $work "client.log"

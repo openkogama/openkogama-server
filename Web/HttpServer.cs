@@ -7,9 +7,11 @@ public sealed class HttpServer(string prefix, WebApi api)
 {
     readonly HttpListener _listener = new() { Prefixes = { prefix } };
 
+    public void Start() => _listener.Start();
+
     public void Run()
     {
-        _listener.Start();
+        if (!_listener.IsListening) _listener.Start();
 
         while (true)
         {

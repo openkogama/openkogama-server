@@ -42,14 +42,29 @@ public sealed class WebApi
     public Func<int> Players { get; set; } = () => 0;
     public Func<IReadOnlyList<Session>> Sessions { get; set; } = () => [];
     public ServerInfo ServerInfo { get; init; } = new();
+    public Task Ready { get; init; } = Task.CompletedTask;
+    readonly object _routing = new();
 
-    public Task<ApiResponse>? Waiting(ApiRequest request) =>
-        Regex.Replace(request.Path, "/{2,}", "/").TrimEnd('/') == "/api/scripts/poll"
-            ? ScriptMessages.Poll(Reauths.TokenOf(request.Query["key"])).ContinueWith(task =>
-                task.Result is byte[] body ? new ApiResponse(200, "text/plain; charset=utf-8", body) : new ApiResponse(403, null, []))
-            : null;
+    public Task<ApiResponse>? Waiting(ApiRequest request)
+    {
+        string path = Regex.Replace(request.Path, "/{2,}", "/").TrimEnd('/');
+        if (path == "/api/scripts/poll")
+            return ScriptMessages.Poll(Reauths.TokenOf(request.Query["key"])).ContinueWith(task =>
+                task.Result is byte[] body ? new ApiResponse(200, "text/plain; charset=utf-8", body) : new ApiResponse(403, null, []));
+        return Ready.IsCompleted || !NeedsPlugins(path, request.Method) ? null : Ready.ContinueWith(_ => Route(request));
+    }
+
+    static bool NeedsPlugins(string path, string method) =>
+        path is "" or "/session" or "/api/templates" or "/api/content" or "/api/scripts" or "/api/admin/plugins/reload"
+        || (path == "/api/worlds" && method == "POST")
+        || path.StartsWith("/api/scripts/") || path.StartsWith("/bundles") || path.StartsWith("/local/");
 
     public ApiResponse Route(ApiRequest request)
+    {
+        lock (_routing) return Answer(request);
+    }
+
+    ApiResponse Answer(ApiRequest request)
     {
         string path = Regex.Replace(request.Path, "/{2,}", "/");
         NameValueCollection query = request.Query;
@@ -74,6 +89,7 @@ public sealed class WebApi
                 @public = ServerInfo.Public,
                 url = ServerInfo.Address,
                 features = ServerInfo.FeaturesNow(),
+                starting = !Ready.IsCompleted,
             }));
         }
 

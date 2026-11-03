@@ -33,7 +33,7 @@ Get-ChildItem (Join-Path $Server "plugins") -Filter *.dll | Copy-Item -Destinati
 & python $tone make $sounds
 $env:OPENKOGAMA_TRACE = "1"
 $serverProcess = Start-Process (Join-Path $Server "openkogama-server.exe") -WorkingDirectory $data -RedirectStandardOutput $serverLog -RedirectStandardError (Join-Path $work "server-errors.log") -PassThru -NoNewWindow
-if (-not (Wait-Log "http 8080" 0 90)) { throw "server did not start" }
+if (-not (Wait-Log "server ready" 0 90)) { throw "server did not start" }
 
 $entry = Pick $Build
 $results = @()
