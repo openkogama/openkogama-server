@@ -5,12 +5,21 @@ using System.Text.Json.Nodes;
 
 namespace OpenKogama.Accounts;
 
-public sealed record ScanResult(int Malicious, int Suspicious, int Total);
+public sealed record ScanResult(int Malicious, int Suspicious, int Total, string[] Engines)
+{
+    public int Flagged => Malicious + Suspicious;
+    public bool Weak => Flagged is > 0 and <= 2 && !Engines.Any(VirusScan.Major);
+}
 
 public sealed class VirusScan
 {
     const string Api = "https://www.virustotal.com/api/v3/";
     const int MaxPolls = 20;
+    static readonly HashSet<string> MajorEngines = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Microsoft", "Kaspersky", "ESET-NOD32", "BitDefender", "Avast", "AVG", "Sophos", "McAfee", "Trellix", "Symantec", "TrendMicro",
+        "TrendMicro-HouseCall", "DrWeb", "F-Secure", "GData", "Avira", "Malwarebytes", "Fortinet", "Emsisoft", "ZoneAlarm", "Panda", "Ikarus",
+    };
     static readonly TimeSpan Gap = TimeSpan.FromSeconds(16);
     static readonly TimeSpan Poll = TimeSpan.FromSeconds(45);
     static readonly TimeSpan Retry = TimeSpan.FromMinutes(30);
@@ -43,6 +52,8 @@ public sealed class VirusScan
 
     public static string Link(PluginVersion version) => "https://www.virustotal.com/gui/file/" + Path.GetFileNameWithoutExtension(version.File);
 
+    public static bool Major(string engine) => MajorEngines.Contains(engine);
+
     public void Queue(PluginVersion version)
     {
         if (!On) return;
@@ -57,7 +68,8 @@ public sealed class VirusScan
                 if (result is not null)
                 {
                     _store.SetScan(version.Id, result);
-                    Console.WriteLine($"plugins: {version.Name} {version.Version} scanned, {result.Malicious} of {result.Total} engines flagged it");
+                    string who = result.Engines.Length > 0 ? " (" + string.Join(", ", result.Engines) + ")" : "";
+                    Console.WriteLine($"plugins: {version.Name} {version.Version} scanned, {result.Flagged} of {result.Total} engines flagged it{who}");
                 }
             }
             catch (Exception error) when (error is HttpRequestException or TaskCanceledException or JsonException or IOException)
@@ -77,7 +89,8 @@ public sealed class VirusScan
     {
         string sha = Path.GetFileNameWithoutExtension(version.File);
         using HttpResponseMessage known = await _http.GetAsync(Api + "files/" + sha);
-        if (known.IsSuccessStatusCode && Stats(JsonNode.Parse(await known.Content.ReadAsStringAsync())?["data"]?["attributes"]?["last_analysis_stats"]) is ScanResult cached)
+        if (known.IsSuccessStatusCode && JsonNode.Parse(await known.Content.ReadAsStringAsync())?["data"]?["attributes"] is JsonNode found
+            && Stats(found["last_analysis_stats"], found["last_analysis_results"]) is ScanResult cached)
             return cached;
         if (known.StatusCode != HttpStatusCode.NotFound && !known.IsSuccessStatusCode)
             throw new HttpRequestException($"VirusTotal answered {(int)known.StatusCode}");
@@ -98,17 +111,23 @@ public sealed class VirusScan
             using HttpResponseMessage check = await _http.GetAsync(Api + "analyses/" + analysis);
             if (!check.IsSuccessStatusCode) continue;
             JsonNode? attributes = JsonNode.Parse(await check.Content.ReadAsStringAsync())?["data"]?["attributes"];
-            if (attributes?["status"]?.GetValue<string>() == "completed" && Stats(attributes["stats"]) is ScanResult result) return result;
+            if (attributes?["status"]?.GetValue<string>() == "completed" && Stats(attributes["stats"], attributes["results"]) is ScanResult result) return result;
         }
         return null;
     }
 
-    static ScanResult? Stats(JsonNode? stats)
+    static ScanResult? Stats(JsonNode? stats, JsonNode? results)
     {
         if (stats is not JsonObject counts) return null;
         int Count(string name) => counts[name]?.GetValue<int>() ?? 0;
         int malicious = Count("malicious"), suspicious = Count("suspicious");
         int total = malicious + suspicious + Count("undetected") + Count("harmless");
-        return total > 0 ? new ScanResult(malicious, suspicious, total) : null;
+        if (total == 0) return null;
+        var engines = new List<string>();
+        if (results is JsonObject verdicts)
+            foreach ((string engine, JsonNode? verdict) in verdicts)
+                if (verdict?["category"]?.GetValue<string>() is "malicious" or "suspicious")
+                    engines.Add(verdict["engine_name"]?.GetValue<string>() ?? engine);
+        return new ScanResult(malicious, suspicious, total, [.. engines]);
     }
 }

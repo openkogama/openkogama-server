@@ -17,7 +17,7 @@ public sealed class PluginStore
         + "(SELECT COUNT(*) FROM plugin_ratings r WHERE r.plugin = p.id) AS ratings, (SELECT COALESCE(SUM(r.stars), 0) FROM plugin_ratings r WHERE r.plugin = p.id) AS stars";
     const int MinRatings = 3;
     const string Joined = "plugins p JOIN accounts a ON a.id = p.owner";
-    const string VersionColumns = "id, plugin, version, api, file, name, size, changes, created, downloads, scan_malicious, scan_suspicious, scan_total, state";
+    const string VersionColumns = "id, plugin, version, api, file, name, size, changes, created, downloads, scan_malicious, scan_suspicious, scan_total, state, scan_engines";
     const string HasVersion = "EXISTS (SELECT 1 FROM plugin_versions v WHERE v.plugin = p.id AND v.state = 1)";
     const string HasPendingVersion = "EXISTS (SELECT 1 FROM plugin_versions v WHERE v.plugin = p.id AND v.state = 0)";
     const string HasAnyVersion = "EXISTS (SELECT 1 FROM plugin_versions v WHERE v.plugin = p.id)";
@@ -79,6 +79,7 @@ public sealed class PluginStore
                 ALTER TABLE plugin_versions ADD COLUMN scan_total INTEGER;
                 """);
         if (!HasColumn("plugin_versions", "state")) Execute("ALTER TABLE plugin_versions ADD COLUMN state INTEGER NOT NULL DEFAULT 1");
+        if (!HasColumn("plugin_versions", "scan_engines")) Execute("ALTER TABLE plugin_versions ADD COLUMN scan_engines TEXT");
     }
 
     bool HasColumn(string table, string name)
@@ -162,10 +163,11 @@ public sealed class PluginStore
     }
 
     public void SetScan(long id, ScanResult scan) => Execute(
-        "UPDATE plugin_versions SET scan_malicious = $malicious, scan_suspicious = $suspicious, scan_total = $total WHERE id = $id",
-        ("$id", id), ("$malicious", scan.Malicious), ("$suspicious", scan.Suspicious), ("$total", scan.Total));
+        "UPDATE plugin_versions SET scan_malicious = $malicious, scan_suspicious = $suspicious, scan_total = $total, scan_engines = $engines WHERE id = $id",
+        ("$id", id), ("$malicious", scan.Malicious), ("$suspicious", scan.Suspicious), ("$total", scan.Total), ("$engines", string.Join(",", scan.Engines)));
 
-    public IReadOnlyList<PluginVersion> Unscanned() => Versions("WHERE scan_total IS NULL ORDER BY id");
+    public IReadOnlyList<PluginVersion> Unscanned() =>
+        Versions("WHERE scan_total IS NULL OR (scan_engines IS NULL AND scan_malicious + scan_suspicious > 0) ORDER BY id");
 
     public void DeleteVersion(long id) => Execute("DELETE FROM plugin_versions WHERE id = $id", ("$id", id));
 
@@ -251,7 +253,8 @@ public sealed class PluginStore
         while (reader.Read())
             versions.Add(new PluginVersion(reader.GetInt64(0), reader.GetInt64(1), reader.GetString(2), reader.GetString(3), reader.GetString(4),
                 reader.GetString(5), reader.GetInt64(6), reader.GetString(7), reader.GetInt64(8), reader.GetInt64(9),
-                reader.IsDBNull(12) ? null : new ScanResult(reader.GetInt32(10), reader.GetInt32(11), reader.GetInt32(12)), reader.GetInt32(13) == 0));
+                reader.IsDBNull(12) ? null : new ScanResult(reader.GetInt32(10), reader.GetInt32(11), reader.GetInt32(12),
+                    reader.IsDBNull(14) ? [] : reader.GetString(14).Split(',', StringSplitOptions.RemoveEmptyEntries)), reader.GetInt32(13) == 0));
         return versions;
     }
 

@@ -480,14 +480,22 @@ public sealed partial class PluginHub
         return full;
     }
 
-    JsonObject? Scan(PluginVersion version) => !_scanner.On ? null : new JsonObject
+    JsonObject? Scan(PluginVersion version)
     {
-        ["state"] = version.Scan is null ? "pending" : "done",
-        ["malicious"] = version.Scan?.Malicious,
-        ["suspicious"] = version.Scan?.Suspicious,
-        ["total"] = version.Scan?.Total,
-        ["url"] = VirusScan.Link(version),
-    };
+        if (!_scanner.On) return null;
+        var engines = new JsonArray();
+        foreach (string engine in version.Scan?.Engines ?? []) engines.Add(engine);
+        return new JsonObject
+        {
+            ["state"] = version.Scan is null ? "pending" : "done",
+            ["malicious"] = version.Scan?.Malicious,
+            ["suspicious"] = version.Scan?.Suspicious,
+            ["total"] = version.Scan?.Total,
+            ["weak"] = version.Scan?.Weak,
+            ["engines"] = engines,
+            ["url"] = VirusScan.Link(version),
+        };
+    }
 
     Plugin? Managed(Account account, JsonObject? body) =>
         Text(body, "slug") is string slug && _store.BySlug(slug) is Plugin plugin && (plugin.Owner == account.Id || Admin(account)) ? plugin : null;
