@@ -11,11 +11,8 @@ public static class Pickup
 
     public static void Take(Session session, Player player, WorldObject pickup, int instigator)
     {
-        AvatarItemType? item = pickup.Type == WorldObjectType.PickupCubeGun
-            ? AvatarItemType.CubeGun
-            : pickup.Data.Find(pair => pair.Key == "itemType").Value is int type ? (AvatarItemType)type : null;
-
-        bool weapon = item is not (null or AvatarItemType.Health or AvatarItemType.Mutant or AvatarItemType.NinjaRun);
+        AvatarItemType? item = ItemOf(pickup);
+        bool weapon = Holdable(item);
         if (weapon && Mutated(session, player)) return;
 
         Plugins.PluginHost.PickedUp(session, player, (int?)item);
@@ -27,6 +24,23 @@ public static class Pickup
 
         Respawn(session, pickup.Id, player.Actor);
     }
+
+    public static AvatarItemType? ItemOf(WorldObject pickup) =>
+        pickup.Type == WorldObjectType.PickupCubeGun
+            ? AvatarItemType.CubeGun
+            : pickup.Data.Find(pair => pair.Key == "itemType").Value is int type ? (AvatarItemType)type : null;
+
+    public static WorldObject? Weapon(Session session, int id) => session.World.Subtree(id).Find(obj => ItemOf(obj) is not null);
+
+    public static bool Hold(Session session, Player player, WorldObject weapon)
+    {
+        if (ItemOf(weapon) is not AvatarItemType item || !Holdable(item)) return false;
+        Equip(session, player, weapon, item, player.PlayAvatar);
+        return true;
+    }
+
+    static bool Holdable(AvatarItemType? item) =>
+        item is not (null or AvatarItemType.Health or AvatarItemType.Mutant or AvatarItemType.NinjaRun);
 
     static bool Mutated(Session session, Player player) =>
         session.World.Find(player.PlayAvatar)?.Runtime.Find(pair => pair.Key == "modifiers").Value is List<(string Key, PackedType Type, object Value)> modifiers

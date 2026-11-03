@@ -1,6 +1,7 @@
 using System.Numerics;
 using OpenKogama.Api;
 using OpenKogama.Game;
+using OpenKogama.Handlers.Operations;
 using OpenKogama.World;
 using OpenKogama.Kogama;
 using OpenKogama.Physics;
@@ -71,6 +72,7 @@ sealed class PluginNpc(Session session, Npc npc) : INpc
             npc.HeldItem = value is null ? null
                 : Enum.TryParse(value, ignoreCase: true, out AvatarItemType item) ? (int)item
                 : throw new ArgumentException($"unknown item {value}, use one of {string.Join(", ", Enum.GetNames<AvatarItemType>())}");
+            npc.HeldItemData = null;
             npc.HeldItemChanged = true;
         }
     }
@@ -84,12 +86,9 @@ sealed class PluginNpc(Session session, Npc npc) : INpc
 
     public bool Hold(IWorldObject weapon)
     {
-        WorldObject? pickup = session.World.Find(weapon.Id);
-        if (pickup?.Type == WorldObjectType.BlueprintCustomGun)
-            pickup = session.World.Subtree(pickup.Id).Find(obj => obj.Type == WorldObjectType.PickupCustomGun);
-        if (pickup?.Data.Find(pair => pair.Key == "itemType").Value is not int item) return false;
+        if (Pickup.Weapon(session, weapon.Id) is not { } pickup || Pickup.ItemOf(pickup) is not AvatarItemType item) return false;
 
-        npc.HeldItem = item;
+        npc.HeldItem = (int)item;
         npc.HeldItemData = pickup.Data.Find(pair => pair.Key == "itemData").Value is List<(string Key, PackedType Type, object Value)> data
             ? (Dictionary<object, object?>)PackedData.ToPhoton(data)
             : null;

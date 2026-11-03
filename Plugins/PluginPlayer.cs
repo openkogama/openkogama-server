@@ -88,6 +88,10 @@ sealed class PluginPlayer(Player player, Session session) : IPlayer
         return true;
     }
 
+    public bool Hold(IWorldObject weapon) =>
+        Playing && Pickup.Weapon(session, weapon.Id) is { } pickup
+        && player.Knows(session.World.SubtreeSnapshot(pickup.Id)) && Pickup.Hold(session, player, pickup);
+
     public bool GiveLightningSpeed() => Playing && Boosts.LightningSpeed(session, player);
 
     public bool Teleport(Vector3 position, TeleportMethod method) => method switch
