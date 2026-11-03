@@ -986,3 +986,32 @@ static OpenKogama.Api.WorldLink.operator ==(OpenKogama.Api.WorldLink left, OpenK
 OpenKogama.Api.IPlayer.SendScriptMessage(string! name, string! data) -> bool
 OpenKogama.Api.IServer.ScriptMessage -> System.Action<OpenKogama.Api.IPlayer!, string!, string!>?
 OpenKogama.Api.IPlayer.Hold(OpenKogama.Api.IWorldObject! weapon) -> bool
+OpenKogama.Api.ICubeModel.CubeSize.set -> void
+OpenKogama.Api.INpc.Move(System.Numerics.Vector3 position, float yaw) -> void
+OpenKogama.Api.IPlayer.Rotation.get -> System.Numerics.Quaternion?
+OpenKogama.Api.IPlayer.Yaw.get -> float?
+OpenKogama.Api.IServer.CubeSizeChanged -> System.Action<OpenKogama.Api.IWorld!, OpenKogama.Api.ICubeModel!, OpenKogama.Api.IPlayer?>?
+OpenKogama.Api.IServer.ObjectMoved -> System.Action<OpenKogama.Api.IWorld!, OpenKogama.Api.IWorldObject!, OpenKogama.Api.IPlayer?>?
+OpenKogama.Api.IServer.Open(int worldId, OpenKogama.Api.WorldMode mode = OpenKogama.Api.WorldMode.Play) -> OpenKogama.Api.IWorld?
+OpenKogama.Api.IServer.SavedWorlds.get -> System.Collections.Generic.IReadOnlyList<OpenKogama.Api.SavedWorld!>!
+OpenKogama.Api.IWorld.KeepOpen.get -> bool
+OpenKogama.Api.IWorld.KeepOpen.set -> void
+OpenKogama.Api.IWorldBuilder.AddModel(System.Numerics.Vector3 position, float cubeSize = 1, System.Numerics.Quaternion? rotation = null, int? parentId = null) -> OpenKogama.Api.IWorldObject!
+OpenKogama.Api.IWorldBuilder.Clone(int id) -> OpenKogama.Api.IWorldObject?
+OpenKogama.Api.IWorldBuilder.SetParent(int id, int parentId) -> bool
+OpenKogama.Api.SavedWorld
+OpenKogama.Api.SavedWorld.<Clone>$() -> OpenKogama.Api.SavedWorld!
+OpenKogama.Api.SavedWorld.Deconstruct(out int Id, out string! Name) -> void
+OpenKogama.Api.SavedWorld.Equals(OpenKogama.Api.SavedWorld? other) -> bool
+OpenKogama.Api.SavedWorld.Id.get -> int
+OpenKogama.Api.SavedWorld.Id.init -> void
+OpenKogama.Api.SavedWorld.Name.get -> string!
+OpenKogama.Api.SavedWorld.Name.init -> void
+OpenKogama.Api.SavedWorld.SavedWorld(int Id, string! Name) -> void
+override OpenKogama.Api.SavedWorld.Equals(object? obj) -> bool
+override OpenKogama.Api.SavedWorld.GetHashCode() -> int
+override OpenKogama.Api.SavedWorld.ToString() -> string!
+static OpenKogama.Api.SavedWorld.operator !=(OpenKogama.Api.SavedWorld? left, OpenKogama.Api.SavedWorld? right) -> bool
+static OpenKogama.Api.SavedWorld.operator ==(OpenKogama.Api.SavedWorld? left, OpenKogama.Api.SavedWorld? right) -> bool
+OpenKogama.Api.IPlayer.PlacementScale.get -> System.Numerics.Vector3?
+OpenKogama.Api.IPlayer.PlacementScale.set -> void
