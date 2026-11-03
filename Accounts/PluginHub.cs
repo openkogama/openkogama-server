@@ -1,5 +1,6 @@
 using System.Collections.Specialized;
 using System.Globalization;
+using System.IO.Compression;
 using System.Net;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
@@ -16,13 +17,15 @@ public sealed partial class PluginHub
 {
     const string Root = "/plugins";
     const int MaxJson = 32 * 1024;
-    const long MaxFile = 10L * 1024 * 1024;
+    const long MaxFile = 32L * 1024 * 1024;
+    const int MaxEntries = 2000;
+    const long MaxUnpacked = 256L * 1024 * 1024;
     const long MaxImage = 1024 * 1024;
     const long MinFree = 1L * 1024 * 1024 * 1024;
     const int MinName = 2;
     const int MaxName = 40;
     const int MaxSummary = 120;
-    const int MaxDescription = 5000;
+    const int MaxDescription = 20000;
     const int MaxChanges = 2000;
     const int MinReason = 3;
     const int MaxReason = 500;
@@ -302,14 +305,14 @@ public sealed partial class PluginHub
     {
         if (TokenOf(request) is not string token || _accounts.Session(token) is not Account account) return Error(401, "sign in again");
         if (!_allow("plugin upload " + account.Id, 60, Hour)) return TooMany();
-        if (request.ContentLength64 > MaxFile) return Error(413, "a file can be at most 10 MB");
+        if (request.ContentLength64 > MaxFile) return Error(413, "a file can be at most 32 MB");
         if (new DriveInfo(Path.GetFullPath(_folder)).AvailableFreeSpace < MinFree + Math.Max(0, request.ContentLength64))
             return Error(507, "there is no room for new files right now, try again later");
         string temp = Path.Combine(_folder, Guid.NewGuid().ToString("N") + ".part");
         try
         {
             (string? sha, long size) = await SaveAsync(request.InputStream, temp);
-            if (sha is null) return Error(413, "a file can be at most 10 MB");
+            if (sha is null) return Error(413, "a file can be at most 32 MB");
             if (ImageExtension(temp) is string extension)
             {
                 if (size > MaxImage) return Error(413, "an image can be at most 1 MB");
@@ -319,10 +322,11 @@ public sealed partial class PluginHub
             }
             if (Inspect(temp) is { } plugin)
             {
-                Keep(temp, sha + ".dll");
+                Keep(temp, sha + plugin.Extension);
                 return Ok(new JsonObject
                 {
-                    ["file"] = sha + ".dll",
+                    ["file"] = sha + plugin.Extension,
+                    ["format"] = plugin.Extension.TrimStart('.'),
                     ["kind"] = "plugin",
                     ["version"] = plugin.Version,
                     ["api"] = plugin.Api,
@@ -330,7 +334,7 @@ public sealed partial class PluginHub
                     ["size"] = size,
                 });
             }
-            return Error(400, "upload an OpenKogama plugin .dll or a png, jpg or webp image");
+            return Error(400, "upload an OpenKogama plugin as a .dll or a .zip, or a png, jpg or webp image");
         }
         finally
         {
@@ -454,7 +458,7 @@ public sealed partial class PluginHub
 
     bool Admin(Account account) => _admins.Contains(account.Name);
 
-    bool Allowed(Plugin plugin) => _moderation.Verdict(Moderation.TitleHash(Words(plugin.Name, plugin.Summary, plugin.Description))) != false;
+    bool Allowed(Plugin plugin) => plugin.State == PluginState.Public || _moderation.Verdict(Moderation.TitleHash(Words(plugin.Name, plugin.Summary, plugin.Description))) != false;
 
     bool Shown(string file) => _moderation.Verdict(Path.GetFileNameWithoutExtension(file)) != false;
 
@@ -505,12 +509,48 @@ public sealed partial class PluginHub
         return slug;
     }
 
-    static (string Version, string Api, string Name)? Inspect(string path)
+    static (string Version, string Api, string Name, string Extension)? Inspect(string path)
     {
         try
         {
             using FileStream stream = File.OpenRead(path);
-            using var reader = new PEReader(stream);
+            var head = new byte[4];
+            int got = stream.Read(head, 0, 4);
+            stream.Position = 0;
+            if (got == 4 && head[0] == 'P' && head[1] == 'K' && head[2] == 3 && head[3] == 4) return InspectZip(stream);
+            return InspectDll(stream) is { } dll ? (dll.Version, dll.Api, dll.Name + ".dll", ".dll") : null;
+        }
+        catch (Exception error) when (error is BadImageFormatException or InvalidDataException or IOException)
+        {
+            return null;
+        }
+    }
+
+    static (string Version, string Api, string Name, string Extension)? InspectZip(Stream stream)
+    {
+        using var zip = new ZipArchive(stream, ZipArchiveMode.Read);
+        if (zip.Entries.Count > MaxEntries || zip.Entries.Sum(entry => entry.Length) > MaxUnpacked) return null;
+        foreach (ZipArchiveEntry entry in zip.Entries)
+        {
+            string name = entry.FullName.Replace('\\', '/');
+            if (name.StartsWith('/') || name.Split('/').Contains("..")) return null;
+        }
+        foreach (ZipArchiveEntry entry in zip.Entries)
+        {
+            if (!entry.Name.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) || entry.Length > MaxFile) continue;
+            using var copy = new MemoryStream();
+            using (Stream opened = entry.Open()) opened.CopyTo(copy);
+            copy.Position = 0;
+            if (InspectDll(copy) is { } dll) return (dll.Version, dll.Api, dll.Name + ".zip", ".zip");
+        }
+        return null;
+    }
+
+    static (string Version, string Api, string Name)? InspectDll(Stream stream)
+    {
+        try
+        {
+            using var reader = new PEReader(stream, PEStreamOptions.LeaveOpen);
             if (!reader.HasMetadata) return null;
             MetadataReader metadata = reader.GetMetadataReader();
             if (!metadata.IsAssembly) return null;
@@ -521,8 +561,7 @@ public sealed partial class PluginHub
                 AssemblyDefinition assembly = metadata.GetAssemblyDefinition();
                 Version version = assembly.Version;
                 string name = FileName().Replace(metadata.GetString(assembly.Name), "");
-                return ($"{version.Major}.{version.Minor}.{Math.Max(version.Build, 0)}", $"{reference.Version.Major}.{reference.Version.Minor}",
-                    (name.Length > 0 ? name : "plugin") + ".dll");
+                return ($"{version.Major}.{version.Minor}.{Math.Max(version.Build, 0)}", $"{reference.Version.Major}.{reference.Version.Minor}", name.Length > 0 ? name : "plugin");
             }
             return null;
         }
@@ -614,7 +653,7 @@ public sealed partial class PluginHub
     static Reply NotFound() => Error(404, "not found");
     static Reply TooMany() => Error(429, "too many tries, wait a bit");
 
-    [GeneratedRegex("^[0-9a-f]{64}\\.dll$")]
+    [GeneratedRegex("^[0-9a-f]{64}\\.(dll|zip)$")]
     private static partial Regex PluginFile();
 
     [GeneratedRegex("^[0-9a-f]{64}\\.(png|jpg|webp)$")]
