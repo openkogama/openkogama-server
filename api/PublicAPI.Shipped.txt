@@ -985,3 +985,4 @@ static OpenKogama.Api.WorldLink.operator ==(OpenKogama.Api.WorldLink left, OpenK
 ~override OpenKogama.Api.WorldLink.ToString() -> string
 OpenKogama.Api.IPlayer.SendScriptMessage(string! name, string! data) -> bool
 OpenKogama.Api.IServer.ScriptMessage -> System.Action<OpenKogama.Api.IPlayer!, string!, string!>?
+OpenKogama.Api.IPlayer.Hold(OpenKogama.Api.IWorldObject! weapon) -> bool

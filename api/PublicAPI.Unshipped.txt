@@ -1,2 +1,1 @@
 #nullable enable
-OpenKogama.Api.IPlayer.Hold(OpenKogama.Api.IWorldObject! weapon) -> bool
