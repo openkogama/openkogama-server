@@ -54,6 +54,7 @@ public sealed partial class Session
     public bool Play { get; }
     public static bool KeepPlayChanges { get; set; }
     public bool Primary { get; set; } = true;
+    public bool Held { get; set; }
     public bool Published => _worldId is int id && Stores.Worlds.Published(id) is not null;
     public Func<int> Clock { get; private set; } = () => Environment.TickCount;
     public Logic Logic { get; }

@@ -113,18 +113,39 @@ sealed class PluginNpc(Session session, Npc npc) : INpc
         }
     }
 
-    public void WalkTo(Vector3 target) => npc.Target = [target.X, target.Y, target.Z];
+    public void WalkTo(Vector3 target)
+    {
+        npc.Puppet = false;
+        npc.Target = [target.X, target.Y, target.Z];
+    }
 
-    public void Stop() => npc.Target = null;
+    public void Stop()
+    {
+        npc.Puppet = false;
+        npc.Target = null;
+    }
 
-    public void Jump(float holdSeconds = 0.5f) => npc.JumpUntil = Environment.TickCount64 + (long)(Math.Max(0f, holdSeconds) * 1000f);
+    public void Jump(float holdSeconds = 0.5f)
+    {
+        npc.Puppet = false;
+        npc.JumpUntil = Environment.TickCount64 + (long)(Math.Max(0f, holdSeconds) * 1000f);
+    }
 
     public void Teleport(Vector3 position, float? yaw = null)
     {
+        npc.Puppet = false;
         npc.Target = null;
         npc.Position = [position.X, position.Y, position.Z];
         if (yaw is float facing) npc.Yaw = facing;
         npc.Teleported = true;
+    }
+
+    public void Move(Vector3 position, float yaw)
+    {
+        npc.Target = null;
+        npc.Position = [position.X, position.Y, position.Z];
+        npc.Yaw = yaw;
+        npc.Puppet = true;
     }
 
     public void Face(float yaw) => npc.Yaw = yaw;

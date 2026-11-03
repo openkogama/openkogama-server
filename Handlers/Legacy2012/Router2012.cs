@@ -430,6 +430,7 @@ public sealed class Router2012
                 obj.Rotation = [Convert.ToSingle(request[(byte)Key2012.RotX]), Convert.ToSingle(request[(byte)Key2012.RotY]), Convert.ToSingle(request[(byte)Key2012.RotZ]), Convert.ToSingle(request[(byte)Key2012.RotW])];
             });
             session.World.MarkChanged();
+            if (session.World.Find(objectId) is { } moved) Plugins.PluginHost.Moved(session, moved, session.For(peer));
         }
 
         if (Shared(peer)) MovedForNewer(peer, request, objectId);

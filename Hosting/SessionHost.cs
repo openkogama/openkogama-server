@@ -218,10 +218,36 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
         Close(entry);
     }
 
+    public Session? Open(int id, bool play)
+    {
+        lock (_sync)
+        {
+            if (_worlds.TryGetValue((id, play, ""), out Entry? open))
+            {
+                open.Session.Held = true;
+                return open.Session;
+            }
+            if (!play && EditLocked(id)) return null;
+            if (Session.Open(id, play) is not { } session) return null;
+            session.Held = true;
+            Console.WriteLine($"world {id} {(play ? "play" : "edit")} opened for a plugin");
+            _worlds[(id, play, "")] = Create(session, editor: false);
+            return session;
+        }
+    }
+
+    public void Release(Session session)
+    {
+        session.Held = false;
+        Entry? entry;
+        lock (_sync) entry = _worlds.Values.FirstOrDefault(open => open.Session == session);
+        if (entry is not null) Close(entry);
+    }
+
     void Close(Entry entry)
     {
         Session session = entry.Session;
-        if (session.Players.Count > 0 || session.WorldId is not int id) return;
+        if (session.Players.Count > 0 || session.Held || session.WorldId is not int id) return;
 
         session.SaveIfChanged(force: true);
         lock (_sync) _worlds.Remove((id, session.Play, entry.Client));

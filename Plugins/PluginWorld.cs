@@ -23,6 +23,12 @@ sealed class PluginWorld(Session session) : IWorld
         }
     }
 
+    public bool KeepOpen
+    {
+        get => session.Held;
+        set => PluginHost.Hold(session, value);
+    }
+
     public IReadOnlyList<IPlayer> Players => [.. session.Players.Select(player => PluginHost.PlayerOf(session, player))];
     public IReadOnlyList<INpc> Npcs => [.. session.Npcs.Select(npc => new PluginNpc(session, npc))];
     public IWorldTheme Theme { get; } = new PluginWorldTheme(session);
@@ -42,6 +48,13 @@ sealed class PluginWorld(Session session) : IWorld
 
     public IWorldObject? AddItem(string name, Vector3 position, Quaternion? rotation = null, int? parentId = null) =>
         _editor.AddItem(name, position, rotation, parentId);
+
+    public IWorldObject AddModel(Vector3 position, float cubeSize = 1f, Quaternion? rotation = null, int? parentId = null) =>
+        _editor.AddModel(position, cubeSize, rotation, parentId);
+
+    public IWorldObject? Clone(int id) => _editor.Clone(id);
+
+    public bool SetParent(int id, int parentId) => _editor.SetParent(id, parentId);
 
     public bool Remove(int id) => _editor.Remove(id);
 

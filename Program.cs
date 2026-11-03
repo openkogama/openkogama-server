@@ -93,7 +93,7 @@ Access.Allow = [.. (serverInfo.Allow ?? []).Select(Access.Entry).OfType<string>(
 var ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 void StartGame()
 {
-    PluginHost.LoadAll("plugins", host.Sessions);
+    PluginHost.LoadAll("plugins", host.Sessions, host.Open, host.Release);
     if (mixedClients) Console.WriteLine("mixed client versions enabled");
 
     server.Connected += peer => Console.WriteLine($"peer {peer.Id}: photon init done");

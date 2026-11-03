@@ -32,5 +32,6 @@ public sealed class UpdatePrototypeScale(Session session) : IOperationHandler
         };
         foreach (Player player in session.Players)
             if (player.InWorld) player.Peer.Send(evt);
+        Plugins.PluginHost.CubeSizeChanged(session, prototypeId, session.For(peer));
     }
 }

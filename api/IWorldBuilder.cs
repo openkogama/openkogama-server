@@ -13,6 +13,9 @@ public interface IWorldBuilder
     IReadOnlyList<IWorldObject> Markers(string name);
     IWorldObject Add(string type, Vector3 position, IReadOnlyDictionary<string, object>? data = null, Quaternion? rotation = null, Vector3? scale = null, int? parentId = null);
     IWorldObject? AddItem(string name, Vector3 position, Quaternion? rotation = null, int? parentId = null);
+    IWorldObject AddModel(Vector3 position, float cubeSize = 1f, Quaternion? rotation = null, int? parentId = null);
+    IWorldObject? Clone(int id);
+    bool SetParent(int id, int parentId);
     bool Remove(int id);
     bool Link(int from, int to);
     bool Unlink(int from, int to);

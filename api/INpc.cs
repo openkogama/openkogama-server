@@ -36,6 +36,7 @@ public interface INpc
     void Stop();
     void Jump(float holdSeconds = 0.5f);
     void Teleport(Vector3 position, float? yaw = null);
+    void Move(Vector3 position, float yaw);
     void Face(float yaw);
     void Shoot(Vector3 direction);
     void Shoot(Vector3 direction, float holdSeconds);

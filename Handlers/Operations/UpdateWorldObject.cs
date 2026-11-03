@@ -24,7 +24,7 @@ public sealed class UpdateWorldObject(Session session) : IOperationHandler
         if (sender is not null && (objectId == sender.ActiveSpawnRole || session.World.Find(sender.ActiveSpawnRole)?.ParentId == objectId))
             Remember(sender, request);
         if (sender is not null && (sender.Owns(objectId) || sender.ExtraRole(objectId)))
-            Place(objectId, request);
+            Place(objectId, request, sender);
 
         var evt = new EventData((byte)EventCode.UpdateWorldObject)
         {
@@ -38,17 +38,21 @@ public sealed class UpdateWorldObject(Session session) : IOperationHandler
                 player.Peer.Send(evt, reliable: false);
     }
 
-    void Place(int objectId, OperationRequest request)
+    void Place(int objectId, OperationRequest request, Player sender)
     {
         float[]? position = Floats(request, ParameterKey.PosX, ParameterKey.PosY, ParameterKey.PosZ);
         float[]? rotation = Rotation(request);
         int root = session.World.RootId;
+        WorldObject? moved = null;
         session.World.Modify(objectId, obj =>
         {
             if (obj.ParentId != root) return;
             if (position is not null) obj.Position = position;
             if (rotation is not null) obj.Rotation = rotation;
+            if ((position is not null || rotation is not null) && obj.Type is not (WorldObjectType.Avatar or WorldObjectType.BuildModeAvatar or WorldObjectType.AvatarSpawnRoleCreator))
+                moved = obj;
         });
+        if (moved is not null) Plugins.PluginHost.Moved(session, moved, sender);
     }
 
     static void Remember(Player sender, OperationRequest request)

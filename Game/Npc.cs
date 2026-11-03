@@ -32,6 +32,7 @@ public sealed class Npc(int actor, int avatarId, string name, float[] position, 
     public float[]? Target { get; set; }
     public float Speed { get; set; } = AvatarMotor.DefaultWalkSpeed;
     public bool Teleported { get; set; }
+    public bool Puppet { get; set; }
     public long JumpUntil { get; set; }
     public bool Grounded => Motor?.Grounded ?? false;
     public float Health { get; internal set; } = DefaultMaxHealth;

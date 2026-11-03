@@ -63,6 +63,76 @@ sealed class WorldEditor(GameWorld world, Session? session) : IWorldBuilder
             : null;
     }
 
+    public IWorldObject AddModel(Vector3 position, float cubeSize = 1f, Quaternion? rotation = null, int? parentId = null)
+    {
+        if (!float.IsFinite(cubeSize) || cubeSize <= 0f)
+            throw new ArgumentOutOfRangeException(nameof(cubeSize), cubeSize, "a cube size is a positive number");
+
+        Quaternion turn = rotation ?? Quaternion.Identity;
+        var prototype = new Prototype(world.NewPrototypeId(), cubeSize, 0, new CubeModel());
+        var obj = new WorldObject
+        {
+            Id = world.NewObjectId(),
+            ParentId = parentId ?? world.RootId,
+            Type = WorldObjectType.CubeModel,
+            ItemId = 1,
+            Position = [position.X, position.Y, position.Z],
+            Rotation = [turn.X, turn.Y, turn.Z, turn.W],
+            Scale = [cubeSize, cubeSize, cubeSize],
+            Data = [("protoTypeID", PackedType.Int32, prototype.Id)],
+        };
+        world.Add(prototype);
+        world.Add(obj);
+        world.MarkChanged();
+
+        if (session is not null)
+            GetNextGameBatch.SendAdded(session, 0, new Snapshot([prototype], [obj], [], []));
+        return new PluginObject(obj);
+    }
+
+    public IWorldObject? Clone(int id)
+    {
+        if (world.Find(id) is not { } original || original.Type == WorldObjectType.Avatar) return null;
+        if (world.CloneTree(id, out int firstLinkId, out int firstObjectLinkId) is not { } clone) return null;
+        world.Modify(clone.Id, obj => obj.ParentId = original.ParentId);
+        world.MarkChanged();
+
+        if (session is not null)
+        {
+            session.Logic.Settle(clone.Id);
+            session.Teams.Update();
+            Send(clone.Id, new EventData((byte)EventCode.CloneWorldObjectTree)
+            {
+                Parameters =
+                {
+                    [(byte)ParameterKey.WorldObjectIDs] = new[] { id, clone.Id },
+                    [(byte)ParameterKey.OwnerActorNr] = 0,
+                    [(byte)ParameterKey.LinkID] = firstLinkId,
+                    [(byte)ParameterKey.ObjectLinkID] = firstObjectLinkId,
+                    [(byte)ParameterKey.CloneToRootGroup] = false,
+                    [(byte)ParameterKey.PreviewProfileOwnerID] = 0,
+                },
+            });
+        }
+        return world.Find(clone.Id) is { } made ? new PluginObject(made) : null;
+    }
+
+    public bool SetParent(int id, int parentId)
+    {
+        if (id == world.RootId || world.Find(id) is not { } obj || obj.Type == WorldObjectType.Avatar) return false;
+        if (!world.Reparent(id, parentId)) return false;
+        world.MarkChanged();
+        SendAll(new EventData((byte)EventCode.TransferWorldObjectsToGroup)
+        {
+            Parameters =
+            {
+                [(byte)ParameterKey.WorldObjectID] = parentId,
+                [(byte)ParameterKey.WorldObjectIDs] = new[] { id },
+            },
+        });
+        return true;
+    }
+
     public bool Remove(int id)
     {
         if (id == world.RootId || world.Find(id) is not { } obj || obj.Type == WorldObjectType.Avatar) return false;
@@ -202,7 +272,28 @@ sealed class CubesEditor(GameWorld world, Session? session, int? objectId) : ICu
 
     public int ObjectId => Target()?.Id ?? objectId ?? 0;
 
-    public float CubeSize => Prototype()?.Scale ?? 0f;
+    public float CubeSize
+    {
+        get => Prototype()?.Scale ?? 0f;
+        set
+        {
+            if (!float.IsFinite(value) || value <= 0f)
+                throw new ArgumentOutOfRangeException(nameof(value), value, "a cube size is a positive number");
+            if (Target()?.PrototypeId is not int id || !world.SetPrototypeScale(id, value)) return;
+            world.MarkChanged();
+            if (session is null) return;
+            var evt = new EventData((byte)EventCode.UpdatePrototypeScale)
+            {
+                Parameters =
+                {
+                    [(byte)ParameterKey.WorldInventoryID] = id,
+                    [(byte)ParameterKey.Scale] = value,
+                },
+            };
+            foreach (Player player in session.Players)
+                player.Peer.Send(evt);
+        }
+    }
 
     public bool Shared => Target()?.PrototypeId is int id && world.PrototypeUsers(id) > 1;
 

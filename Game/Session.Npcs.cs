@@ -680,6 +680,16 @@ public sealed partial class Session
         motor.Scale = npc.Size;
         if (npc.Teleported) motor.Teleport(ToVector(npc.Position));
 
+        if (npc.Puppet)
+        {
+            bool moving = npc.SentPosition is { } sent && !sent.SequenceEqual(npc.Position);
+            motor.Teleport(ToVector(npc.Position));
+            npc.Accumulator = 0f;
+            npc.LastStep = now;
+            npc.Animation = !npc.Alive ? "Dead" : npc.AnimationOverride ?? (moving ? "Walk" : "Idle");
+            return;
+        }
+
         npc.Accumulator += MathF.Min((now - npc.LastStep) / 1000f, MaxCatchUpSeconds);
         npc.LastStep = now;
 

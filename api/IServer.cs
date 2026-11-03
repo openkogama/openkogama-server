@@ -25,6 +25,8 @@ public interface IServer
     event Action<IPlayer, AvatarItem>? PlayerPickedUp;
     event Action<IPlayer, IWorldObject, bool>? PlayerTriggered;
     event Action<CubeChanges>? CubesChanged;
+    event Action<IWorld, IWorldObject, IPlayer?>? ObjectMoved;
+    event Action<IWorld, ICubeModel, IPlayer?>? CubeSizeChanged;
     event Action<ThemeChange>? ThemeChanged;
     event Action<IPlayer, string, string>? ScriptMessage;
     [Obsolete("Use PlayerGestured")]
@@ -37,6 +39,8 @@ public interface IServer
 
     IReadOnlyList<IPlayer> Players { get; }
     IReadOnlyList<IWorld> Worlds { get; }
+    IReadOnlyList<SavedWorld> SavedWorlds { get; }
+    IWorld? Open(int worldId, WorldMode mode = WorldMode.Play);
 
     void Broadcast(string text, string? color = null);
     void Notify(string text, bool brief = false);

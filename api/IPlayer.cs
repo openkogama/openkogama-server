@@ -14,6 +14,19 @@ public interface IPlayer
     int Gold { get; }
     AvatarSkin Skin { get; }
     Vector3? Position { get; }
+    Quaternion? Rotation { get; }
+
+    float? Yaw
+    {
+        get
+        {
+            if (Rotation is not Quaternion turn)
+                return null;
+            Vector3 forward = Vector3.Transform(Vector3.UnitZ, turn);
+            return MathF.Atan2(forward.X, forward.Z) * 180f / MathF.PI;
+        }
+    }
+
     bool Alive { get; }
     bool IsAdmin { get; }
     Team Team { get; }

@@ -6,6 +6,7 @@ public interface IWorld : IWorldBuilder
     string Name { get; }
     bool Play { get; }
     bool Platformer { get; set; }
+    bool KeepOpen { get; set; }
     IReadOnlyList<IPlayer> Players { get; }
     IReadOnlyList<INpc> Npcs { get; }
     IWorldTheme Theme { get; }

@@ -25,6 +25,8 @@ sealed class PluginPlayer(Player player, Session session) : IPlayer
 
     public Vector3? Position => player.LastPosition is float[] position ? new Vector3(position[0], position[1], position[2]) : null;
 
+    public Quaternion? Rotation => player.LastRotation is float[] { Length: 4 } turn ? new Quaternion(turn[0], turn[1], turn[2], turn[3]) : null;
+
     public int? SoundEmitter => player.SoundEmitter;
 
     public AvatarItem Holding =>

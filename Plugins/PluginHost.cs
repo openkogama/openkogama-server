@@ -5,6 +5,7 @@ using System.Runtime.Loader;
 using OpenKogama.Api;
 using OpenKogama.Content;
 using OpenKogama.Game;
+using OpenKogama.Storage;
 using OpenKogama.World;
 
 namespace OpenKogama.Plugins;
@@ -26,6 +27,8 @@ public static class PluginHost
     static readonly ConditionalWeakTable<Session, PluginWorld> Worlds = new();
     static readonly HashSet<Player> Present = [];
     static Func<IReadOnlyList<Session>> _sessions = () => [];
+    static Func<int, bool, Session?> _open = (_, _) => null;
+    static Action<Session> _release = session => session.Held = false;
     static string _dataFolder = Path.Combine("plugins", "data");
     static long _lastTick;
     static long _lastUpdate = Environment.TickCount64;
@@ -33,9 +36,11 @@ public static class PluginHost
     public static IReadOnlyCollection<string> Admins { get; set; } = [];
     public static IReadOnlyList<string> Rules { get; set; } = [];
 
-    public static void LoadAll(string folder, Func<IReadOnlyList<Session>> sessions)
+    public static void LoadAll(string folder, Func<IReadOnlyList<Session>> sessions, Func<int, bool, Session?>? open = null, Action<Session>? release = null)
     {
         _sessions = sessions;
+        _open = open ?? _open;
+        _release = release ?? _release;
         _folder = folder;
         _dataFolder = Path.Combine(folder, "data");
         Directory.CreateDirectory(folder);
@@ -89,6 +94,8 @@ public static class PluginHost
             }
         }
         Loaded.Clear();
+        foreach (Session session in Sessions.Where(session => session.Held))
+            _release(session);
         CustomContent.Clear();
         ClientScripts.ClearAdded();
         Themes.Reset();
@@ -305,6 +312,21 @@ public static class PluginHost
     public static void Removed(Session session, int objectId, Player? by) =>
         Server.OnRemoved(WorldOf(session), objectId, by is null ? null : PlayerOf(session, by));
 
+    public static void Moved(Session session, WorldObject obj, Player? by) =>
+        Server.OnMoved(WorldOf(session), new PluginObject(obj), by is null ? null : PlayerOf(session, by));
+
+    public static void CubeSizeChanged(Session session, int prototypeId, Player? by)
+    {
+        if (session.World.FirstUser(prototypeId) is int objectId)
+            Server.OnCubeSizeChanged(WorldOf(session), new CubesEditor(session.World, session, objectId), by is null ? null : PlayerOf(session, by));
+    }
+
+    internal static void Hold(Session session, bool keep)
+    {
+        if (keep) session.Held = true;
+        else _release(session);
+    }
+
     public static void LinkAdded(Session session, Link link, bool objectLink, Player? by) =>
         Server.OnLinkAdded(WorldOf(session), new WorldLink(link.Id, link.From, link.To, objectLink), by is null ? null : PlayerOf(session, by));
 
@@ -346,6 +368,8 @@ public static class PluginHost
         public event Action<IPlayer, AvatarItem>? PlayerPickedUp;
         public event Action<IPlayer, IWorldObject, bool>? PlayerTriggered;
         public event Action<CubeChanges>? CubesChanged;
+        public event Action<IWorld, IWorldObject, IPlayer?>? ObjectMoved;
+        public event Action<IWorld, ICubeModel, IPlayer?>? CubeSizeChanged;
         public event Action<ThemeChange>? ThemeChanged;
         public event Action<IPlayer, string, string>? ScriptMessage;
         public event Action<IPlayer, string>? Gesture;
@@ -361,6 +385,11 @@ public static class PluginHost
         public IReadOnlyList<IPlayer> Players => [.. Sessions.SelectMany(session => session.Players.Select(player => PlayerOf(session, player)))];
 
         public IReadOnlyList<IWorld> Worlds => [.. Sessions.Select(WorldOf)];
+
+        public IReadOnlyList<SavedWorld> SavedWorlds => [.. Stores.Worlds.List().Select(world => new SavedWorld(world.Id, world.Name))];
+
+        public IWorld? Open(int worldId, WorldMode mode = WorldMode.Play) =>
+            mode != WorldMode.AvatarEditor && _open(worldId, mode == WorldMode.Play) is Session session ? WorldOf(session) : null;
 
         public void AddIcon(string name, byte[] png) => CustomBadges.Register(name, png);
 
@@ -485,6 +514,18 @@ public static class PluginHost
         {
             foreach (Action<IWorld, int, IPlayer?> handler in Handlers(ObjectRemoved))
                 Guard(() => handler(world, objectId, by));
+        }
+
+        public void OnMoved(IWorld world, IWorldObject obj, IPlayer? by)
+        {
+            foreach (Action<IWorld, IWorldObject, IPlayer?> handler in Handlers(ObjectMoved))
+                Guard(() => handler(world, obj, by));
+        }
+
+        public void OnCubeSizeChanged(IWorld world, ICubeModel model, IPlayer? by)
+        {
+            foreach (Action<IWorld, ICubeModel, IPlayer?> handler in Handlers(CubeSizeChanged))
+                Guard(() => handler(world, model, by));
         }
 
         public void OnLinkAdded(IWorld world, WorldLink link, IPlayer? by)
