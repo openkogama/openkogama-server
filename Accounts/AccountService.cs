@@ -120,6 +120,11 @@ public sealed partial class AccountService(AccountStore store, ECDsa key, Func<s
         {
             reply = Error(400, "bad request");
         }
+        catch (Exception error)
+        {
+            Console.WriteLine($"accounts: {request.HttpMethod} {path} failed: {error.Message}");
+            reply = Error(500, "something went wrong, try again");
+        }
 
         byte[] data = Encoding.UTF8.GetBytes(reply.Body.ToJsonString());
         response.StatusCode = reply.Status;

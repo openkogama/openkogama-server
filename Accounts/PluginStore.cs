@@ -126,22 +126,18 @@ public sealed class PluginStore
 
     public void SetState(long id, PluginState state) => Execute("UPDATE plugins SET state = $state WHERE id = $id", ("$id", id), ("$state", (int)state));
 
-    public void Delete(long id) => Execute("""
-        BEGIN;
+    public void Delete(long id) => Transaction("""
         DELETE FROM plugin_versions WHERE plugin = $id;
         DELETE FROM plugin_reports WHERE plugin = $id;
         DELETE FROM plugin_ratings WHERE plugin = $id;
         DELETE FROM plugins WHERE id = $id;
-        COMMIT;
         """, ("$id", id));
 
-    public void DeleteOwner(long owner) => Execute("""
-        BEGIN;
+    public void DeleteOwner(long owner) => Transaction("""
         DELETE FROM plugin_versions WHERE plugin IN (SELECT id FROM plugins WHERE owner = $owner);
         DELETE FROM plugin_reports WHERE account = $owner OR plugin IN (SELECT id FROM plugins WHERE owner = $owner);
         DELETE FROM plugin_ratings WHERE account = $owner OR plugin IN (SELECT id FROM plugins WHERE owner = $owner);
         DELETE FROM plugins WHERE owner = $owner;
-        COMMIT;
         """, ("$owner", owner));
 
     public IReadOnlyList<PluginVersion> Versions(long plugin, bool all = false) =>
@@ -157,12 +153,10 @@ public sealed class PluginStore
 
     public PluginVersion? AddVersion(long plugin, string version, string api, string file, string name, long size, string changes)
     {
-        Execute("""
-            BEGIN;
+        Transaction("""
             INSERT INTO plugin_versions (plugin, version, api, file, name, size, changes, created, state)
             VALUES ($plugin, $version, $api, $file, $name, $size, $changes, $now, 0);
             UPDATE plugins SET updated = $now WHERE id = $plugin;
-            COMMIT;
             """, ("$plugin", plugin), ("$version", version), ("$api", api), ("$file", file), ("$name", name), ("$size", size), ("$changes", changes), ("$now", Now()));
         return Version(plugin, version, all: true);
     }
@@ -273,6 +267,16 @@ public sealed class PluginStore
         using SqliteConnection connection = Open();
         using SqliteCommand command = Command(connection, sql, parameters);
         command.ExecuteNonQuery();
+    }
+
+    void Transaction(string sql, params (string Name, object Value)[] parameters)
+    {
+        using SqliteConnection connection = Open();
+        using SqliteTransaction transaction = connection.BeginTransaction();
+        using SqliteCommand command = Command(connection, sql, parameters);
+        command.Transaction = transaction;
+        command.ExecuteNonQuery();
+        transaction.Commit();
     }
 
     SqliteConnection Open()

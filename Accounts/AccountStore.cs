@@ -102,12 +102,10 @@ public sealed class AccountStore
     public void DropUnverified(TimeSpan age) => Execute("DELETE FROM accounts WHERE verified = 0 AND created < $before", ("$before", Now() - (long)age.TotalSeconds));
     public void AcceptTerms(long id) => Execute("UPDATE accounts SET terms = $now WHERE id = $id", ("$id", id), ("$now", Now()));
 
-    public void Delete(long id, string? email, string purpose) => Execute("""
-        BEGIN;
+    public void Delete(long id, string? email, string purpose) => Transaction("""
         DELETE FROM sessions WHERE account = $id;
         DELETE FROM codes WHERE email = $email OR purpose = $purpose;
         DELETE FROM accounts WHERE id = $id;
-        COMMIT;
         """, ("$id", id), ("$email", (object?)email ?? DBNull.Value), ("$purpose", purpose));
 
     public string StartSession(long account)
@@ -170,6 +168,16 @@ public sealed class AccountStore
         using SqliteConnection connection = Open();
         using SqliteCommand command = Command(connection, sql, parameters);
         command.ExecuteNonQuery();
+    }
+
+    void Transaction(string sql, params (string Name, object Value)[] parameters)
+    {
+        using SqliteConnection connection = Open();
+        using SqliteTransaction transaction = connection.BeginTransaction();
+        using SqliteCommand command = Command(connection, sql, parameters);
+        command.Transaction = transaction;
+        command.ExecuteNonQuery();
+        transaction.Commit();
     }
 
     SqliteConnection Open()

@@ -9,6 +9,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
+using Microsoft.Data.Sqlite;
 using OpenKogama.PublicList;
 
 namespace OpenKogama.Accounts;
@@ -74,7 +75,7 @@ public sealed partial class PluginHub
     {
         HttpListenerRequest request = context.Request;
         HttpListenerResponse response = context.Response;
-        string[] parts = path[Root.Length..].Split('/', StringSplitOptions.RemoveEmptyEntries);
+        string[] parts = [.. path[Root.Length..].Split('/', StringSplitOptions.RemoveEmptyEntries).Select(part => Uri.UnescapeDataString(part))];
         Sweep();
         Reply reply;
         try
@@ -109,6 +110,11 @@ public sealed partial class PluginHub
         catch (JsonException)
         {
             reply = Error(400, "bad request");
+        }
+        catch (Exception error)
+        {
+            Console.WriteLine($"plugins: {request.HttpMethod} {path} failed: {error.Message}");
+            reply = Error(500, "something went wrong, try again");
         }
         await WriteAsync(response, reply);
     }
@@ -236,7 +242,16 @@ public sealed partial class PluginHub
         if (changes.Length > MaxChanges) return Error(400, $"the list of changes can have at most {MaxChanges} characters");
         if (_store.Versions(plugin.Id, all: true).Count >= MaxVersions) return Error(400, $"a plugin can have at most {MaxVersions} versions, delete an old one first");
         if (_store.Version(plugin.Id, version, all: true) is not null) return Error(409, "that version is already there");
-        if (_store.AddVersion(plugin.Id, version, inspected.Api, file, inspected.Name, new FileInfo(path).Length, changes) is PluginVersion added) _scanner.Queue(added);
+        PluginVersion? added;
+        try
+        {
+            added = _store.AddVersion(plugin.Id, version, inspected.Api, file, inspected.Name, new FileInfo(path).Length, changes);
+        }
+        catch (SqliteException error) when (error.SqliteErrorCode == 19)
+        {
+            return Error(409, "that version is already there");
+        }
+        if (added is not null) _scanner.Queue(added);
         if (changes.Length > 0) _moderation.JudgeText(changes, $"changes of plugin {plugin.Slug} {version}");
         Console.WriteLine($"plugins: {plugin.Slug} {version} added by {account.Name} and waits for approval");
         return Ok(new JsonObject { ["version"] = version, ["pending"] = true });
@@ -308,7 +323,7 @@ public sealed partial class PluginHub
         };
         if (state is not PluginState chosen) return Error(400, "unknown state");
         _store.SetState(plugin.Id, chosen);
-        if (chosen == PluginState.Public) _store.ApproveVersions(plugin.Id);
+        if (chosen == PluginState.Public && plugin.State == PluginState.Pending) _store.ApproveVersions(plugin.Id);
         Console.WriteLine($"plugins: {plugin.Slug} is {StateName(chosen)} now, set by {account.Name}");
         return Ok(new JsonObject { ["state"] = StateName(chosen) });
     }
@@ -371,7 +386,7 @@ public sealed partial class PluginHub
         if (_store.Version(plugin.Id, version, all: !counted) is not PluginVersion found) return false;
         string path = Path.Combine(_folder, found.File);
         if (!File.Exists(path)) return false;
-        if (counted && _allow($"plugin download {found.Id} {source}", 1, Hour)) _store.CountDownload(found);
+        if (counted && _allow($"plugin download {plugin.Id} {source}", 1, Hour)) _store.CountDownload(found);
         await using FileStream stream = File.OpenRead(path);
         response.StatusCode = 200;
         response.ContentType = "application/octet-stream";
@@ -508,7 +523,8 @@ public sealed partial class PluginHub
                 foreach (string path in Directory.EnumerateFiles(_folder))
                 {
                     string name = Path.GetFileName(path);
-                    if ((PluginFile().IsMatch(name) || ImageFile().IsMatch(name)) && !used.Contains(name) && DateTime.UtcNow - File.GetLastWriteTimeUtc(path) > Unused)
+                    TimeSpan age = DateTime.UtcNow - File.GetLastWriteTimeUtc(path);
+                    if (((PluginFile().IsMatch(name) || ImageFile().IsMatch(name)) && !used.Contains(name) && age > Unused) || (name.EndsWith(".part", StringComparison.Ordinal) && age > Hour))
                         File.Delete(path);
                 }
             }
