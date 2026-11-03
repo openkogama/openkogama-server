@@ -25,6 +25,8 @@ public static class AdminApi
             "/api/admin/unban" when post => Unban(request.Query),
             "/api/admin/admins" when post => SetAdmins(request.Body),
             "/api/admin/admins" => ApiResponse.Json(JsonSerializer.Serialize(PluginHost.Admins)),
+            "/api/admin/plugins/reload" when post => PluginStatus(reload: true),
+            "/api/admin/plugins" => PluginStatus(reload: false),
             _ => ApiResponse.NotFound,
         };
     }
@@ -65,6 +67,12 @@ public static class AdminApi
         }
         player.Peer.Disconnect();
         return ApiResponse.Json("{}");
+    }
+
+    static ApiResponse PluginStatus(bool reload)
+    {
+        if (reload) Console.WriteLine($"admin: reloaded {PluginHost.Reload()} plugins");
+        return ApiResponse.Json(JsonSerializer.Serialize(PluginHost.Status(), Json));
     }
 
     static ApiResponse Unban(NameValueCollection query)

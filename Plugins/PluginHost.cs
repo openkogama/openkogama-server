@@ -20,7 +20,7 @@ public static class PluginHost
     static readonly HashSet<string> UnknownAnimations = [];
     static readonly List<AssemblyLoadContext> Contexts = [];
     static readonly List<IPlugin> Loaded = [];
-    static readonly List<string> Failed = [];
+    static readonly List<PluginFile> Files = [];
     static string _folder = "plugins";
     static readonly ConditionalWeakTable<Player, PluginPlayer> Players = new();
     static readonly ConditionalWeakTable<Session, PluginWorld> Worlds = new();
@@ -63,6 +63,13 @@ public static class PluginHost
         lock (Sync) UnloadPlugins();
     }
 
+    public sealed record PluginFile(string File, string[] Plugins, string? Error);
+
+    public static IReadOnlyList<PluginFile> Status()
+    {
+        lock (Sync) return [.. Files];
+    }
+
     static void UnloadPlugins()
     {
         foreach (IPlugin plugin in Loaded)
@@ -85,7 +92,7 @@ public static class PluginHost
 
     static int Load()
     {
-        Failed.Clear();
+        Files.Clear();
         foreach (string path in Directory.GetFiles(_folder, "*.dll"))
         {
             var context = new AssemblyLoadContext(Path.GetFileNameWithoutExtension(path), isCollectible: true);
@@ -96,24 +103,28 @@ public static class PluginHost
                 Assembly assembly = FromFile(context, path);
                 if (assembly.GetReferencedAssemblies().FirstOrDefault(reference => reference.Name == ApiAssembly.Name)?.Version is Version needed && needed > ApiAssembly.Version)
                 {
-                    Console.WriteLine($"plugin {Path.GetFileName(path)} needs plugin API {needed.ToString(2)}, this server has {ApiAssembly.Version!.ToString(2)}, update the server");
-                    Failed.Add(Path.GetFileNameWithoutExtension(path));
+                    string reason = $"needs plugin API {needed.ToString(2)}, this server has {ApiAssembly.Version!.ToString(2)}, update the server";
+                    Console.WriteLine($"plugin {Path.GetFileName(path)} {reason}");
+                    Files.Add(new(Path.GetFileName(path), [], reason));
                     context.Unload();
                     continue;
                 }
+                List<string> plugins = [];
                 foreach (Type type in assembly.GetTypes().Where(type => typeof(IPlugin).IsAssignableFrom(type) && !type.IsAbstract))
                 {
                     var plugin = (IPlugin)Activator.CreateInstance(type)!;
                     plugin.Load(Server);
                     Loaded.Add(plugin);
+                    plugins.Add(type.FullName!);
                     Console.WriteLine($"plugin {type.FullName} loaded from {Path.GetFileName(path)}");
                 }
+                Files.Add(new(Path.GetFileName(path), [.. plugins], null));
                 Contexts.Add(context);
             }
             catch (Exception error)
             {
                 Console.WriteLine($"plugin {Path.GetFileName(path)} failed to load: {error}");
-                Failed.Add(Path.GetFileNameWithoutExtension(path));
+                Files.Add(new(Path.GetFileName(path), [], error.Message));
                 context.Unload();
             }
         }
@@ -211,7 +222,7 @@ public static class PluginHost
             string[] names =
             [
                 .. Loaded.Select(plugin => plugin.GetType().Assembly.GetName().Name!).Distinct().Order().Select(name => $"<color=#55FF55>{name}</color>"),
-                .. Failed.Order().Select(name => $"<color=#FF5555>{name}</color>"),
+                .. Files.Where(file => file.Error is not null).Select(file => Path.GetFileNameWithoutExtension(file.File)).Order().Select(name => $"<color=#FF5555>{name}</color>"),
             ];
             return $"Plugins ({names.Length}): {string.Join(", ", names)}";
         }
