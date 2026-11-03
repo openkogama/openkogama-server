@@ -31,6 +31,7 @@ public static class PluginHost
     static long _lastUpdate = Environment.TickCount64;
 
     public static IReadOnlyCollection<string> Admins { get; set; } = [];
+    public static IReadOnlyList<string> Rules { get; set; } = [];
 
     public static void LoadAll(string folder, Func<IReadOnlyList<Session>> sessions)
     {
@@ -180,6 +181,13 @@ public static class PluginHost
         if (text.Trim() is "/plugins" or "!plugins")
         {
             PlayerOf(session, player).Message(PluginList());
+            return null;
+        }
+        if (text.Trim() is "/rules" or "!rules")
+        {
+            PluginPlayer reader = PlayerOf(session, player);
+            if (Rules.Count == 0) reader.Message("This server has not set any rules");
+            foreach (string rule in Rules) reader.Message(rule);
             return null;
         }
         if (text.Trim() is not ("/reload" or "!reload")) return Server.OnChat(PlayerOf(session, player), text);

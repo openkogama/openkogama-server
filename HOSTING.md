@@ -53,6 +53,7 @@ The server reads its program files from `app` and keeps everything else in the f
 | `keepPlayChanges` | `true` keeps the cubes, vehicles and other changes players make, after they leave and after restarts. |
 | `joinMode` | `"build"` puts everyone who joins straight into the editor of the join world, and their changes are saved into the world itself. The default is `"play"`. |
 | `public` | `true` shows the server to everyone under Public on the launcher's Servers tab. The list checks the server at its `publicUrl` before showing it, and drops it a few minutes after it stops. |
+| `rules` | Lines like `["No griefing", "No cheats"]`, at most 10 of up to 100 characters. The launcher shows them before someone joins for the first time and again after you change them, and `!rules` shows them in the game's chat. |
 | `playerSettings` | `true` by default: mouse and graphics settings come from the player's launcher and go back to it after the game. `false` keeps them for one session only. |
 | `playerAvatars` | `true` by default: players wear the avatar they use in their own launcher. `false` keeps the avatars they have on this server. |
 | `playerInventory` | `true` by default: the models from the player's own inventory come along into theirs on this server. `false` keeps only what they have here. |

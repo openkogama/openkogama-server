@@ -22,7 +22,8 @@ An optional `server.json` in the server working directory configures its launche
   "joinMode": "play",
   "accounts": "optional",
   "admins": ["203.0.113.7", "dylinn"],
-  "allow": []
+  "allow": [],
+  "rules": ["No griefing", "No cheats"]
 }
 ```
 
@@ -32,7 +33,7 @@ Without this file the server keeps its local addresses. `joinWorld` defaults to 
 
 The launcher edits the `server.json` of its own server under File, Server settings, and restarts the server on save. File, Admin lists who is playing on it with Kick and Ban, the bans with Unban, and the admin IP addresses, which apply at once and are saved into `server.json`. It uses `/api/admin/...`, which only answers on the server's own machine and only on a server whose `publicUrl` is local. A world hosted with a code follows it like a public server: the title, thumbnail and versions show on the tile of everyone who joins, and `joinMode`, `mixedClients`, `keepPlayChanges` and the plugins apply to them. With `public` set, the hosted world shows on the public list by its code while it is hosted.
 
-`GET /api/server` exposes only `title` (up to 40 characters), `clients` and an optional `/api/server/thumbnail` path. The image endpoint serves the configured file up to 256 KB; PNG, JPEG and WebP are accepted by the launcher. `GET /session?mode=play` opens the configured entry world. Lists, map selection and hubs belong inside the game; the launcher never reads a remote server's world or avatar lists.
+`GET /api/server` exposes only `title` (up to 40 characters), `clients` and an optional `/api/server/thumbnail` path. The image endpoint serves the configured file up to 256 KB; PNG, JPEG and WebP are accepted by the launcher. `GET /api/server/rules` gives the `rules` from `server.json`, at most 10 lines of up to 100 characters each. The launcher shows them before a player joins for the first time and again after they change, and `!rules` prints them in the chat. `GET /session?mode=play` opens the configured entry world. Lists, map selection and hubs belong inside the game; the launcher never reads a remote server's world or avatar lists.
 
 ## Plugins
 

@@ -22,6 +22,7 @@ public sealed class ServerInfo
     public string JoinMode { get; init; } = "play";
     public string[] Admins { get; init; } = [];
     public string[] Allow { get; init; } = [];
+    public string[] Rules { get; init; } = [];
 
     public bool BuildJoin => JoinMode.Equals("build", StringComparison.OrdinalIgnoreCase);
     public string[] Clients { get; init; } = [];
@@ -95,4 +96,8 @@ public sealed class ServerInfo
     }
 
     public string DisplayTitle => string.Concat(Title.EnumerateRunes().Take(40)).Trim();
+
+    public string[] DisplayRules => [.. (Rules ?? []).OfType<string>()
+        .Select(rule => string.Concat(rule.ReplaceLineEndings(" ").EnumerateRunes().Take(100)).Trim())
+        .Where(rule => rule.Length > 0).Take(10)];
 }

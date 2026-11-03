@@ -82,6 +82,9 @@ public sealed class WebApi
                 ? new ApiResponse(200, "application/octet-stream", thumbnail)
                 : ApiResponse.NotFound;
 
+        if (path.TrimEnd('/') == "/api/server/rules")
+            return ApiResponse.Json(JsonSerializer.Serialize(new { rules = ServerInfo.DisplayRules }));
+
         if (path.TrimEnd('/') == "/api/name")
             return ApiResponse.Json(JsonSerializer.Serialize(new { claimed = NameClaimed(SessionToken.Clean(query["name"])) }));
 
