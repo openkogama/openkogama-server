@@ -23,17 +23,18 @@ public sealed class AddItemToWorld(Session session) : IOperationHandler
         float[]? scale = request.Parameters.ContainsKey((byte)ParameterKey.ScaleX)
             ? Floats(request, ParameterKey.ScaleX, ParameterKey.ScaleY, ParameterKey.ScaleZ)
             : null;
+        float[]? chosen = scale is null ? owner?.PlacementScale : null;
         WorldObject? placed = Place(session.World, session, item,
             Floats(request, ParameterKey.PosX, ParameterKey.PosY, ParameterKey.PosZ),
             Floats(request, ParameterKey.RotX, ParameterKey.RotY, ParameterKey.RotZ, ParameterKey.RotW),
             scale, Convert.ToInt32(request[(byte)ParameterKey.OwnerActorNr]),
-            Convert.ToInt32(request[(byte)ParameterKey.WorldObjectGroupID]), owner?.Actor ?? peer.Id);
+            Convert.ToInt32(request[(byte)ParameterKey.WorldObjectGroupID]), owner?.Actor ?? peer.Id, chosen);
         if (placed is not null) Plugins.PluginHost.Added(session, placed, owner);
 
         Console.WriteLine($"peer {peer.Id}: placed {item.Name} as {placed?.Id}");
     }
 
-    public static WorldObject? Place(GameWorld world, Session? session, Item item, float[] position, float[] rotation, float[]? scale, int owner, int parentId, int actor)
+    public static WorldObject? Place(GameWorld world, Session? session, Item item, float[] position, float[] rotation, float[]? scale, int owner, int parentId, int actor, float[]? placement = null)
     {
         Snapshot template = WorldSerializer.Read(item.Bytes, runtime: false);
         WorldObject root = template.Objects.First(obj => obj.ParentId == -1);
@@ -41,6 +42,7 @@ public sealed class AddItemToWorld(Session session) : IOperationHandler
         root.Position = position;
         root.Rotation = rotation;
         if (scale is not null) root.Scale = scale;
+        else if (placement is not null && root.Type != WorldObjectType.CubeModel) root.Scale = [.. placement];
         root.Owner = owner;
 
         Snapshot added = world.Insert(template, parentId);

@@ -27,6 +27,7 @@ public sealed class Player(PhotonPeer peer, int actor, int avatarId)
     public long? NextFreeSpin { get; set; }
     public int? PendingReward { get; set; }
     public int? SoundEmitter { get; set; }
+    public float[]? PlacementScale { get; set; }
     public string? Nickname { get; set; }
     public string? Account { get; set; }
     public string? Token { get; set; }

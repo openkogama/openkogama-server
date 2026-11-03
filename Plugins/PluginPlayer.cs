@@ -29,6 +29,14 @@ sealed class PluginPlayer(Player player, Session session) : IPlayer
 
     public int? SoundEmitter => player.SoundEmitter;
 
+    public Vector3? PlacementScale
+    {
+        get => player.PlacementScale is [float x, float y, float z] ? new Vector3(x, y, z) : null;
+        set => player.PlacementScale = value is Vector3 scale && float.IsFinite(scale.X) && float.IsFinite(scale.Y) && float.IsFinite(scale.Z) && scale.X != 0 && scale.Y != 0 && scale.Z != 0
+            ? [scale.X, scale.Y, scale.Z]
+            : null;
+    }
+
     public AvatarItem Holding =>
         session.World.Find(player.PlayAvatar)?.Runtime.Find(pair => pair.Key == "currentItem").Value is List<(string Key, PackedType Type, object Value)> item
         && item.Find(pair => pair.Key == "type").Value is int type

@@ -32,6 +32,7 @@ public interface IPlayer
     Team Team { get; }
     AvatarItem Holding { get; }
     int? SoundEmitter { get; }
+    Vector3? PlacementScale { get; set; }
     int ReauthsLeft { get; }
     string Language { get; }
 

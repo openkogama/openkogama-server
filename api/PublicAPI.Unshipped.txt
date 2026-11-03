@@ -26,3 +26,5 @@ override OpenKogama.Api.SavedWorld.GetHashCode() -> int
 override OpenKogama.Api.SavedWorld.ToString() -> string!
 static OpenKogama.Api.SavedWorld.operator !=(OpenKogama.Api.SavedWorld? left, OpenKogama.Api.SavedWorld? right) -> bool
 static OpenKogama.Api.SavedWorld.operator ==(OpenKogama.Api.SavedWorld? left, OpenKogama.Api.SavedWorld? right) -> bool
+OpenKogama.Api.IPlayer.PlacementScale.get -> System.Numerics.Vector3?
+OpenKogama.Api.IPlayer.PlacementScale.set -> void
