@@ -126,6 +126,8 @@ public sealed partial class PluginHub
             "version/approve" => ApproveVersion(account, body),
             "delete" => Delete(account, body),
             "report" => Report(account, body),
+            "rate" => Rate(account, body),
+            "rating" => Rating(account, body),
             "state" => SetState(account, body),
             "reports/clear" => ClearReports(account, body),
             _ => NotFound(),
@@ -137,7 +139,7 @@ public sealed partial class PluginHub
         int page = int.TryParse(query["page"], out int given) ? Math.Clamp(given, 0, MaxPage) : 0;
         string search = Line(query["q"]);
         if (search.Length > MaxSearch) search = search[..MaxSearch];
-        string sort = query["sort"] is "new" or "updated" ? query["sort"]! : "popular";
+        string sort = query["sort"] is "new" or "updated" or "rated" ? query["sort"]! : "popular";
         IReadOnlyList<Plugin> found = _store.Public(search, sort, page * PageSize, PageSize + 1);
         return Ok(new JsonObject
         {
@@ -277,6 +279,23 @@ public sealed partial class PluginHub
         return Ok(new JsonObject { ["reported"] = true });
     }
 
+    Reply Rate(Account account, JsonObject? body)
+    {
+        if (!_allow("plugin rate " + account.Id, 60, Hour)) return TooMany();
+        if (Text(body, "slug") is not string slug || _store.BySlug(slug) is not { State: PluginState.Public } plugin) return NotFound();
+        if (plugin.Owner == account.Id) return Error(400, "you cannot rate your own plugin");
+        if (body?["stars"] is not JsonValue value || !value.TryGetValue(out int stars) || stars is < 1 or > 5) return Error(400, "a rating is 1 to 5 stars");
+        _store.Rate(plugin.Id, account.Id, stars);
+        Plugin updated = _store.BySlug(slug)!;
+        return Ok(new JsonObject { ["mine"] = stars, ["rating"] = PluginStore.Average(updated), ["ratings"] = updated.Ratings });
+    }
+
+    Reply Rating(Account account, JsonObject? body)
+    {
+        if (Text(body, "slug") is not string slug || _store.BySlug(slug) is not Plugin plugin) return NotFound();
+        return Ok(new JsonObject { ["mine"] = _store.MyRating(plugin.Id, account.Id), ["own"] = plugin.Owner == account.Id });
+    }
+
     Reply SetState(Account account, JsonObject? body)
     {
         if (!Admin(account) || Text(body, "slug") is not string slug || _store.BySlug(slug) is not Plugin plugin) return NotFound();
@@ -405,6 +424,8 @@ public sealed partial class PluginHub
             ["icon"] = plugin.Icon is string icon && (everything || Shown(icon)) ? icon : null,
             ["cover"] = plugin.Images.FirstOrDefault(image => !image.StartsWith("yt:", StringComparison.Ordinal) && (everything || Shown(image))),
             ["downloads"] = plugin.Downloads,
+            ["rating"] = PluginStore.Average(plugin),
+            ["ratings"] = plugin.Ratings,
             ["created"] = plugin.Created,
             ["updated"] = plugin.Updated,
             ["version"] = latest?.Version,

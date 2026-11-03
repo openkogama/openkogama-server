@@ -5,7 +5,7 @@ namespace OpenKogama.Accounts;
 public enum PluginState { Pending, Public, Hidden }
 
 public sealed record Plugin(long Id, string Slug, long Owner, string Author, string Name, string Summary, string Description,
-    string? Video, string? Icon, string[] Images, PluginState State, long Created, long Updated, long Downloads);
+    string? Video, string? Icon, string[] Images, PluginState State, long Created, long Updated, long Downloads, long Ratings, long Stars);
 
 public sealed record PluginVersion(long Id, long Plugin, string Version, string Api, string File, string Name, long Size, string Changes, long Created, long Downloads, ScanResult? Scan, bool Pending);
 
@@ -13,7 +13,9 @@ public sealed record PluginReport(string Slug, string Name, string Reporter, str
 
 public sealed class PluginStore
 {
-    const string Columns = "p.id, p.slug, p.owner, a.name, p.name, p.summary, p.description, p.video, p.icon, p.images, p.state, p.created, p.updated, p.downloads";
+    const string Columns = "p.id, p.slug, p.owner, a.name, p.name, p.summary, p.description, p.video, p.icon, p.images, p.state, p.created, p.updated, p.downloads, "
+        + "(SELECT COUNT(*) FROM plugin_ratings r WHERE r.plugin = p.id) AS ratings, (SELECT COALESCE(SUM(r.stars), 0) FROM plugin_ratings r WHERE r.plugin = p.id) AS stars";
+    const int MinRatings = 3;
     const string Joined = "plugins p JOIN accounts a ON a.id = p.owner";
     const string VersionColumns = "id, plugin, version, api, file, name, size, changes, created, downloads, scan_malicious, scan_suspicious, scan_total, state";
     const string HasVersion = "EXISTS (SELECT 1 FROM plugin_versions v WHERE v.plugin = p.id AND v.state = 1)";
@@ -62,6 +64,13 @@ public sealed class PluginStore
                 created INTEGER NOT NULL,
                 PRIMARY KEY (plugin, account)
             );
+            CREATE TABLE IF NOT EXISTS plugin_ratings (
+                plugin INTEGER NOT NULL,
+                account INTEGER NOT NULL,
+                stars INTEGER NOT NULL,
+                created INTEGER NOT NULL,
+                PRIMARY KEY (plugin, account)
+            );
             """);
         if (!HasColumn("plugin_versions", "scan_total"))
             Execute("""
@@ -85,6 +94,7 @@ public sealed class PluginStore
         {
             "new" => "p.created DESC",
             "updated" => "p.updated DESC",
+            "rated" => $"CASE WHEN ratings >= {MinRatings} THEN stars * 1.0 / ratings ELSE 0 END DESC, ratings DESC, p.downloads DESC",
             _ => "p.downloads DESC, p.updated DESC",
         };
         string filter = string.IsNullOrEmpty(search) ? "" : "AND (p.name LIKE $q ESCAPE '\\' OR p.summary LIKE $q ESCAPE '\\' OR a.name LIKE $q ESCAPE '\\')";
@@ -120,6 +130,7 @@ public sealed class PluginStore
         BEGIN;
         DELETE FROM plugin_versions WHERE plugin = $id;
         DELETE FROM plugin_reports WHERE plugin = $id;
+        DELETE FROM plugin_ratings WHERE plugin = $id;
         DELETE FROM plugins WHERE id = $id;
         COMMIT;
         """, ("$id", id));
@@ -128,6 +139,7 @@ public sealed class PluginStore
         BEGIN;
         DELETE FROM plugin_versions WHERE plugin IN (SELECT id FROM plugins WHERE owner = $owner);
         DELETE FROM plugin_reports WHERE account = $owner OR plugin IN (SELECT id FROM plugins WHERE owner = $owner);
+        DELETE FROM plugin_ratings WHERE account = $owner OR plugin IN (SELECT id FROM plugins WHERE owner = $owner);
         DELETE FROM plugins WHERE owner = $owner;
         COMMIT;
         """, ("$owner", owner));
@@ -189,6 +201,16 @@ public sealed class PluginStore
 
     public void ClearReports(long plugin) => Execute("DELETE FROM plugin_reports WHERE plugin = $plugin", ("$plugin", plugin));
 
+    public void Rate(long plugin, long account, int stars) => Execute("""
+        INSERT INTO plugin_ratings (plugin, account, stars, created) VALUES ($plugin, $account, $stars, $now)
+        ON CONFLICT (plugin, account) DO UPDATE SET stars = excluded.stars, created = excluded.created
+        """, ("$plugin", plugin), ("$account", account), ("$stars", stars), ("$now", Now()));
+
+    public int MyRating(long plugin, long account) =>
+        (int)Scalar("SELECT COALESCE((SELECT stars FROM plugin_ratings WHERE plugin = $plugin AND account = $account), 0)", ("$plugin", plugin), ("$account", account));
+
+    public static double? Average(Plugin plugin) => plugin.Ratings >= MinRatings ? Math.Round(plugin.Stars / (double)plugin.Ratings, 1) : null;
+
     public HashSet<string> Files()
     {
         var files = new HashSet<string>();
@@ -222,7 +244,7 @@ public sealed class PluginStore
             plugins.Add(new Plugin(reader.GetInt64(0), reader.GetString(1), reader.GetInt64(2), reader.GetString(3), reader.GetString(4), reader.GetString(5),
                 reader.GetString(6), reader.IsDBNull(7) ? null : reader.GetString(7), reader.IsDBNull(8) ? null : reader.GetString(8),
                 reader.GetString(9).Split(' ', StringSplitOptions.RemoveEmptyEntries), (PluginState)reader.GetInt32(10),
-                reader.GetInt64(11), reader.GetInt64(12), reader.GetInt64(13)));
+                reader.GetInt64(11), reader.GetInt64(12), reader.GetInt64(13), reader.GetInt64(14), reader.GetInt64(15)));
         return plugins;
     }
 
