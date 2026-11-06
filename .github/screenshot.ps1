@@ -127,17 +127,19 @@ function Stop-Leftovers {
 
 function Install-WebPlayer {
     $root = Join-Path $env:USERPROFILE "AppData\LocalLow\Unity\WebPlayer"
-    $zip = Join-Path $env:RUNNER_TEMP "webplayer.zip"
-    Invoke-WebRequest "https://cdn.openkogama.org/webplayer/unity-webplayer-4.6.6f2-win.zip" -OutFile $zip -Headers $agent
     Add-Type -AssemblyName System.IO.Compression.FileSystem
-    $archive = [System.IO.Compression.ZipFile]::OpenRead($zip)
-    foreach ($entry in $archive.Entries) {
-        $path = Join-Path $root ($entry.FullName -replace '/', '\')
-        if ($entry.FullName.EndsWith('/') -or $entry.FullName.EndsWith('\')) { New-Item -ItemType Directory -Force $path | Out-Null; continue }
-        New-Item -ItemType Directory -Force (Split-Path $path) | Out-Null
-        [System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $path, $true)
+    foreach ($piece in "unity-webplayer-4.6.6f2-win.zip", "unity-webplayer-stable5-5.3.8f1-win.zip") {
+        $zip = Join-Path $env:RUNNER_TEMP $piece
+        Invoke-WebRequest "https://cdn.openkogama.org/webplayer/$piece" -OutFile $zip -Headers $agent
+        $archive = [System.IO.Compression.ZipFile]::OpenRead($zip)
+        foreach ($entry in $archive.Entries) {
+            $path = Join-Path $root ($entry.FullName -replace '/', '\')
+            if ($entry.FullName.EndsWith('/') -or $entry.FullName.EndsWith('\')) { New-Item -ItemType Directory -Force $path | Out-Null; continue }
+            New-Item -ItemType Directory -Force (Split-Path $path) | Out-Null
+            [System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $path, $true)
+        }
+        $archive.Dispose()
     }
-    $archive.Dispose()
     New-Item -Force "HKCU:\Software\Unity\WebPlayer" | Out-Null
     Set-ItemProperty "HKCU:\Software\Unity\WebPlayer" Directory $root
     Set-ItemProperty "HKCU:\Software\Unity\WebPlayer" UnityWebPlayerReleaseChannel Stable
@@ -185,9 +187,9 @@ function Capture-Build($entry) {
     $psi.UseShellExecute = $false
     $psi.EnvironmentVariables["http_proxy"] = "http://127.0.0.1:8081"
     $psi.EnvironmentVariables["no_proxy"] = "127.0.0.1,localhost"
-    if ($entry.unityVersion.StartsWith("3.")) {
+    $webFile = (Get-ChildItem $client -Recurse -Include *.unity3d, *.unityweb | Select-Object -First 1).FullName
+    if ($webFile) {
         if (-not $script:webPlayerReady) { Install-WebPlayer; $script:webPlayerReady = $true }
-        $webFile = (Get-ChildItem $client -Recurse -Include *.unity3d, *.unityweb | Select-Object -First 1).FullName
         Fix-Client $webFile
         $psi.FileName = Join-Path $Player "openkogama-player.exe"
         $psi.WorkingDirectory = $Player
