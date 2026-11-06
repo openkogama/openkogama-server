@@ -30,7 +30,7 @@ public sealed class Mailer(string? apiKey, string from)
             using HttpResponseMessage response = await Http.SendAsync(request);
             if (!response.IsSuccessStatusCode) Console.WriteLine($"mail failed with {(int)response.StatusCode}");
         }
-        catch (HttpRequestException error)
+        catch (Exception error) when (error is HttpRequestException or TaskCanceledException)
         {
             Console.WriteLine($"mail failed: {error.Message}");
         }

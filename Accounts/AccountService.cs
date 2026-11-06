@@ -159,7 +159,7 @@ public sealed partial class AccountService(AccountStore store, ECDsa key, Func<s
         ("POST", "/terms") => AcceptTerms(body),
         ("POST", "/delete") => DeleteAccount(body, source),
         ("POST", "/email") => await AddEmailAsync(body, source),
-        ("POST", "/email/confirm") => ConfirmEmail(body, source),
+        ("POST", "/email/confirm") => await ConfirmEmailAsync(body, source),
         ("POST", "/launcher/code") => HandOff(body),
         ("POST", "/launcher/token") => TakeOver(body, source),
         ("POST", "/maps/batch") => await MapBatchAsync(body, source),
@@ -248,6 +248,7 @@ public sealed partial class AccountService(AccountStore store, ECDsa key, Func<s
         if (store.ByEmail(email) is not Account account || !store.UseCode(email, Reset, code)) return Error(401, "wrong or expired code");
         store.SetPassword(account.Id, Passwords.Hash(password!));
         store.EndSessions(account.Id);
+        Console.WriteLine($"accounts: {account.Id} reset password");
         return Signed(account);
     }
 
@@ -255,6 +256,7 @@ public sealed partial class AccountService(AccountStore store, ECDsa key, Func<s
     {
         if (!Allow("mail " + source, 5, Hour)) return TooMany();
         if (Text(body, "token") is not string token || store.Session(token) is not Account account) return Error(401, "sign in again");
+        if (!Passwords.Verify(Text(body, "password") ?? "", account.Password ?? Decoy.Value)) return Error(401, "wrong password");
         if (Email(Text(body, "email")) is not string email) return Error(400, "that email does not look right");
         if (store.ByEmail(email) is { } owner && owner.Id != account.Id) return Error(409, "that email already has an account");
         if (!Allow("mail " + email, 5, Hour)) return TooMany();
@@ -262,7 +264,7 @@ public sealed partial class AccountService(AccountStore store, ECDsa key, Func<s
         return Ok(new JsonObject { ["sent"] = true });
     }
 
-    Reply ConfirmEmail(JsonObject? body, string source)
+    async Task<Reply> ConfirmEmailAsync(JsonObject? body, string source)
     {
         if (!Allow("code " + source, 20, TenMinutes)) return TooMany();
         if (Text(body, "token") is not string token || store.Session(token) is not Account account) return Error(401, "sign in again");
@@ -276,6 +278,11 @@ public sealed partial class AccountService(AccountStore store, ECDsa key, Func<s
         {
             return Error(409, "that email already has an account");
         }
+        Console.WriteLine($"accounts: {account.Id} changed email");
+        if (account.Email is string old && !old.Equals(email, StringComparison.OrdinalIgnoreCase))
+            await send(old, CodeMail.Notice("Your OpenKogama email was changed", "Your email was changed",
+                $"Hi {account.Name}, the email on your OpenKogama account was just changed. Codes and password resets now go to the new address.",
+                "If you did not do this, write to contact@openkogama.org so we can help."));
         return Ok(new JsonObject { ["email"] = email });
     }
 
