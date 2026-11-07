@@ -17,7 +17,7 @@ namespace OpenKogama.Accounts;
 public sealed partial class PluginHub
 {
     const string Root = "/plugins";
-    const int MaxJson = 32 * 1024;
+    const int MaxJson = 256 * 1024;
     const long MaxFile = 32L * 1024 * 1024;
     const int MaxEntries = 2000;
     const long MaxUnpacked = 256L * 1024 * 1024;
@@ -101,8 +101,11 @@ public sealed partial class PluginHub
                     reply = await UploadAsync(request);
                     break;
                 case ("POST", [_, ..]):
-                    reply = Handle(string.Join('/', parts), await ReadAsync(request));
+                {
+                    var (body, tooLong) = await ReadAsync(request);
+                    reply = tooLong ? Error(413, "that is too long to save") : Handle(string.Join('/', parts), body);
                     break;
+                }
                 default:
                     reply = NotFound();
                     break;
@@ -698,12 +701,13 @@ public sealed partial class PluginHub
     static string? TokenOf(HttpListenerRequest request) =>
         request.Headers["Authorization"] is string header && header.StartsWith(Bearer, StringComparison.Ordinal) ? header[Bearer.Length..] : null;
 
-    static async Task<JsonObject?> ReadAsync(HttpListenerRequest request)
+    static async Task<(JsonObject? Body, bool TooLong)> ReadAsync(HttpListenerRequest request)
     {
         var buffer = new byte[MaxJson + 1];
         int read = 0;
         while (read < buffer.Length && await request.InputStream.ReadAsync(buffer.AsMemory(read)) is int chunk and > 0) read += chunk;
-        return read is > 0 and <= MaxJson ? JsonNode.Parse(buffer.AsSpan(0, read)) as JsonObject : null;
+        if (read > MaxJson) return (null, true);
+        return (read > 0 ? JsonNode.Parse(buffer.AsSpan(0, read)) as JsonObject : null, false);
     }
 
     static async Task WriteAsync(HttpListenerResponse response, Reply reply)
