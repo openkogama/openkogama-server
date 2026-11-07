@@ -21,6 +21,7 @@ public sealed partial class PluginHub
     const long MaxFile = 32L * 1024 * 1024;
     const int MaxEntries = 2000;
     const long MaxUnpacked = 256L * 1024 * 1024;
+    const long MaxPluginDll = 128L * 1024 * 1024;
     const long MaxImage = 1024 * 1024;
     const long MinFree = 1L * 1024 * 1024 * 1024;
     const int MinName = 2;
@@ -562,7 +563,7 @@ public sealed partial class PluginHub
             var head = new byte[4];
             int got = stream.Read(head, 0, 4);
             stream.Position = 0;
-            if (got == 4 && head[0] == 'P' && head[1] == 'K' && head[2] == 3 && head[3] == 4) return InspectZip(stream);
+            if (got == 4 && head[0] == 'P' && head[1] == 'K' && head[2] == 3 && head[3] == 4) return InspectZip(stream, Path.GetDirectoryName(Path.GetFullPath(path))!);
             return InspectDll(stream) is { } dll ? (dll.Version, dll.Api, dll.Name + ".dll", ".dll") : null;
         }
         catch (Exception error) when (error is BadImageFormatException or InvalidDataException or IOException)
@@ -571,7 +572,7 @@ public sealed partial class PluginHub
         }
     }
 
-    static (string Version, string Api, string Name, string Extension)? InspectZip(Stream stream)
+    static (string Version, string Api, string Name, string Extension)? InspectZip(Stream stream, string folder)
     {
         using var zip = new ZipArchive(stream, ZipArchiveMode.Read);
         if (zip.Entries.Count > MaxEntries || zip.Entries.Sum(entry => entry.Length) > MaxUnpacked) return null;
@@ -582,13 +583,35 @@ public sealed partial class PluginHub
         }
         foreach (ZipArchiveEntry entry in zip.Entries)
         {
-            if (!entry.Name.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) || entry.Length > MaxFile) continue;
-            using var copy = new MemoryStream();
-            using (Stream opened = entry.Open()) opened.CopyTo(copy);
-            copy.Position = 0;
-            if (InspectDll(copy) is { } dll) return (dll.Version, dll.Api, dll.Name + ".zip", ".zip");
+            if (!entry.Name.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) || entry.Length > MaxPluginDll) continue;
+            string unpacked = Path.Combine(folder, Guid.NewGuid().ToString("N") + ".part");
+            try
+            {
+                using (Stream opened = entry.Open())
+                using (FileStream copy = File.Create(unpacked))
+                    if (!Capped(opened, copy, MaxPluginDll)) continue;
+                using FileStream file = File.OpenRead(unpacked);
+                if (InspectDll(file) is { } dll) return (dll.Version, dll.Api, dll.Name + ".zip", ".zip");
+            }
+            finally
+            {
+                File.Delete(unpacked);
+            }
         }
         return null;
+    }
+
+    static bool Capped(Stream from, Stream to, long limit)
+    {
+        var buffer = new byte[81920];
+        long total = 0;
+        for (int read; (read = from.Read(buffer)) > 0;)
+        {
+            total += read;
+            if (total > limit) return false;
+            to.Write(buffer, 0, read);
+        }
+        return true;
     }
 
     static (string Version, string Api, string Name)? InspectDll(Stream stream)
