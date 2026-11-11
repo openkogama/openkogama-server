@@ -48,7 +48,7 @@ public sealed class AssetCache(string remoteRoot, string folder)
 
     public byte[]? Get(string path)
     {
-        if (path.Contains("..")) return null;
+        if (!Inside(path)) return null;
 
         string local = LocalPath(path);
         if (!File.Exists(local))
@@ -70,6 +70,13 @@ public sealed class AssetCache(string remoteRoot, string folder)
     }
 
     readonly HashSet<string> _missing = [];
+
+    bool Inside(string path)
+    {
+        if (path.Contains("..") || path.Contains('\0') || Path.IsPathRooted(path)) return false;
+        string root = Path.GetFullPath(folder) + Path.DirectorySeparatorChar;
+        return Path.GetFullPath(LocalPath(path)).StartsWith(root, StringComparison.Ordinal);
+    }
 
     public static async Task<bool> InstallAsync(string set)
     {
