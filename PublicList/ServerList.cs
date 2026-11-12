@@ -437,7 +437,7 @@ public sealed class ServerList(int port, string bans)
     static string SourceOf(HttpListenerRequest request)
     {
         IPAddress remote = request.RemoteEndPoint.Address;
-        string? forwarded = request.Headers["X-Forwarded-For"]?.Split(',')[0].Trim();
+        string? forwarded = request.Headers["X-Forwarded-For"]?.Split(',')[^1].Trim();
         return IPAddress.IsLoopback(remote) && !string.IsNullOrEmpty(forwarded) ? forwarded : remote.ToString();
     }
 

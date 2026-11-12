@@ -89,6 +89,9 @@ Player.ActorName = actor => host.Sessions().SelectMany(session => session.Player
 PluginHost.Admins = [.. (serverInfo.Admins ?? []).Select(Access.Entry).OfType<string>()];
 PluginHost.Rules = serverInfo.DisplayRules;
 Access.Allow = [.. (serverInfo.Allow ?? []).Select(Access.Entry).OfType<string>()];
+Access.Shared = serverInfo.Shared;
+Access.RemoteEdit = serverInfo.BuildJoin;
+Access.Online = serverInfo.Accounts == AccountMode.Online;
 
 var ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 void StartGame()

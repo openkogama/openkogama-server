@@ -116,7 +116,11 @@ public sealed class Router2012
         }
         else if (int.TryParse(username, out int profile) && profile > 0)
         {
-            player.ProfileId = profile;
+            player.ProfileId = profile == 1 || Access.MayClaim(profile, peer.EndPoint.Address, null) ? profile : 1;
+        }
+        else if (Access.Remote(peer.EndPoint.Address))
+        {
+            player.ProfileId = 1;
         }
         if (Bans.Holds(player))
         {

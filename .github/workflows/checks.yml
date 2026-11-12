@@ -1,0 +1,29 @@
+name: checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: openkogama-server
+      - uses: actions/checkout@v4
+        with:
+          repository: openkogama/openkogama-photon
+          path: openkogama-photon
+      - uses: actions/checkout@v4
+        with:
+          repository: openkogama/openkogama-mods
+          path: openkogama-mods
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet build openkogama-server/openkogama-server.csproj -c Release
+      - run: dotnet run --project openkogama-server/tests/launcher-contract -c Release

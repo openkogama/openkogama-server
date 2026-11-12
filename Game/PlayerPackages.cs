@@ -27,7 +27,8 @@ public static class PlayerPackages
         PropertyNameCaseInsensitive = true,
     };
 
-    static readonly Dictionary<string, (PlayerPackage Package, DateTime At)> Waiting = [];
+    static readonly Dictionary<string, (PlayerPackage Package, DateTime At, int Size)> Waiting = [];
+    const long MaxWaitingBytes = 24 * 1024 * 1024;
     static readonly Lazy<HashSet<int>> Catalog = new(() => [.. Items.Catalog.Items.Select(item => item.Id)]);
 
     public static bool Offer(string? key, byte[] body, string? encoding = null)
@@ -51,7 +52,10 @@ public static class PlayerPackages
         {
             foreach (string old in Waiting.Where(entry => now - entry.Value.At > Lifetime).Select(entry => entry.Key).ToList())
                 Waiting.Remove(old);
-            Waiting[clean] = (package, now);
+            Waiting.Remove(clean);
+            while (Waiting.Count > 0 && Waiting.Values.Sum(entry => (long)entry.Size) + body.Length > MaxWaitingBytes)
+                Waiting.Remove(Waiting.MinBy(entry => entry.Value.At).Key);
+            Waiting[clean] = (package, now, body.Length);
         }
         return true;
     }

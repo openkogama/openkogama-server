@@ -432,7 +432,7 @@ public sealed partial class AccountService(AccountStore store, ECDsa key, Func<s
     static string SourceOf(HttpListenerRequest request)
     {
         IPAddress remote = request.RemoteEndPoint.Address;
-        string? forwarded = request.Headers["X-Forwarded-For"]?.Split(',')[0].Trim();
+        string? forwarded = request.Headers["X-Forwarded-For"]?.Split(',')[^1].Trim();
         return IPAddress.IsLoopback(remote) && !string.IsNullOrEmpty(forwarded) ? forwarded : remote.ToString();
     }
 

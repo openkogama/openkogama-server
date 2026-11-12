@@ -11,7 +11,8 @@ using OpenKogama.Storage;
 
 namespace OpenKogama.Web;
 
-public sealed record ApiRequest(string Method, string Path, NameValueCollection Query, string? ContentType, byte[] Body, bool Local, string? Via = null, string? Encoding = null, System.Net.IPAddress? From = null);
+public sealed record ApiRequest(string Method, string Path, NameValueCollection Query, string? ContentType, byte[] Body, bool Local, string? Via = null, string? Encoding = null, System.Net.IPAddress? From = null,
+    string? Origin = null);
 
 public sealed record ApiResponse(int Status, string? ContentType, byte[] Body)
 {
@@ -31,6 +32,7 @@ public sealed class WebApi
     const int PlanetImage = 0;
     const int AvatarImage = 1;
     const int MaxThumbnail = 2 * 1024 * 1024;
+    const int SessionsPerMinute = 60;
 
     public Func<int, GameMode, int, string?, string?, string> SessionJson { get; set; } = (_, _, _, _, _) => "{}";
     public AssetCache? Assets { get; set; }
@@ -70,6 +72,12 @@ public sealed class WebApi
         NameValueCollection query = request.Query;
 
         if (request.Via is not null && Managing(path))
+            return new ApiResponse(403, null, []);
+
+        if (request.Origin is not null && (Managing(path) || path.StartsWith("/api/tunnel/")))
+            return new ApiResponse(403, null, []);
+
+        if (ServerInfo.Shared && Managing(path) && !request.Local && !(request.From is System.Net.IPAddress manager && Access.Admin(manager, null)))
             return new ApiResponse(403, null, []);
 
         if (path.StartsWith("/api/admin/"))
@@ -114,9 +122,11 @@ public sealed class WebApi
         {
             if (!ServerInfo.Allows(query["client"]))
                 return ApiResponse.Json(JsonSerializer.Serialize(new { error = $"This server accepts {string.Join(", ", ServerInfo.Clients)}" }), 403);
+            bool remote = ServerInfo.Shared || request.Via is not null;
+            if (remote && !request.Local && !Throttle.Allow("session " + SessionTokens.SourceOf(request.From, request.Via is not null), SessionsPerMinute, TimeSpan.FromMinutes(1)))
+                return ApiResponse.Json(JsonSerializer.Serialize(new { error = "Too many tries, wait a minute" }), 429);
             if (Reauths.Resume(query["key"]) is { } resumed)
                 return ApiResponse.Json(Reauthed(resumed));
-            bool remote = ServerInfo.Shared || request.Via is not null;
             int profile = !remote && int.TryParse(query["profile"], out int requested) && requested > 0 ? requested : 1;
             string? nickname = SessionToken.Clean(query["name"]);
             string? account = null;
@@ -155,6 +165,12 @@ public sealed class WebApi
                 "avatar" => GameMode.CharacterEditor,
                 _ => GameMode.Edit,
             };
+            if (mode == GameMode.Edit && !MayEdit(request, account))
+            {
+                Console.WriteLine($"profile {profile}: asked to edit, joins in play mode, only admins edit on this server");
+                mode = GameMode.Play;
+                if (world == 0) world = ServerInfo.EntryWorld();
+            }
             ClientEngines.Remember(profile, query["unity"]);
             PlayerPackage? package = PlayerPackages.Find(query["key"]);
             ProfileSettings.Remember(profile, ServerInfo.PlayerSettings ? query["key"] : null, ServerInfo.PlayerSettings ? package?.Settings?.GetRawText() : null);
@@ -164,7 +180,8 @@ public sealed class WebApi
             string[] patches = query["patches"]?.Split(',') ?? [];
             return ApiResponse.Json(Issue(new Reauths.Origin(profile, nickname, query["client"], request.Via, query["transport"] == "ws", world, mode, Key: query["key"],
                 Reloads: patches.Contains("world-switch"), Language: ClientLanguages.Clean(query["language"]), Tcp: patches.Contains("tcp"),
-                Themes: patches.Contains("themes") ? query["themes"] : null, Teleports: patches.Contains("teleport"))));
+                Themes: patches.Contains("themes") ? query["themes"] : null, Teleports: patches.Contains("teleport"),
+                Source: SessionTokens.SourceOf(request.From, request.Via is not null))));
         }
 
         if (path.TrimEnd('/') == "/session/reauth")
@@ -195,7 +212,8 @@ public sealed class WebApi
                 : ApiResponse.Redirect($"http://127.0.0.1:{localPort}{bundlePath}");
 
         if (path.TrimEnd('/') == "/api/player" && request.Method == "POST")
-            return ApiResponse.Json("{}", PlayerPackages.Offer(query["key"], request.Body, request.Encoding) ? 200 : 400);
+            return !request.Local && !Throttle.Allow("player " + SessionTokens.SourceOf(request.From, request.Via is not null), SessionsPerMinute, TimeSpan.FromMinutes(1))
+                ? ApiResponse.Json("{}", 429) : ApiResponse.Json("{}", PlayerPackages.Offer(query["key"], request.Body, request.Encoding) ? 200 : 400);
 
         if (path.TrimEnd('/') == "/api/profile/export")
             return request.Local && !ServerInfo.Shared ? ApiResponse.Json(PlayerPackages.Export(ProfileOf(query))) : new ApiResponse(403, null, []);
@@ -355,7 +373,9 @@ public sealed class WebApi
                     NameValueCollection form = Form(request);
                     int formProfile = int.TryParse(form["profile_id"], out int p) ? p : 0;
                     int type = int.TryParse(form["xp_type_id"], out int t) ? t : 0;
-                    return ApiResponse.Json($$"""{"XP":{{Leveling.Add(formProfile, type)}},"XPTypeID":{{type}}}""");
+                    bool granted = request.Local || !ServerInfo.Shared && request.Via is null
+                        || SessionTokens.IssuedTo(formProfile, SessionTokens.SourceOf(request.From, request.Via is not null));
+                    return ApiResponse.Json($$"""{"XP":{{(granted ? Leveling.Add(formProfile, type) : Leveling.XpOf(formProfile))}},"XPTypeID":{{type}}}""");
             }
         }
 
@@ -386,7 +406,8 @@ public sealed class WebApi
     string Reauthed((Reauths.Origin Origin, Reauths.Plan? Plan) taken)
     {
         (Reauths.Origin origin, Reauths.Plan? plan) = taken;
-        Reauths.Origin next = origin with { World = plan?.World ?? origin.World, Mode = plan?.Mode ?? origin.Mode, Used = origin.Used + 1 };
+        Reauths.Origin next = origin with { World = plan?.World ?? origin.World, Mode = plan?.Mode ?? origin.Mode, Used = origin.Used + 1,
+            Edit = plan?.Mode is GameMode planned ? planned == GameMode.Edit : origin.Edit };
         Console.WriteLine($"profile {next.Profile}: reauths into world {next.World} in {next.Mode.ToString().ToLowerInvariant()} mode");
         return Issue(next, plan?.Session);
     }
@@ -395,7 +416,7 @@ public sealed class WebApi
     {
         string session = SessionJson(origin.Profile, origin.Mode, origin.World, origin.Client, origin.Via);
         if (JsonNode.Parse(session) is not JsonObject issued) return session;
-        string token = SessionTokens.Issue(origin.Profile, origin.Nickname);
+        string token = SessionTokens.Issue(origin.Profile, origin.Nickname, origin.Source);
         string root = origin.Via is null ? SessionLocator.PublicUrl : "http://" + origin.Via;
         issued["token"] = token;
         issued["reauthURL"] = $"{root}/session/reauth?token={token}";
@@ -432,6 +453,9 @@ public sealed class WebApi
         name is not null && ServerInfo.Accounts == AccountMode.Optional && Stores.Profiles.Named(name) is int profile && Stores.Profiles.Claimed(profile);
 
     static ApiResponse Refused(string message) => ApiResponse.Json(JsonSerializer.Serialize(new { error = message }), 403);
+
+    static bool MayEdit(ApiRequest request, string? account) =>
+        request.Via is null && request.From is System.Net.IPAddress from ? Access.MayEdit(from, account) : Access.RemoteEdit;
 
     static bool Managing(string path) => path.TrimEnd('/') == "/shutdown"
         || new[] { "/api/worlds", "/api/avatars", "/api/inventory", "/api/templates", "/api/profile", "/api/admin" }.Any(area => path == area || path.StartsWith(area + "/"));

@@ -132,6 +132,11 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
         if (!int.TryParse(join[(byte)Key2012.PlanetName] as string, out int id)) return null;
 
         bool play = join[(byte)Key2012.JoinEditMode] is not true;
+        if (!play && !Access.MayEdit(peer.EndPoint.Address, null))
+        {
+            Console.WriteLine($"peer {peer.Id}: 2012 edit of world {id} refused, only admins edit on this server");
+            return null;
+        }
         if (play && id == 0) id = EntryWorld();
         string client = mixedClients ? "" : Version;
         if (mixedClients) peer.Translator ??= new Translator2012 { Peer = peer };
@@ -372,9 +377,15 @@ public sealed class SessionHost(PhotonServer server, bool mixedClients)
         if (id <= 0) id = Stores.Worlds.List().FirstOrDefault()?.Id ?? 0;
 
         bool play = mode == (int)GameMode.Play;
+        string? token = request.Parameters.GetValueOrDefault((byte)ParameterKey.Token) as string;
+        if (!play && !Access.MayEdit(peer.EndPoint.Address, Access.AccountOf(token)) && !Reauths.Edits(token))
+        {
+            Console.WriteLine($"peer {peer.Id}: edit of world {id} refused, only admins edit on this server");
+            return null;
+        }
         string client = mixedClients ? "" : (peer.Translator as LegacyTranslator)?.Version ?? "";
         if (_worlds.TryGetValue((id, play, client), out Entry? open)) return open;
-        int requester = SessionTokens.Find(request.Parameters.GetValueOrDefault((byte)ParameterKey.Token) as string).Profile;
+        int requester = SessionTokens.Find(token).Profile;
         if (!play && EditLocked(id) && !TakeOver(id, peer, requester))
         {
             Console.WriteLine($"peer {peer.Id}: world {id} is already edited by another client version");

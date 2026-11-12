@@ -10,6 +10,7 @@ public sealed class Rendezvous(int port) : INatPunchListener
     const int MaxInfo = 1024;
     const int MaxRelays = 16;
     const int MaxRelayBacklog = 4096;
+    const int MaxLookups = 30;
     const long OrphanMs = 30_000;
     const int SweepMs = 5_000;
 
@@ -81,10 +82,12 @@ public sealed class Rendezvous(int port) : INatPunchListener
                     break;
                 case Op.Find:
                     reader.GetByte();
+                    if (Guessing(peer)) break;
                     Find(peer, Tunnel.Normalize(reader.GetString(16)));
                     break;
                 case Op.Relay:
                     reader.GetByte();
+                    if (Guessing(peer)) break;
                     Relay(peer, Tunnel.Normalize(reader.GetString(16)));
                     break;
                 case Op.Wrap when reader.AvailableBytes >= 5:
@@ -131,6 +134,14 @@ public sealed class Rendezvous(int port) : INatPunchListener
             peer.Send(ToHost(id, guest), 0, DeliveryMethod.ReliableOrdered);
             Console.WriteLine($"relay {id} for {code} resumed");
         }
+    }
+
+    static bool Guessing(NetPeer peer)
+    {
+        if (Web.Throttle.Allow("code " + peer.Address, MaxLookups, TimeSpan.FromMinutes(1))) return false;
+        Console.WriteLine($"rendezvous: {peer.Address} tries too many codes, disconnected");
+        peer.Disconnect();
+        return true;
     }
 
     void Find(NetPeer peer, string? code)

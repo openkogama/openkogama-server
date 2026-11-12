@@ -12,7 +12,9 @@ public sealed class RequestMaterials(Session session) : IOperationHandler
     {
         if (session.For(peer) is Player player && request.Parameters.TryGetValue((byte)ParameterKey.ProfileID, out object? profile))
         {
-            player.ProfileId = Convert.ToInt32(profile);
+            int claimed = Convert.ToInt32(profile);
+            if (claimed == player.ProfileId || Access.MayClaim(claimed, peer.EndPoint.Address, player.Token)) player.ProfileId = claimed;
+            else Console.WriteLine($"peer {peer.Id}: asked for profile {claimed} without a session for it, keeps profile {player.ProfileId}");
             session.LoadAvatar(player);
         }
 

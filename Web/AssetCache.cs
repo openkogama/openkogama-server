@@ -7,6 +7,7 @@ public sealed class AssetCache(string remoteRoot, string folder)
 {
     static readonly HttpClient Http = new() { DefaultRequestVersion = HttpVersion.Version20, DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrLower };
     const int ParallelDownloads = 32;
+    const int MaxMissing = 10_000;
 
     public static bool Offline { get; set; }
 
@@ -62,7 +63,11 @@ public sealed class AssetCache(string remoteRoot, string folder)
             }
             catch (HttpRequestException error) when (error.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
-                lock (_missing) _missing.Add(path);
+                lock (_missing)
+                {
+                    if (_missing.Count >= MaxMissing) _missing.Clear();
+                    _missing.Add(path);
+                }
                 return null;
             }
         }

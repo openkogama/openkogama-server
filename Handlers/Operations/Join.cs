@@ -35,6 +35,16 @@ public sealed class Join(Session session) : IOperationHandler
         if (request[(byte)ParameterKey.Count] is int tries) player.ReauthTries = tries;
         (int profile, string? nickname) = SessionTokens.Find(player.Token);
         if (profile > 0) player.ProfileId = profile;
+        else if (Access.Remote(peer.EndPoint.Address))
+        {
+            if (!int.TryParse(player.Token, out int claimed) || !Access.MayClaim(claimed, peer.EndPoint.Address, null))
+            {
+                Console.WriteLine($"peer {peer.Id}: joined without a session from this server, disconnected");
+                peer.Disconnect();
+                return;
+            }
+            player.ProfileId = claimed;
+        }
         nickname ??= profile > 0 ? SessionToken.Clean(Storage.Stores.Profiles.Name(profile)) : null;
         if (profile > 0 && Storage.Stores.Profiles.Claimed(profile))
         {

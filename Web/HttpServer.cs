@@ -5,6 +5,8 @@ namespace OpenKogama.Web;
 
 public sealed class HttpServer(string prefix, WebApi api)
 {
+    const long MaxRemoteBody = 16 * 1024 * 1024;
+
     readonly HttpListener _listener = new() { Prefixes = { prefix } };
 
     public void Start() => _listener.Start();
@@ -60,10 +62,17 @@ public sealed class HttpServer(string prefix, WebApi api)
             return;
         }
 
+        bool local = IPAddress.IsLoopback(remote) && !tunneled && forwarded is null;
         using var body = new MemoryStream();
-        if (request.HasEntityBody) request.InputStream.CopyTo(body);
+        if (request.HasEntityBody && !Read(request.InputStream, body, local ? long.MaxValue : MaxRemoteBody))
+        {
+            response.StatusCode = 413;
+            response.Close();
+            return;
+        }
         ApiRequest call = new(request.HttpMethod, path, request.QueryString, request.ContentType, body.ToArray(),
-            IPAddress.IsLoopback(remote) && !tunneled && forwarded is null, via, request.Headers["Content-Encoding"], forwarded ?? (tunneled ? null : remote));
+            local, via, request.Headers["Content-Encoding"], forwarded ?? (tunneled ? null : remote),
+            request.Headers["Origin"] ?? (request.Headers["Sec-Fetch-Site"] is "cross-site" or "same-site" ? "null" : null));
         if (api.Waiting(call) is Task<ApiResponse> waiting)
         {
             waiting.ContinueWith(task =>
@@ -81,6 +90,18 @@ public sealed class HttpServer(string prefix, WebApi api)
         Write(request, response, api.Route(call));
     }
 
+    static bool Read(Stream input, MemoryStream body, long limit)
+    {
+        byte[] buffer = new byte[81920];
+        int read;
+        while ((read = input.Read(buffer)) > 0)
+        {
+            if (body.Length + read > limit) return false;
+            body.Write(buffer, 0, read);
+        }
+        return true;
+    }
+
     static void Write(HttpListenerRequest request, HttpListenerResponse response, ApiResponse result)
     {
         if (Handlers.OperationRouter.Trace) Console.WriteLine($"http {request.HttpMethod} {request.Url?.PathAndQuery} {result.Status} {result.Body.Length}");
@@ -95,7 +116,7 @@ public sealed class HttpServer(string prefix, WebApi api)
     IPAddress? Forwarded(HttpListenerRequest request, IPAddress remote, bool tunneled)
     {
         bool proxy = !tunneled && (IPAddress.IsLoopback(remote) || remote.ToString() == api.ServerInfo.ListenHost);
-        string? client = request.Headers["X-Forwarded-For"]?.Split(',')[0].Trim();
+        string? client = request.Headers["X-Forwarded-For"]?.Split(',')[^1].Trim();
         return proxy && IPAddress.TryParse(client, out IPAddress? address) ? Game.Access.Plain(address) : null;
     }
 }

@@ -43,7 +43,7 @@ try
     var metadata = api.Route(Get("/api/server"));
     using (var json = JsonDocument.Parse(metadata.Body))
     {
-        Check(metadata.Status == 200 && json.RootElement.EnumerateObject().Count() == 8,
+        Check(metadata.Status == 200 && json.RootElement.EnumerateObject().Count() == 9,
             "launcher metadata exposes only its tile fields, address and features");
         Check(json.RootElement.GetProperty("url").ValueKind == JsonValueKind.Null, "a local server gives no address of its own");
         Check(json.RootElement.GetProperty("clients").GetArrayLength() == 0, "every version is accepted when clients is not set");
@@ -249,6 +249,31 @@ try
     using (JsonDocument online = JsonDocument.Parse(Server(AccountMode.Online).Route(Get("/api/server")).Body))
         Check(online.RootElement.GetProperty("features").EnumerateArray().Select(feature => feature.GetString()).Contains("accounts-required"),
             "an online server tells launchers that an account is required");
+    System.Net.IPAddress stranger = System.Net.IPAddress.Parse("203.0.113.9"), neighbour = System.Net.IPAddress.Parse("198.51.100.4");
+    Access.Shared = true;
+    Access.RemoteEdit = false;
+    GameMode publicMode = GameMode.Edit;
+    var publicServer = new WebApi { ServerInfo = new ServerInfo { PublicUrl = "https://example.com", JoinWorld = 7 }, SessionJson = (_, mode, _, _, _) => { publicMode = mode; return "{}"; } };
+    publicServer.Route(Get("/session", ("mode", "edit"), ("name", "Builder")) with { From = stranger });
+    Check(publicMode == GameMode.Play, "a stranger asking a public server for the editor plays instead");
+    Check(!Access.MayEdit(stranger, null) && Access.MayEdit(System.Net.IPAddress.Loopback, null), "only the server's own machine and its admins edit a public server");
+    Check(publicServer.Route(Get("/api/worlds") with { From = stranger }).Status == 403, "a public server keeps world management from strangers without any proxy rule");
+    Check(publicServer.Route(Get("/shutdown") with { From = stranger }).Status == 403, "a stranger cannot shut a public server down");
+    Check(api.Route(Get("/api/worlds/delete", ("id", "7")) with { Method = "POST", Origin = "https://evil.example" }).Status == 403, "a web page cannot manage the local server");
+    Check(!Access.MayClaim(first, stranger, null), "a stranger cannot take an account's profile by its number");
+    Check(!Access.MayClaim(profiles.ForName("Other"), stranger, SessionTokens.Issue(profiles.ForName("Guest"), "Guest")), "a signed in player keeps the profile of the session");
+    string owned = Tickets.Issue(central, 79, "Owner2", "https://example.com");
+    int owner = Joined(publicServer.Route(Get("/session", ("mode", "play"), ("ticket", owned)) with { From = stranger })).Profile;
+    Check(owner > 0 && Access.MayClaim(owner, stranger, null) && !Access.MayClaim(owner, neighbour, null),
+        "an old client keeps the profile its session was issued to, and only from that address");
+    Access.Shared = false;
+    Access.RemoteEdit = true;
+    string bundles = Path.Combine(Path.GetTempPath(), "openkogama-contract-" + Guid.NewGuid());
+    AssetCache.Offline = true;
+    var cache = new AssetCache("https://cdn.invalid/", bundles);
+    Check(cache.Get("/etc/hostname") is null && cache.Get("a/../../x") is null && cache.Get("C:/Windows/win.ini") is null,
+        "bundle paths never leave the bundle folder");
+    AssetCache.Offline = false;
     CentralKey.Current = null;
     Console.WriteLine($"{checks} contract checks passed.");
 }
