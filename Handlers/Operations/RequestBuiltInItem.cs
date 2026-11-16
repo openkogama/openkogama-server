@@ -27,6 +27,11 @@ public sealed class RequestBuiltInItem(Session session) : IOperationHandler
             Scale = Floats(request, ParameterKey.ScaleX, ParameterKey.ScaleY, ParameterKey.ScaleZ),
             Owner = Convert.ToInt32(request[(byte)ParameterKey.OwnerActorNr]),
         };
+        if (obj.ParentId >= obj.Id)
+        {
+            Console.WriteLine($"peer {peer.Id}: refused built-in item {type} under {obj.ParentId}, which is not in the world");
+            return;
+        }
         List<Prototype> prototypes = [];
 
         switch (type)

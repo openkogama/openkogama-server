@@ -69,15 +69,17 @@ public sealed class GameWorld
     List<WorldObject> Subtree(int id, ILookup<int, WorldObject> children)
     {
         var result = new List<WorldObject>();
-        if (Get(id) is WorldObject root) Visit(root);
-        return result;
-
-        void Visit(WorldObject obj)
+        var seen = new HashSet<int>();
+        var pending = new Stack<WorldObject>();
+        if (Get(id) is WorldObject root) pending.Push(root);
+        while (pending.TryPop(out WorldObject? obj))
         {
+            if (!seen.Add(obj.Id)) continue;
             result.Add(obj);
-            foreach (WorldObject child in children[obj.Id].OrderBy(child => child.Id))
-                Visit(child);
+            foreach (WorldObject child in children[obj.Id].OrderByDescending(child => child.Id))
+                pending.Push(child);
         }
+        return result;
     }
 
     void Store(WorldObject obj)

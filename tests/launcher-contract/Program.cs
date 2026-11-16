@@ -205,6 +205,11 @@ try
     tree.Add(light);
     Check(!tree.SetParent(top.Id, light.Id) && !tree.SetParent(group.Id, light.Id) && tree.SetParent(light.Id, top.Id) && tree.HasRootGroup,
         "the root group never gets a parent and nothing moves under its own children");
+    var looped = new OpenKogama.World.WorldObject { Id = tree.NewObjectId(), Type = OpenKogama.World.WorldObjectType.Group };
+    looped.ParentId = looped.Id;
+    tree.Add(looped);
+    Check(tree.Subtree(looped.Id).Count == 1 && tree.Subtree(top.Id).Select(obj => obj.Id).SequenceEqual([top.Id, group.Id, light.Id]),
+        "an object that is its own parent is walked once and a tree is walked parents first");
     Check(!OpenKogama.World.GameWorld.FromData("wiped", null, [new byte[20]]).HasRootGroup, "an emptied world has no root group, so it is neither saved nor loaded");
     var seat = Request(OpenKogama.Kogama.OperationCode.AttachWorldObjectToSeat,
         (OpenKogama.Kogama.ParameterKey.WorldObjectIDs, new Dictionary<object, object?> { [(byte)0] = top.Id, [(byte)4] = group.Id }));

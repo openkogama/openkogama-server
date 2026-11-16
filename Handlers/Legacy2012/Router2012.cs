@@ -952,6 +952,12 @@ public sealed class Router2012
         }
 
         WorldObject obj = WorldObjects2012.Read(request, session.World.NewObjectId(), ProtocolTable.For(Version));
+        if (obj.ParentId >= obj.Id)
+        {
+            Console.WriteLine($"peer {peer.Id}: refused {obj.Type} under {obj.ParentId}, which is not in the world");
+            Reply(peer, request, returnCode: -1);
+            return;
+        }
         if (!AntiCheat.Registers(session, obj))
         {
             Console.WriteLine($"peer {peer.Id}: anti-cheat refused registering {obj.Type} from {player.Username}");

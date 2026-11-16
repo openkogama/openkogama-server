@@ -33,6 +33,12 @@ public sealed class RegisterWorldObject(Session session) : IOperationHandler
             Data = PackedData.FromPhoton(data),
             Owner = owner == 0 ? null : owner,
         };
+        if (obj.ParentId >= obj.Id)
+        {
+            Console.WriteLine($"peer {peer.Id}: refused {obj.Type} under {obj.ParentId}, which is not in the world");
+            peer.Send(new OperationResponse(request) { ReturnCode = -1 });
+            return;
+        }
         session.World.Add(obj);
         session.World.MarkChanged();
 
