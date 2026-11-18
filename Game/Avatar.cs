@@ -36,8 +36,10 @@ public static class Avatar
         foreach (AvatarPart part in parts)
         {
             if (children.Find(child => child.Key == part.Bone).Value is not int partId) continue;
+            var cubes = CubeModel.FromBytes(part.CubeData);
+            if (cubes.Count == 0) continue;
 
-            var prototype = new Prototype(world.NewPrototypeId(), part.Scale, 1, CubeModel.FromBytes(part.CubeData));
+            var prototype = new Prototype(world.NewPrototypeId(), part.Scale, 1, cubes);
             world.Add(prototype);
             world.Modify(partId, obj =>
             {
@@ -81,6 +83,7 @@ public static class Avatar
         foreach ((string bone, _, object id) in children)
         {
             if (world.Find((int)id)?.PrototypeId is not int prototypeId || world.FindPrototype(prototypeId) is not { } prototype) continue;
+            if (prototype.Cubes.Count == 0) continue;
             parts.Add(new AvatarPart { Bone = bone, Scale = prototype.Scale, Cubes = Convert.ToBase64String(prototype.Cubes.ToBytes()) });
         }
         return parts;
