@@ -8,22 +8,34 @@ public static class WorldConverter
 
     public static GameWorld Load(string path) => Convert(keep => GameWorld.Load(path, keep), Is2015, out _);
 
+    public static GameWorld LoadMap(string path)
+    {
+        GameWorld world = Convert(keep => GameWorld.Load(path, keep), KnownByAnyVersion(), out Dictionary<int, int> dropped);
+        if (dropped.Count > 0)
+            Console.WriteLine($"{Path.GetFileName(path)}: dropped {string.Join(", ", dropped.Select(pair => $"type {pair.Key} x{pair.Value}"))}");
+        return world;
+    }
+
     public static GameWorld Import(byte[] file, string? client, out Dictionary<int, int> dropped)
+    {
+        GameWorld world = Convert(keep => GameWorld.Read(file, keep), KnownByAnyVersion(), out dropped);
+        foreach (WorldObject obj in world.ToSnapshot().Objects.Where(obj => obj.Type == WorldObjectType.TextMsg))
+            world.Modify(obj.Id, text => TextEras.ForClient(text, client));
+        return world;
+    }
+
+    static Func<WorldObject, bool> KnownByAnyVersion()
     {
         List<ProtocolTable> tables = [.. ProtocolTable.Native()];
         var known = new Dictionary<(WorldObjectType, object?), bool>();
-        bool Supported(WorldObject obj)
+        return obj =>
         {
             if (obj.Type is WorldObjectType.Avatar or WorldObjectType.BuildModeAvatar) return false;
             var key = (obj.Type, obj.Data.Find(pair => pair.Key == "itemType").Value);
             if (!known.TryGetValue(key, out bool result))
                 known[key] = result = tables.Any(table => Game.Items.KnownBy(obj, table));
             return result;
-        }
-        GameWorld world = Convert(keep => GameWorld.Read(file, keep), Supported, out dropped);
-        foreach (WorldObject obj in world.ToSnapshot().Objects.Where(obj => obj.Type == WorldObjectType.TextMsg))
-            world.Modify(obj.Id, text => TextEras.ForClient(text, client));
-        return world;
+        };
     }
 
     static bool Is2015(WorldObject obj) => Supported2015.Contains((int)obj.Type);

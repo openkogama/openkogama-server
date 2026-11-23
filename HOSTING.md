@@ -67,6 +67,8 @@ The server reads its program files from `app` and keeps everything else in the f
 
 To bring your own worlds, close the launcher and copy `%LocalAppData%\OpenKogama\OpenKogama Launcher\server\server.db` into the data folder.
 
+To start with one map instead, put it in the data folder as `worlds/default.kgmap` while there is no `server.db` yet, and the server makes it its first world, called My World. A `.kgm` file works too under the same name. Deleting `server.db` later starts over with the map that is there then, and also deletes every world and profile.
+
 ## 3. Run it
 
 **Windows**, from the data folder:

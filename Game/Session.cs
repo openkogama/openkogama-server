@@ -325,9 +325,7 @@ public sealed partial class Session
     {
         if (Stores.Worlds.List().Count > 0) return;
 
-        GameWorld world = File.Exists(LegacyPath)
-            ? GameWorld.Load(LegacyPath)
-            : WorldConverter.Load(TemplatePath);
+        GameWorld world = WorldConverter.LoadMap(File.Exists(LegacyPath) ? LegacyPath : TemplatePath);
         Stores.Worlds.Create("My World", 0, world.ToData());
     }
 }
